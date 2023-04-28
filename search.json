@@ -30,37 +30,65 @@
   {
     "objectID": "posts/20230428_inpars/index.html",
     "href": "posts/20230428_inpars/index.html",
-    "title": "InPars 論文解読",
+    "title": "Post With Code",
     "section": "",
-    "text": "論文URL：https://arxiv.org/abs/2202.05144"
+    "text": "論文URL：https://arxiv.org/abs/2202.05144\n\n\nLLMは高性能を誇るものの、情報検索（IR）への応用が制限されている理由として、大規模な計算量が必要であることと、コストが高いことが挙げられる。GPT-3の埋め込みサービスを利用する場合、すべてのテキストを少なくとも1回は処理する必要があり、件数が多い場合、コストが膨大になることが問題となる。\nまた、学習データにも課題が存在し、現存するデータが商用利用に適さないものが多く、また、既存のデータを用いて学習したモデルが他の領域に汎用性を持たないという問題がある。\nこの論文では、検索推論にLLMを直接使用するのではなく、LLMを用いて擬似データ（Pseudo data）を生成し、そのデータを使ってランキングモデルを学習する手法を提案している。\n\n\n\nこれまで情報検索（IR）領域におけるデータ生成の研究では、BM25を用いて類似度が高いドキュメントをペアとしてモデルを学習する研究が存在する。また、教師ありのモデルでテキストからQueryを生成し、それとテキストのペアを学習データとする研究もあった。\nこの研究の特徴として、モデルを学習させなく、LLMからFew-shotでデータを生成したこと（ちょっと新奇性が足りていない気がする）。\n\n\n\n以下はInParsのステップ：\n\n複数のドキュメントとクエリーのペアが存在すると仮定する。それを例として、Few-shotでLLMでドキュメントに関連するクエリーを生成してもらう。(\n詳細は4.2で紹介する）\n生成したドキュメントとクエリーのペアについて、LLMが出力する際に出している結果のLog probabilityが上位のものを選択する。ちなみに、このステップが大きく精度を改善した。\n生成したqとdのペアを学習データとしてRerankのモデルをFine-tuningする。（詳細は4.3で紹介する）\n\n\n\n\n\n\n\n今回使用したデータセットは以下：\n\nMS MARCO：Microsoftが出したBingの実際のユーザログをベースとした大型データセット。880万のドキュメントと50万のドキュメントとクエリーのペアがある。各クエリーが平均的に1ドキュメントに対応する。\nTREC-DL：MS MARCOと同じドキュメントを持っているが、クエリーは54件のみである。また、各クエリーについてアノテーションしたドキュメントが多い。\nRobust04：新聞領域のデータセット。52万のドキュメントがあり、249クエリーがある。各クエリーに対して、平均的に1250件のドキュメントをアノテーションした。\nNatural Questions：260万件のWikipediaテキストをベースとしたQuestion Answer データセット。QuestionはGoogleの検索エンジンのログから作ったもの。\nTREC-COVID：コロナの情報に関するデータセット\n\n\n\n\n各学習データは（Query, Positive document, Negative document）のTripleによって構成させる。その生成のステップは以下：\n\n10万のドキュメントをサンプリングし、GPT3のCurieでQueryを生成させる。\n最終的にLog probabilityが上位の1万件のペアのみ学習データとして使う。\nBM25で検索した1000件の中でランダムに1件を抽出し、それをNegative Documentとする。（このやり方で多くのノイズを入れてしまうのでは？）\n\n以下は２点の補足：\n\n生成する際に温度とTopーPのパラメータ設定は結果に有意の影響しない。\n長さが300文字のドキュメントは捨てられる。\n\nQuery生成する際にPromptの書き方は2つを利用した（Figure２)：\n\n一般方法（Vanilla)：MS MARCOからランダムに3つのデータを抽出し、それを例として、FewーshotでQueryを生成させる。\nGBQ（Guided by Bad Questions）：一般方法と同じように、MS MARCOからランダムに3つのデータを抽出する。しかし、MS MARCOのQueryが漠然すぎるため、それをBad questionとして提示する。Documentを読んで、より関連するGood Questionを手動で作った。（Document, Good Question, Bad Question)で例を提示し、生成したGood QuestionをQueryとする。\n\n\n\n\n\n２段階の検索を採用している。まずBM25で上位1000のドキュメントを取り出す。その次、MonoT5を使ってRerankingをする。\nMonoT5はTransformerのEncoderとDecoder両方とも使っているモデルで、Cross-Encoderモデルである。今回の実験では、サイズは220Mと3Bのモデルでテストした。\n各データセットにおいて作成された擬似データでMonoT5をFine-tuningした。\n\n\n\n\n\n7,8行目を見ると、BM25やContriever等の以前のUnsupervised結果より優れていることがわかる。また、16行目はMS MARCOでFine-tuningした後さらに擬似データでFine-tuningした結果。幾つかのデータセットで単純にMS MARCOでFine-tuningするより良い結果が出ている。\n\n\n\n6.1 Prompt Selection and Source Corpus\n比較対象が混乱のため、何が言いたいかがわからなかった。\n6.2 Model Size Impact on IR Metrics\n当たり前だけど、Questionを生成するモデルのサイズが大きいほど結果がよくなる。\n6.3 Filtering by the Most Likely Questions\nTop1万件のデータを利用することにより精度が向上した。\n6.4 Was GPT-3 Trained on Supervised IR Data?\n生成したQuestionがどのぐらい実際のMS MARCOデータにあるかで、GPT3の学習データにMS MARCOのデータを含まれているかを検証した。結果としては多くても10％前後のため影響がない。（検証のやり方が正しいかが疑問）\n\n\n\n本文は、LLMを利用してQueryを生成して、生成したQueryとドキュメントのペアを学習データでモデルを学習する手法を提案した。\n今後の改善点としては、\n\n擬似データでDense RetrieverをFine-tuningする（今回はRerankerのみ）\nデータを生成する際に作った”BAD question”をNegative exampleとして使用する\n擬似データの数を増やす\n（Query, Document)のペアを探すもっと良い手法を開発する"
   },
   {
-    "objectID": "posts/20230428_inpars/index.html#datasets",
-    "href": "posts/20230428_inpars/index.html#datasets",
-    "title": "InPars 論文解読",
-    "section": "4.1 Datasets",
-    "text": "4.1 Datasets\n今回使用したデータセットは以下：\n\nMS MARCO：Microsoftが出したBingの実際のユーザログをベースとした大型データセット。880万のドキュメントと50万のドキュメントとクエリーのペアがある。各クエリーが平均的に1ドキュメントに対応する。\nTREC-DL：MS MARCOと同じドキュメントを持っているが、クエリーは54件のみである。また、各クエリーについてアノテーションしたドキュメントが多い。\nRobust04：新聞領域のデータセット。52万のドキュメントがあり、249クエリーがある。各クエリーに対して、平均的に1250件のドキュメントをアノテーションした。\nNatural Questions：260万件のWikipediaテキストをベースとしたQuestion Answer データセット。QuestionはGoogleの検索エンジンのログから作ったもの。\nTREC-COVID：コロナの情報に関するデータセット"
+    "objectID": "posts/20230428_inpars/index.html#introduction",
+    "href": "posts/20230428_inpars/index.html#introduction",
+    "title": "Post With Code",
+    "section": "",
+    "text": "LLMは高性能を誇るものの、情報検索（IR）への応用が制限されている理由として、大規模な計算量が必要であることと、コストが高いことが挙げられる。GPT-3の埋め込みサービスを利用する場合、すべてのテキストを少なくとも1回は処理する必要があり、件数が多い場合、コストが膨大になることが問題となる。\nまた、学習データにも課題が存在し、現存するデータが商用利用に適さないものが多く、また、既存のデータを用いて学習したモデルが他の領域に汎用性を持たないという問題がある。\nこの論文では、検索推論にLLMを直接使用するのではなく、LLMを用いて擬似データ（Pseudo data）を生成し、そのデータを使ってランキングモデルを学習する手法を提案している。"
   },
   {
-    "objectID": "posts/20230428_inpars/index.html#training-data-generation",
-    "href": "posts/20230428_inpars/index.html#training-data-generation",
-    "title": "InPars 論文解読",
-    "section": "4.2 Training Data Generation",
-    "text": "4.2 Training Data Generation\n各学習データは（Query, Positive document, Negative document）のTripleによって構成させる。その生成のステップは以下：\n\n10万のドキュメントをサンプリングし、GPT3のCurieでQueryを生成させる。\n最終的にLog probabilityが上位の1万件のペアのみ学習データとして使う。\nBM25で検索した1000件の中でランダムに1件を抽出し、それをNegative Documentとする。（このやり方で多くのノイズを入れてしまうのでは？）\n\n以下は２点の補足：\n\n生成する際に温度とTopーPのパラメータ設定は結果に有意の影響しない。\n長さが300文字のドキュメントは捨てられる。\n\nQuery生成する際にPromptの書き方は2つを利用した（Figure２)：\n\n一般方法（Vanilla)：MS MARCOからランダムに3つのデータを抽出し、それを例として、FewーshotでQueryを生成させる。\nGBQ（Guided by Bad Questions）：一般方法と同じように、MS MARCOからランダムに3つのデータを抽出する。しかし、MS MARCOのQueryが漠然すぎるため、それをBad questionとして提示する。Documentを読んで、より関連するGood Questionを手動で作った。（Document, Good Question, Bad Question)で例を提示し、生成したGood QuestionをQueryとする。"
+    "objectID": "posts/20230428_inpars/index.html#related-work",
+    "href": "posts/20230428_inpars/index.html#related-work",
+    "title": "Post With Code",
+    "section": "",
+    "text": "これまで情報検索（IR）領域におけるデータ生成の研究では、BM25を用いて類似度が高いドキュメントをペアとしてモデルを学習する研究が存在する。また、教師ありのモデルでテキストからQueryを生成し、それとテキストのペアを学習データとする研究もあった。\nこの研究の特徴として、モデルを学習させなく、LLMからFew-shotでデータを生成したこと（ちょっと新奇性が足りていない気がする）。"
   },
   {
-    "objectID": "posts/20230428_inpars/index.html#retrieval-methods",
-    "href": "posts/20230428_inpars/index.html#retrieval-methods",
-    "title": "InPars 論文解読",
-    "section": "4.3 Retrieval Methods",
-    "text": "4.3 Retrieval Methods\n２段階の検索を採用している。まずBM25で上位1000のドキュメントを取り出す。その次、MonoT5を使ってRerankingをする。\nMonoT5はTransformerのEncoderとDecoder両方とも使っているモデルで、Cross-Encoderモデルである。今回の実験では、サイズは220Mと3Bのモデルでテストした。\n各データセットにおいて作成された擬似データでMonoT5をFine-tuningした。"
+    "objectID": "posts/20230428_inpars/index.html#our-method-inpars",
+    "href": "posts/20230428_inpars/index.html#our-method-inpars",
+    "title": "Post With Code",
+    "section": "",
+    "text": "以下はInParsのステップ：\n\n複数のドキュメントとクエリーのペアが存在すると仮定する。それを例として、Few-shotでLLMでドキュメントに関連するクエリーを生成してもらう。(\n詳細は4.2で紹介する）\n生成したドキュメントとクエリーのペアについて、LLMが出力する際に出している結果のLog probabilityが上位のものを選択する。ちなみに、このステップが大きく精度を改善した。\n生成したqとdのペアを学習データとしてRerankのモデルをFine-tuningする。（詳細は4.3で紹介する）"
+  },
+  {
+    "objectID": "posts/20230428_inpars/index.html#experimental-setup",
+    "href": "posts/20230428_inpars/index.html#experimental-setup",
+    "title": "Post With Code",
+    "section": "",
+    "text": "今回使用したデータセットは以下：\n\nMS MARCO：Microsoftが出したBingの実際のユーザログをベースとした大型データセット。880万のドキュメントと50万のドキュメントとクエリーのペアがある。各クエリーが平均的に1ドキュメントに対応する。\nTREC-DL：MS MARCOと同じドキュメントを持っているが、クエリーは54件のみである。また、各クエリーについてアノテーションしたドキュメントが多い。\nRobust04：新聞領域のデータセット。52万のドキュメントがあり、249クエリーがある。各クエリーに対して、平均的に1250件のドキュメントをアノテーションした。\nNatural Questions：260万件のWikipediaテキストをベースとしたQuestion Answer データセット。QuestionはGoogleの検索エンジンのログから作ったもの。\nTREC-COVID：コロナの情報に関するデータセット\n\n\n\n\n各学習データは（Query, Positive document, Negative document）のTripleによって構成させる。その生成のステップは以下：\n\n10万のドキュメントをサンプリングし、GPT3のCurieでQueryを生成させる。\n最終的にLog probabilityが上位の1万件のペアのみ学習データとして使う。\nBM25で検索した1000件の中でランダムに1件を抽出し、それをNegative Documentとする。（このやり方で多くのノイズを入れてしまうのでは？）\n\n以下は２点の補足：\n\n生成する際に温度とTopーPのパラメータ設定は結果に有意の影響しない。\n長さが300文字のドキュメントは捨てられる。\n\nQuery生成する際にPromptの書き方は2つを利用した（Figure２)：\n\n一般方法（Vanilla)：MS MARCOからランダムに3つのデータを抽出し、それを例として、FewーshotでQueryを生成させる。\nGBQ（Guided by Bad Questions）：一般方法と同じように、MS MARCOからランダムに3つのデータを抽出する。しかし、MS MARCOのQueryが漠然すぎるため、それをBad questionとして提示する。Documentを読んで、より関連するGood Questionを手動で作った。（Document, Good Question, Bad Question)で例を提示し、生成したGood QuestionをQueryとする。\n\n\n\n\n\n２段階の検索を採用している。まずBM25で上位1000のドキュメントを取り出す。その次、MonoT5を使ってRerankingをする。\nMonoT5はTransformerのEncoderとDecoder両方とも使っているモデルで、Cross-Encoderモデルである。今回の実験では、サイズは220Mと3Bのモデルでテストした。\n各データセットにおいて作成された擬似データでMonoT5をFine-tuningした。"
+  },
+  {
+    "objectID": "posts/20230428_inpars/index.html#results",
+    "href": "posts/20230428_inpars/index.html#results",
+    "title": "Post With Code",
+    "section": "",
+    "text": "7,8行目を見ると、BM25やContriever等の以前のUnsupervised結果より優れていることがわかる。また、16行目はMS MARCOでFine-tuningした後さらに擬似データでFine-tuningした結果。幾つかのデータセットで単純にMS MARCOでFine-tuningするより良い結果が出ている。"
+  },
+  {
+    "objectID": "posts/20230428_inpars/index.html#ablation-study-and-analysis",
+    "href": "posts/20230428_inpars/index.html#ablation-study-and-analysis",
+    "title": "Post With Code",
+    "section": "",
+    "text": "6.1 Prompt Selection and Source Corpus\n比較対象が混乱のため、何が言いたいかがわからなかった。\n6.2 Model Size Impact on IR Metrics\n当たり前だけど、Questionを生成するモデルのサイズが大きいほど結果がよくなる。\n6.3 Filtering by the Most Likely Questions\nTop1万件のデータを利用することにより精度が向上した。\n6.4 Was GPT-3 Trained on Supervised IR Data?\n生成したQuestionがどのぐらい実際のMS MARCOデータにあるかで、GPT3の学習データにMS MARCOのデータを含まれているかを検証した。結果としては多くても10％前後のため影響がない。（検証のやり方が正しいかが疑問）"
+  },
+  {
+    "objectID": "posts/20230428_inpars/index.html#conclusion-and-future-work",
+    "href": "posts/20230428_inpars/index.html#conclusion-and-future-work",
+    "title": "Post With Code",
+    "section": "",
+    "text": "本文は、LLMを利用してQueryを生成して、生成したQueryとドキュメントのペアを学習データでモデルを学習する手法を提案した。\n今後の改善点としては、\n\n擬似データでDense RetrieverをFine-tuningする（今回はRerankerのみ）\nデータを生成する際に作った”BAD question”をNegative exampleとして使用する\n擬似データの数を増やす\n（Query, Document)のペアを探すもっと良い手法を開発する"
   },
   {
     "objectID": "index.html",
     "href": "index.html",
     "title": "自然言語処理技術ブログ",
     "section": "",
-    "text": "Order By\n       Default\n         \n          Title\n        \n         \n          Date - Oldest\n        \n         \n          Date - Newest\n        \n     \n  \n    \n      \n      \n    \n\n\n\n\n  \n\n\n\n\nInPars 論文解読\n\n\n\n\n\n\n\n\n\n\n\n\n1 min\n\n\n\n\n\n\n  \n\n\n\n\nPost With Code\n\n\n\n\n\n\n\nnews\n\n\ncode\n\n\nanalysis\n\n\n\n\n\n\n\n\n\n\n\nApr 27, 2023\n\n\n1 min\n\n\n\n\n\n\nNo matching items"
+    "text": "Order By\n       Default\n         \n          Title\n        \n         \n          Date - Oldest\n        \n         \n          Date - Newest\n        \n     \n  \n    \n      \n      \n    \n\n\n\n\n  \n\n\n\n\nPost With Code\n\n\n\n\n\n\n\nNLP\n\n\nInformation_retrieval\n\n\npaper\n\n\n\n\n\n\n\n\n\n\n\nApr 29, 2023\n\n\n1 min\n\n\n\n\n\n\n  \n\n\n\n\nPost With Code\n\n\n\n\n\n\n\nnews\n\n\ncode\n\n\nanalysis\n\n\n\n\n\n\n\n\n\n\n\nApr 27, 2023\n\n\n1 min\n\n\n\n\n\n\nNo matching items"
   },
   {
     "objectID": "about.html",
