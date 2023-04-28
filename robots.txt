@@ -1,1 +1,1 @@
-Sitemap: https://DayuanJiang.github.io/japanese_blog/sitemap.xml
+Sitemap: https://jiang.jp/sitemap.xml

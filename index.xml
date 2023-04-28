@@ -6,14 +6,14 @@
       version="2.0">
 <channel>
 <title>blog</title>
-<link>https://DayuanJiang.github.io/japanese_blog/index.html</link>
-<atom:link href="https://DayuanJiang.github.io/japanese_blog/index.xml" rel="self" type="application/rss+xml"/>
+<link>https://jiang.jp/index.html</link>
+<atom:link href="https://jiang.jp/index.xml" rel="self" type="application/rss+xml"/>
 <description></description>
 <generator>quarto-1.3.340</generator>
 <lastBuildDate>Wed, 26 Apr 2023 15:00:00 GMT</lastBuildDate>
 <item>
   <title>Post With Code</title>
-  <link>https://DayuanJiang.github.io/japanese_blog/posts/jupyter-test/index.html</link>
+  <link>https://jiang.jp/posts/jupyter-test/index.html</link>
   <description><![CDATA[ 
 
 
@@ -173,7 +173,7 @@ background-color: null;
 font-style: inherit;">'lower right'</span>)</span>
 <span id="cb3-19">plt.show(fig)</span></code></pre></div>
 <div class="cell-output cell-output-display">
-<p><img src="https://DayuanJiang.github.io/japanese_blog/posts/jupyter-test/index_files/figure-html/cell-3-output-1.png" class="img-fluid"></p>
+<p><img src="https://jiang.jp/posts/jupyter-test/index_files/figure-html/cell-3-output-1.png" class="img-fluid"></p>
 </div>
 </div>
 </section>
@@ -276,7 +276,7 @@ if (outputEl) {{
   <category>news</category>
   <category>code</category>
   <category>analysis</category>
-  <guid>https://DayuanJiang.github.io/japanese_blog/posts/jupyter-test/index.html</guid>
+  <guid>https://jiang.jp/posts/jupyter-test/index.html</guid>
   <pubDate>Wed, 26 Apr 2023 15:00:00 GMT</pubDate>
 </item>
 </channel>
