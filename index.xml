@@ -279,5 +279,123 @@ if (outputEl) {{
   <guid>https://jiang.jp/posts/jupyter-test/index.html</guid>
   <pubDate>Wed, 26 Apr 2023 15:00:00 GMT</pubDate>
 </item>
+<item>
+  <title></title>
+  <link>https://jiang.jp/posts/20230428_inpars/index.html</link>
+  <description><![CDATA[ 
+
+
+
+<section id="inpars-data-augmentation-for-information-retrieval-using-large-language-models.pdf" class="level1">
+<h1>InPars Data Augmentation for Information Retrieval using Large Language Models.pdf</h1>
+</section>
+<section id="introduction" class="level1">
+<h1>1. Introduction</h1>
+<p>LLMの性能が良いが、推論に必要な計算量が大きいためあまりIR（情報検索）に使われていない。また費用も1つの課題。GPT3のEmbedingサービスを使う場合は、少なくとも全てのテキストを一回通す必要があるため、件数が多いと膨大な費用がかかる。</p>
+<p>また、データ側にも問題がある。現存のデータが商用不能なものが多いし、かつ既存のデータで学習したものが他の領域に汎化できない課題がある。</p>
+<p>この論文は検索の推論の中でLLMを使うではなく、LLMで偽データを生成し、そのデータでランキングモデルを学習する手法を提案した。</p>
+</section>
+<section id="related-work" class="level1">
+<h1>2. Related work</h1>
+<p>今までIR領域でデータを作る研究としては、BM25を使って類似度が高いドキュメントをペアとしてモデルを学習する研究がある。また、教師ありのモデルでテキストからQueryを生成し、それとテキストのペアを学習データとする研究もあった。</p>
+<p>この研究と既往研究との違いとしては、以前Zeroーshotで翻訳データを生成する研究を参考し、学習なして、LLMからZeroーshotでデータを生成したこと（ちょっと新奇性が足りてない気がする）。</p>
+</section>
+<section id="our-method-inpars" class="level1">
+<h1>3. Our Method: InPars</h1>
+<ol type="1">
+<li>複数のドキュメントdとクエリーqのペアが存在すると仮定する。それを例として、Few-shotでLLMでドキュメントに関連するクエリーを生成してもらう。</li>
+<li>生成したドキュメントとクエリーのペアについて、LLMが出力する際に出している結果のLog probabilityが上位のものを選択する（このステップが大きく精度を改善している）</li>
+<li>生成したqとdのペアを学習データとしてretrievalモデルをFine-tuningする。</li>
+</ol>
+</section>
+<section id="experimental-setup" class="level1">
+<h1>4. Experimental Setup</h1>
+<section id="datasets" class="level2">
+<h2 class="anchored" data-anchor-id="datasets">4.1 Datasets</h2>
+<section id="ms-marco" class="level3">
+<h3 class="anchored" data-anchor-id="ms-marco">MS MARCO</h3>
+<p>Microsoftが出したBingの実際のユーザログをベースとした大型データセット。880万のドキュメントと50万のドキュメントとクエリーのペアがある。各クエリーが平均的に1ドキュメントに対応する。</p>
+</section>
+<section id="trec-dl" class="level3">
+<h3 class="anchored" data-anchor-id="trec-dl">TREC-DL</h3>
+<p>MS MARCOと同じドキュメントを持っているが、クエリーは54件のみ、また、各クエリーについてアノテーションしたドキュメントが多い。</p>
+</section>
+<section id="robust04" class="level3">
+<h3 class="anchored" data-anchor-id="robust04">Robust04</h3>
+<p>新聞領域のデータセット。52万のドキュメントがあり、249クエリーがある。各クエリーに対して、平均的に1250件のドキュメントをアノテーションした。</p>
+</section>
+<section id="natural-questions" class="level3">
+<h3 class="anchored" data-anchor-id="natural-questions">Natural Questions</h3>
+<p>260万件のWikipediaテキストをベースとしたQuestion Answer データセット。QuestionはGoogleの検索エンジンのログから作ったもの。</p>
+</section>
+<section id="trec-covid" class="level3">
+<h3 class="anchored" data-anchor-id="trec-covid">TREC-COVID</h3>
+<p>コロナの情報に関するデータセット</p>
+</section>
+</section>
+<section id="training-data-generation" class="level2">
+<h2 class="anchored" data-anchor-id="training-data-generation">4.2 Training Data Generation</h2>
+<p>各学習データは（Query, Positive document, Negative document）のTripleによって構成させる。</p>
+<p>10万のドキュメントをサンプリングし、GPT3のCurieでQueryを生成させる。最終的にLog probabilityが上位の1万件のペアのみ学習データとして使う。</p>
+<p>生成する際に温度とTopーPのパラメータ設定は結果に影響しない。</p>
+<p>長さが300文字のドキュメントは捨てられる。</p>
+<p>BM25で検索した1000件の中でランダムに1件を抽出し、それをNegative Documentとする。（このやり方で多くのノイズを入れてしまうのでは？）</p>
+<p>Query生成する際にPromptの書き方：</p>
+<p>一般方法（Vanilla)：</p>
+<p>MS MARCOからランダムに3つのデータを抽出し、それを例として、FewーshotでQueryを生成させる。</p>
+<p>GBQ（Guided by Bad Questions）：</p>
+<p>一般方法と同じように、MS MARCOからランダムに3つのデータを抽出する。しかし、MS MARCOのQueryが漠然すぎるため、それをBad questionとして提示する。Documentを読んで、より関連するGood Questionを手動で作った。（Document, Good Question, Bad Question)で例を提示し、生成したGood QuestionをQueryとする。</p>
+<p>4.3 Retrieval Methods</p>
+<p>２段階の検索にしている。まずBM25で上位1000のドキュメントを取り出す。その次、MonoT5を使ってRerankingをする。</p>
+<p>MonoT5はTransfromerのEncoderとDecoder両方とも使っているモデル。IR領域のCrossーEncoderモデルである。今回はサイズは220Mと3Bのモデルをテストした。</p>
+<p>各データセットで作った偽データでFine-tuningした。</p>
+</section>
+</section>
+<section id="results" class="level1">
+<h1>5 Results</h1>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://jiang.jp/posts/20230428_inpars/InPars Data Augmentation for Information Retrieval 0b683a64d1854d4a87243827e2cde107/Untitled 1.png" class="img-fluid figure-img"></p>
+<figcaption class="figure-caption">Untitled</figcaption>
+</figure>
+</div>
+<p>以前のUnsupervised結果より優れている。また、16行目のMS MARCOでFine-tuningした後さらに偽データでFineーtuningした結果。単純にMS MARCOでFine-tuningするよりいい結果が出ている。</p>
+</section>
+<section id="ablation-study-and-analysis" class="level1">
+<h1>6 Ablation Study and Analysis</h1>
+<p>6.1 Prompt Selection and Source Corpus</p>
+<p>比較が混乱のため、何が言いたいかがわからなかった。</p>
+<p>6.2 Model Size Impact on IR Metrics</p>
+<p>当たり前だけど、Questionを生成するモデルのサイズが大きいほど結果がよくなる。</p>
+<p>6.3 Filtering by the Most Likely Questions</p>
+<p>Top1万件のデータを利用することにより精度が向上した。</p>
+<p>6.4 Was GPT-3 Trained on Supervised IR Data?</p>
+<p>生成したQuestionがどのぐらい実際のMS MARCOデータにあるかで、GPT3の学習データにMS MARCOのデータを含まれているかを検証した。結果としては多くても10％前後のため影響がない。（検証のやり方が正しいかが疑問）</p>
+</section>
+<section id="conclusion-and-future-work" class="level1">
+<h1>7 Conclusion and Future Work</h1>
+<p>本文は、LLMを利用してQueryを生成して、生成したQueryとドキュメントのペアを学習データでモデルを学習する手法を提案した。</p>
+<p>今後の改善点としては、</p>
+<ol type="1">
+<li>偽データでDense RetrieverをFine-tuningする（すでにやったのでは？）</li>
+<li>データを生成する際に作った”BAD question”をNegative exampleとして使用する</li>
+<li>偽データの数を増やす</li>
+<li>（Query, Document)のペアを探すもっと良い手法を開発する</li>
+</ol>
+<p><a href="https://medium.com/@nils_reimers/openai-gpt-3-text-embeddings-really-a-new-state-of-the-art-in-dense-text-embeddings-6571fe3ec9d9">https://medium.com/<span class="citation" data-cites="nils_reimers/openai-gpt-3-text-embeddings-really-a-new-state-of-the-art-in-dense-text-embeddings-6571fe3ec9d9">@nils_reimers/openai-gpt-3-text-embeddings-really-a-new-state-of-the-art-in-dense-text-embeddings-6571fe3ec9d9</span></a></p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://jiang.jp/posts/20230428_inpars/InPars Data Augmentation for Information Retrieval 0b683a64d1854d4a87243827e2cde107/Untitled 2.png" class="img-fluid figure-img"></p>
+<figcaption class="figure-caption">Untitled</figcaption>
+</figure>
+</div>
+
+
+</section>
+
+ ]]></description>
+  <guid>https://jiang.jp/posts/20230428_inpars/index.html</guid>
+  <pubDate>Fri, 28 Apr 2023 09:24:14 GMT</pubDate>
+</item>
 </channel>
 </rss>

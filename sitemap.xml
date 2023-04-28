@@ -2,14 +2,18 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://jiang.jp/posts/jupyter-test/index.html</loc>
-    <lastmod>2023-04-28T06:14:50.483Z</lastmod>
+    <lastmod>2023-04-28T09:24:13.784Z</lastmod>
+  </url>
+  <url>
+    <loc>https://jiang.jp/posts/20230428_inpars/index.html</loc>
+    <lastmod>2023-04-28T09:24:14.206Z</lastmod>
   </url>
   <url>
     <loc>https://jiang.jp/index.html</loc>
-    <lastmod>2023-04-28T06:14:50.997Z</lastmod>
+    <lastmod>2023-04-28T09:24:14.691Z</lastmod>
   </url>
   <url>
     <loc>https://jiang.jp/about.html</loc>
-    <lastmod>2023-04-28T06:14:51.416Z</lastmod>
+    <lastmod>2023-04-28T09:24:15.049Z</lastmod>
   </url>
 </urlset>
