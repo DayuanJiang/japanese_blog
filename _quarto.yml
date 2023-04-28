@@ -8,10 +8,10 @@ website:
       - about.qmd
       - icon: linkedin
         href: http://www.linkedin.com/in/jiang-dayuan
+    page-footer: "Copyright 2021, Norah Jones" 
 format:
   html:
     theme: cosmo
     css: styles.css
-
 
 
