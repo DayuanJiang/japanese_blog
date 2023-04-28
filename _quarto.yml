@@ -6,10 +6,8 @@ website:
   navbar:
     right:
       - about.qmd
-      - icon: github
-        href: https://github.com/
-      - icon: twitter
-        href: https://twitter.com
+      - icon: linkedin
+        href: http://www.linkedin.com/in/jiang-dayuan
 format:
   html:
     theme: cosmo
