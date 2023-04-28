@@ -28,25 +28,39 @@
     "text": "Plotly\n\nimport plotly.io as pio\npio.renderers.default = \"plotly_mimetype+notebook_connected\"\nimport plotly.express as px\nimport plotly.io as pio\ngapminder = px.data.gapminder()\ngapminder2007 = gapminder.query(\"year == 2007\")\nfig = px.scatter(gapminder2007, \n                 x=\"gdpPercap\", y=\"lifeExp\", color=\"continent\", \n                 size=\"pop\", size_max=60,\n                 hover_name=\"country\")\nfig.show()"
   },
   {
+    "objectID": "posts/20230428_inpars/index.html",
+    "href": "posts/20230428_inpars/index.html",
+    "title": "InPars 論文解読",
+    "section": "",
+    "text": "論文URL：https://arxiv.org/abs/2202.05144"
+  },
+  {
     "objectID": "posts/20230428_inpars/index.html#datasets",
     "href": "posts/20230428_inpars/index.html#datasets",
-    "title": "InPars Data Augmentation for Information Retrieval using Large Language Models.pdf",
+    "title": "InPars 論文解読",
     "section": "4.1 Datasets",
-    "text": "4.1 Datasets\n\nMS MARCO\nMicrosoftが出したBingの実際のユーザログをベースとした大型データセット。880万のドキュメントと50万のドキュメントとクエリーのペアがある。各クエリーが平均的に1ドキュメントに対応する。\n\n\nTREC-DL\nMS MARCOと同じドキュメントを持っているが、クエリーは54件のみ、また、各クエリーについてアノテーションしたドキュメントが多い。\n\n\nRobust04\n新聞領域のデータセット。52万のドキュメントがあり、249クエリーがある。各クエリーに対して、平均的に1250件のドキュメントをアノテーションした。\n\n\nNatural Questions\n260万件のWikipediaテキストをベースとしたQuestion Answer データセット。QuestionはGoogleの検索エンジンのログから作ったもの。\n\n\nTREC-COVID\nコロナの情報に関するデータセット"
+    "text": "4.1 Datasets\n今回使用したデータセットは以下：\n\nMS MARCO：Microsoftが出したBingの実際のユーザログをベースとした大型データセット。880万のドキュメントと50万のドキュメントとクエリーのペアがある。各クエリーが平均的に1ドキュメントに対応する。\nTREC-DL：MS MARCOと同じドキュメントを持っているが、クエリーは54件のみである。また、各クエリーについてアノテーションしたドキュメントが多い。\nRobust04：新聞領域のデータセット。52万のドキュメントがあり、249クエリーがある。各クエリーに対して、平均的に1250件のドキュメントをアノテーションした。\nNatural Questions：260万件のWikipediaテキストをベースとしたQuestion Answer データセット。QuestionはGoogleの検索エンジンのログから作ったもの。\nTREC-COVID：コロナの情報に関するデータセット"
   },
   {
     "objectID": "posts/20230428_inpars/index.html#training-data-generation",
     "href": "posts/20230428_inpars/index.html#training-data-generation",
-    "title": "InPars Data Augmentation for Information Retrieval using Large Language Models.pdf",
+    "title": "InPars 論文解読",
     "section": "4.2 Training Data Generation",
-    "text": "4.2 Training Data Generation\n各学習データは（Query, Positive document, Negative document）のTripleによって構成させる。\n10万のドキュメントをサンプリングし、GPT3のCurieでQueryを生成させる。最終的にLog probabilityが上位の1万件のペアのみ学習データとして使う。\n生成する際に温度とTopーPのパラメータ設定は結果に影響しない。\n長さが300文字のドキュメントは捨てられる。\nBM25で検索した1000件の中でランダムに1件を抽出し、それをNegative Documentとする。（このやり方で多くのノイズを入れてしまうのでは？）\nQuery生成する際にPromptの書き方：\n一般方法（Vanilla)：\nMS MARCOからランダムに3つのデータを抽出し、それを例として、FewーshotでQueryを生成させる。\nGBQ（Guided by Bad Questions）：\n一般方法と同じように、MS MARCOからランダムに3つのデータを抽出する。しかし、MS MARCOのQueryが漠然すぎるため、それをBad questionとして提示する。Documentを読んで、より関連するGood Questionを手動で作った。（Document, Good Question, Bad Question)で例を提示し、生成したGood QuestionをQueryとする。\n4.3 Retrieval Methods\n２段階の検索にしている。まずBM25で上位1000のドキュメントを取り出す。その次、MonoT5を使ってRerankingをする。\nMonoT5はTransfromerのEncoderとDecoder両方とも使っているモデル。IR領域のCrossーEncoderモデルである。今回はサイズは220Mと3Bのモデルをテストした。\n各データセットで作った偽データでFine-tuningした。"
+    "text": "4.2 Training Data Generation\n各学習データは（Query, Positive document, Negative document）のTripleによって構成させる。その生成のステップは以下：\n\n10万のドキュメントをサンプリングし、GPT3のCurieでQueryを生成させる。\n最終的にLog probabilityが上位の1万件のペアのみ学習データとして使う。\nBM25で検索した1000件の中でランダムに1件を抽出し、それをNegative Documentとする。（このやり方で多くのノイズを入れてしまうのでは？）\n\n以下は２点の補足：\n\n生成する際に温度とTopーPのパラメータ設定は結果に有意の影響しない。\n長さが300文字のドキュメントは捨てられる。\n\nQuery生成する際にPromptの書き方は2つを利用した（Figure２)：\n\n一般方法（Vanilla)：MS MARCOからランダムに3つのデータを抽出し、それを例として、FewーshotでQueryを生成させる。\nGBQ（Guided by Bad Questions）：一般方法と同じように、MS MARCOからランダムに3つのデータを抽出する。しかし、MS MARCOのQueryが漠然すぎるため、それをBad questionとして提示する。Documentを読んで、より関連するGood Questionを手動で作った。（Document, Good Question, Bad Question)で例を提示し、生成したGood QuestionをQueryとする。"
+  },
+  {
+    "objectID": "posts/20230428_inpars/index.html#retrieval-methods",
+    "href": "posts/20230428_inpars/index.html#retrieval-methods",
+    "title": "InPars 論文解読",
+    "section": "4.3 Retrieval Methods",
+    "text": "4.3 Retrieval Methods\n２段階の検索を採用している。まずBM25で上位1000のドキュメントを取り出す。その次、MonoT5を使ってRerankingをする。\nMonoT5はTransformerのEncoderとDecoder両方とも使っているモデルで、Cross-Encoderモデルである。今回の実験では、サイズは220Mと3Bのモデルでテストした。\n各データセットにおいて作成された擬似データでMonoT5をFine-tuningした。"
   },
   {
     "objectID": "index.html",
     "href": "index.html",
     "title": "自然言語処理技術ブログ",
     "section": "",
-    "text": "Order By\n       Default\n         \n          Title\n        \n         \n          Date - Oldest\n        \n         \n          Date - Newest\n        \n     \n  \n    \n      \n      \n    \n\n\n\n\n  \n\n\n\n\nInPars Data Augmentation for Information Retrieval using Large Language Models.pdf\n\n\n\n\n\n\n\n\n\n\n\n\n1 min\n\n\n\n\n\n\n  \n\n\n\n\nPost With Code\n\n\n\n\n\n\n\nnews\n\n\ncode\n\n\nanalysis\n\n\n\n\n\n\n\n\n\n\n\nApr 27, 2023\n\n\n1 min\n\n\n\n\n\n\nNo matching items"
+    "text": "Order By\n       Default\n         \n          Title\n        \n         \n          Date - Oldest\n        \n         \n          Date - Newest\n        \n     \n  \n    \n      \n      \n    \n\n\n\n\n  \n\n\n\n\nInPars 論文解読\n\n\n\n\n\n\n\n\n\n\n\n\n1 min\n\n\n\n\n\n\n  \n\n\n\n\nPost With Code\n\n\n\n\n\n\n\nnews\n\n\ncode\n\n\nanalysis\n\n\n\n\n\n\n\n\n\n\n\nApr 27, 2023\n\n\n1 min\n\n\n\n\n\n\nNo matching items"
   },
   {
     "objectID": "about.html",
