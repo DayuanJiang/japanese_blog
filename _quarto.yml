@@ -10,9 +10,14 @@ website:
         href: http://www.linkedin.com/in/jiang-dayuan
     page-footer: "Copyright 2021, Norah Jones" 
   google-analytics: "UA-78379810-2"
+  
 format:
   html:
     theme: cosmo
     css: styles.css
+    include-in-header: 
+      ga4.html
 
+body-footer: | 
+  This page brought to you by <https://example.com>
 

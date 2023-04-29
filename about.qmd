@@ -2,7 +2,7 @@
 title: "About"
 image: profile.jpg
 about:
-  template: solana
+  template: broadside
   links:
     - icon: linkedin
       text: LinkedIn
