@@ -6,14 +6,14 @@
       version="2.0">
 <channel>
 <title>blog</title>
-<link>https://jiang.jp/index.html</link>
-<atom:link href="https://jiang.jp/index.xml" rel="self" type="application/rss+xml"/>
+<link>https://www.jiang.jp/index.html</link>
+<atom:link href="https://www.jiang.jp/index.xml" rel="self" type="application/rss+xml"/>
 <description></description>
 <generator>quarto-1.3.340</generator>
 <lastBuildDate>Fri, 28 Apr 2023 15:00:00 GMT</lastBuildDate>
 <item>
   <title>InPars 論文解読</title>
-  <link>https://jiang.jp/posts/20230428_inpars/index.html</link>
+  <link>https://www.jiang.jp/posts/20230428_inpars/index.html</link>
   <description><![CDATA[ 
 
 
@@ -39,7 +39,7 @@
 <li><p>生成したドキュメントとクエリーのペアについて、LLMが出力する際に出している結果のLog probabilityが上位のものを選択する。ちなみに、このステップが大きく精度を改善した。</p></li>
 <li><p>生成したqとdのペアを学習データとしてRerankのモデルをFine-tuningする。（詳細は4.3で紹介する）</p></li>
 </ol>
-<p><img src="https://jiang.jp/posts/20230428_inpars/images/paste-1.png" class="img-fluid"></p>
+<p><img src="https://www.jiang.jp/posts/20230428_inpars/images/paste-1.png" class="img-fluid"></p>
 </section>
 <section id="experimental-setup" class="level2">
 <h2 class="anchored" data-anchor-id="experimental-setup">4. Experimental Setup</h2>
@@ -72,7 +72,7 @@
 <li>一般方法（Vanilla)：MS MARCOからランダムに3つのデータを抽出し、それを例として、FewーshotでQueryを生成させる。</li>
 <li>GBQ（Guided by Bad Questions）：一般方法と同じように、MS MARCOからランダムに3つのデータを抽出する。しかし、MS MARCOのQueryが漠然すぎるため、それをBad questionとして提示する。Documentを読んで、より関連するGood Questionを手動で作った。（Document, Good Question, Bad Question)で例を提示し、生成したGood QuestionをQueryとする。</li>
 </ol>
-<p><img src="https://jiang.jp/posts/20230428_inpars/images/Untitled.png" class="img-fluid"></p>
+<p><img src="https://www.jiang.jp/posts/20230428_inpars/images/Untitled.png" class="img-fluid"></p>
 </section>
 <section id="retrieval-methods" class="level3">
 <h3 class="anchored" data-anchor-id="retrieval-methods">4.3 Retrieval Methods</h3>
@@ -83,7 +83,7 @@
 </section>
 <section id="results" class="level2">
 <h2 class="anchored" data-anchor-id="results">5 Results</h2>
-<p><img src="https://jiang.jp/posts/20230428_inpars/images/Untitled 1.png" class="img-fluid"></p>
+<p><img src="https://www.jiang.jp/posts/20230428_inpars/images/Untitled 1.png" class="img-fluid"></p>
 <p>7,8行目を見ると、BM25やContriever等の以前のUnsupervised結果より優れていることがわかる。また、16行目はMS MARCOでFine-tuningした後さらに擬似データでFine-tuningした結果。幾つかのデータセットで単純にMS MARCOでFine-tuningするより良い結果が出ている。</p>
 </section>
 <section id="ablation-study-and-analysis" class="level2">
@@ -115,12 +115,12 @@
   <category>NLP</category>
   <category>Information_retrieval</category>
   <category>paper</category>
-  <guid>https://jiang.jp/posts/20230428_inpars/index.html</guid>
+  <guid>https://www.jiang.jp/posts/20230428_inpars/index.html</guid>
   <pubDate>Fri, 28 Apr 2023 15:00:00 GMT</pubDate>
 </item>
 <item>
   <title>Post With Code</title>
-  <link>https://jiang.jp/posts/jupyter-test/index.html</link>
+  <link>https://www.jiang.jp/posts/jupyter-test/index.html</link>
   <description><![CDATA[ 
 
 
@@ -279,7 +279,7 @@ background-color: null;
 font-style: inherit;">'lower right'</span>)</span>
 <span id="cb3-19">plt.show(fig)</span></code></pre></div>
 <div class="cell-output cell-output-display">
-<p><img src="https://jiang.jp/posts/jupyter-test/index_files/figure-html/cell-3-output-1.png" class="img-fluid"></p>
+<p><img src="https://www.jiang.jp/posts/jupyter-test/index_files/figure-html/cell-3-output-1.png" class="img-fluid"></p>
 </div>
 </div>
 </section>
@@ -382,7 +382,7 @@ if (outputEl) {{
   <category>news</category>
   <category>code</category>
   <category>analysis</category>
-  <guid>https://jiang.jp/posts/jupyter-test/index.html</guid>
+  <guid>https://www.jiang.jp/posts/jupyter-test/index.html</guid>
   <pubDate>Wed, 26 Apr 2023 15:00:00 GMT</pubDate>
 </item>
 </channel>
