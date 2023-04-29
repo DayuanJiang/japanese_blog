@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.340">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="dcterms.date" content="2023-04-29">
+
+<title>blog - Promptagator 論文解読</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit"
+  }
+}</script>
+
+<script type="text/javascript">
+
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+ga('create', 'UA-78379810-2', 'auto');
+
+ga('send', {
+  hitType: 'pageview',
+  'anonymizeIp': true,
+});
+</script>
+<!-- Google tag (gtag.js) -->
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=G-8BFRN648V7"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-8BFRN648V7');
+</script>
+
+
+<link rel="stylesheet" href="../../styles.css">
+</head>
+
+<body class="nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container">
+    <a class="navbar-brand" href="../../index.html">
+    <span class="navbar-title">blog</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../about.html" rel="" target="">
+ <span class="menu-text">About</span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="http://www.linkedin.com/in/jiang-dayuan" rel="" target=""><i class="bi bi-linkedin" role="img">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+</ul>
+            <div class="quarto-navbar-tools">
+</div>
+          </div> <!-- /navcollapse -->
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">1 Introduction</a></li>
+  <li><a href="#few-shot-retrieval-task" id="toc-few-shot-retrieval-task" class="nav-link" data-scroll-target="#few-shot-retrieval-task">2 Few-shot retrieval task</a></li>
+  <li><a href="#promptagator" id="toc-promptagator" class="nav-link" data-scroll-target="#promptagator">3 Promptagator</a>
+  <ul class="collapse">
+  <li><a href="#prompt-base-query-generation" id="toc-prompt-base-query-generation" class="nav-link" data-scroll-target="#prompt-base-query-generation">3.1 Prompt-base query generation</a></li>
+  <li><a href="#consistency-filtering-using-only-generated-data" id="toc-consistency-filtering-using-only-generated-data" class="nav-link" data-scroll-target="#consistency-filtering-using-only-generated-data">3.2 Consistency filtering using only generated data</a></li>
+  <li><a href="#few-shot-promptagator-retriever" id="toc-few-shot-promptagator-retriever" class="nav-link" data-scroll-target="#few-shot-promptagator-retriever">3.3 Few-shot promptagator retriever</a></li>
+  <li><a href="#zero-shot-promptagator-retriever" id="toc-zero-shot-promptagator-retriever" class="nav-link" data-scroll-target="#zero-shot-promptagator-retriever">3.4 Zero-shot promptagator retriever</a></li>
+  </ul></li>
+  <li><a href="#experiments" id="toc-experiments" class="nav-link" data-scroll-target="#experiments">4 Experiments</a>
+  <ul class="collapse">
+  <li><a href="#implementation" id="toc-implementation" class="nav-link" data-scroll-target="#implementation">4.1 Implementation</a></li>
+  <li><a href="#main-results" id="toc-main-results" class="nav-link" data-scroll-target="#main-results">4.2 Main Results</a></li>
+  <li><a href="#abalation-study" id="toc-abalation-study" class="nav-link" data-scroll-target="#abalation-study">4.3 Abalation Study</a></li>
+  <li><a href="#qualitative-analysis" id="toc-qualitative-analysis" class="nav-link" data-scroll-target="#qualitative-analysis">4.4 Qualitative Analysis</a></li>
+  </ul></li>
+  <li><a href="#related-work" id="toc-related-work" class="nav-link" data-scroll-target="#related-work">5 Related Work</a>
+  <ul class="collapse">
+  <li><a href="#neural-retrieval-models" id="toc-neural-retrieval-models" class="nav-link" data-scroll-target="#neural-retrieval-models"><strong>Neural retrieval models</strong></a></li>
+  <li><a href="#prompt-based-query-generation" id="toc-prompt-based-query-generation" class="nav-link" data-scroll-target="#prompt-based-query-generation">Prompt-based query generation</a></li>
+  <li><a href="#retrievers-with-late-interactions" id="toc-retrievers-with-late-interactions" class="nav-link" data-scroll-target="#retrievers-with-late-interactions">Retrievers with late interactions</a></li>
+  </ul></li>
+  <li><a href="#conclution-and-discussions" id="toc-conclution-and-discussions" class="nav-link" data-scroll-target="#conclution-and-discussions">6 Conclution and discussions</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Promptagator 論文解読</h1>
+  <div class="quarto-categories">
+    <div class="quarto-category">NLP</div>
+    <div class="quarto-category">Information_retrieval</div>
+    <div class="quarto-category">paper</div>
+  </div>
+  </div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">April 29, 2023</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+</header>
+
+<p>論文URL：<a href="https://arxiv.org/abs/2209.11755" class="uri">https://arxiv.org/abs/2209.11755</a></p>
+<section id="introduction" class="level1">
+<h1>1 Introduction</h1>
+<p><img src="images/Untitled.png" class="img-fluid"></p>
+<p>BEIRのような異なる種類のデータセットによって構成されるベンチマークがある。特定のデータセットで学習したモデルは他領域への汎化が難しい。その理由は主に2つある。</p>
+<p>まず、異なるタスクはそれぞれ検索意図が違う。例えば、図1の左側に示されているように、Dbpedia-Entityはクエリで言及されたエンティティを検索するタスクであり、FEVERは与えられた声明を支持または反証する証拠を検索するタスクである。</p>
+<p>また、検索意図が類似していても、データの分布が異なることがある。例えば、HotpotQAのように違う領域の質問もあるし、FiQAのようにファイナンシャル専門の質問もある。</p>
+<p>これまでに、情報検索領域でのLLMの活用に関する論文が複数ある。例えば、GPT3のEmbedingをDual encoderモデルに適用する論文がある。ただし、GPT3のEmbeddingの次元数が12ｋとなっており、推論時の計算コストが高い。また、以前紹介したGPT3でQueryを作って、T5のRerankerを学習したInParsもある。一方、その論文はRetrieverをBM25を使っている。</p>
+<p>この論文は以下の貢献がある：</p>
+<ol type="1">
+<li>異なる検索タスクの意図とQueryの分布を分析し、Few-shot Retrieval settingを提案した。</li>
+<li>Promptgatorを提案した。2~8個の例を使えば既往の50万以上の例で学習したモデルより高い精度を達成できている。</li>
+</ol>
+</section>
+<section id="few-shot-retrieval-task" class="level1">
+<h1>2 Few-shot retrieval task</h1>
+<p>この節でFew-shot retrievalを紹介した。</p>
+</section>
+<section id="promptagator" class="level1">
+<h1>3 Promptagator</h1>
+<p>Promptagatorは3つのステップで実現される。</p>
+<ol type="1">
+<li>各タスクに対して専用なPromptを作成し、LLMでDocumentに関連するQueryを作る</li>
+<li>Retrieverを用いて、生成したQueryと生成元のDocumentを検索できない場合は、それを除外する</li>
+<li>除外されていないQueryとDocumentのペアでRetrieverを学習させる。</li>
+</ol>
+<section id="prompt-base-query-generation" class="level2">
+<h2 class="anchored" data-anchor-id="prompt-base-query-generation">3.1 Prompt-base query generation</h2>
+<p>LLMはFLANを利用した。Promptの形式としては、HotpotQAを例として説明すると以下になる。</p>
+<pre class="raw text"><code>Evidence: passage 1 
+Vexed question: query 1
+...
+Evidence: passage k
+Vexed question: query k
+Evidence: target passage</code></pre>
+<p>下表のようにタスクごとに違うPromptを設定した。（Promptの中の0と 1の意味が不明）</p>
+<p><img src="images/Untitled 1.png" class="img-fluid"></p>
+<p>Promptで使用した例は最大8個にし、例の長さによって調整している。文書が長い場合は、必要に応じて切断している。</p>
+<p>各コーパスから最大100万のドキュメントを抽出し、各ドキュメントで8個のQueryを生成している。LLMはFLAN137Bを使った。生成する際に0.7の温度を使った。</p>
+</section>
+<section id="consistency-filtering-using-only-generated-data" class="level2">
+<h2 class="anchored" data-anchor-id="consistency-filtering-using-only-generated-data">3.2 Consistency filtering using only generated data</h2>
+<p>生成したQueryに対して、生成元がその答案を含む必要がある。今までの研究で、その原則で生成したQueryをフィルタリングすることは重要であることがしめされている。</p>
+<p>過去の研究の中で外部の質問応答モデルを用いて実現していたが、この研究では生成したデータで初期のRetrieverを学習されている。各生成したQueryに対して、Retrieverが検索したTopKの中に生成元のドキュメントが含まれていない場合は、そのQueryを除外する。</p>
+</section>
+<section id="few-shot-promptagator-retriever" class="level2">
+<h2 class="anchored" data-anchor-id="few-shot-promptagator-retriever">3.3 Few-shot promptagator retriever</h2>
+<p>Dural EncoderのRetrieverを利用している。ベースモデルはT5で、それをC4（Common Crawlのweb crawlコーパス）データセットを使って、Contriverが使用したindependent cropping taskでさらに学習させた。（independent cropping taskとは、同じ文書の異なる部分のペアをPositive example、異なる文書のテキストのペアをNegative exampleとして、教師なしでRetrieverを学習する手法）</p>
+<p>その後、生成されたQueryとDocumentのペアを使って継続的に学習させる。学習時にBatch内のQueryとDocumentのペアをシャッフルしてNegative exampleとする。また、一定のStep数を学習した後、それを初期のRetrieverとして生成されたQueryのフィルタリングを行う。フィルタリングした後、継続的に学習させる。</p>
+<p>また、Promptagator++というRerankerも提案した。学習データがRetrieverと同じだが、モデルはもっと精度が高く、推論時間が長いCross-attention modelを使った。Retrieverから取得した上位の200件のDocumentから31個のDocumentをサンプリングして、Negative exampleとして使っている。</p>
+</section>
+<section id="zero-shot-promptagator-retriever" class="level2">
+<h2 class="anchored" data-anchor-id="zero-shot-promptagator-retriever">3.4 Zero-shot promptagator retriever</h2>
+<p>Zero-shotでQueryを生成する場合は以下の形式でPromptを書いた：</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ss">f'</span><span class="sc">{</span>d<span class="sc">}</span><span class="ss"> Read the passage and generate a query.'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+</section>
+<section id="experiments" class="level1">
+<h1>4 Experiments</h1>
+<section id="implementation" class="level2">
+<h2 class="anchored" data-anchor-id="implementation">4.1 Implementation</h2>
+<p>Queryを生成する際に温度を0.7にした。</p>
+<p>生成したQueryをフィルタリングする際にKを1にした。</p>
+<p>Dual Encodersは同じT5-base v1.1 のEncoder(110M)を使っている。Encoderのトップの層を平均し、768次元のEmbeddingへ投影した。</p>
+<p>Promptagator++のRerankerもT5-base v1.1 のEncoder(110M)を使っているが、Cross AttentionのEncoderにしている。</p>
+<p>Fine-tuningする際にの具体的なBatch sizeとStepsが下表の通り：</p>
+<table class="table">
+<thead>
+<tr class="header">
+<th>Model type</th>
+<th>Dataset size</th>
+<th>Batch size</th>
+<th>Fine tune steps</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Dual encoder</td>
+<td>Big(&gt;500k)</td>
+<td>6k</td>
+<td>5k</td>
+</tr>
+<tr class="even">
+<td>Dual encoder</td>
+<td>Small(&lt;=500k)</td>
+<td>128</td>
+<td>1k</td>
+</tr>
+<tr class="odd">
+<td>Reranker</td>
+<td>Big(&gt;500k)</td>
+<td>64</td>
+<td>20k</td>
+</tr>
+<tr class="even">
+<td>Reranker</td>
+<td>Small(&lt;=500k)</td>
+<td>64</td>
+<td>5k</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="main-results" class="level2">
+<h2 class="anchored" data-anchor-id="main-results">4.2 Main Results</h2>
+<p><img src="images/paste-1.png" class="img-fluid"></p>
+<p>表の前半ではRetrieverの比較が行われている。Zero-shotのPromptagatorはすでに大多数のMS MARCOでFine-tuningした教師ありのRetrieverと同等な精度を出している。Few-shotのPromptagatorはさらに教師ありのRetrieverより高い精度を出している。</p>
+<p>後半ではRetriever+Rerankerの組み合わせの比較になる。Retrieverと同じ傾向で、Zero-shotでかなり良い精度を出している。Few-shotになるとさらに更に精度が3%向上し、Sotaになっている。</p>
+<p>また、Promptagatorのもう一つ優れている点はモデルのサイズである。他のモデルは大体3Bの大きさだが、Promptagatorはわずか110Mのみである。</p>
+</section>
+<section id="abalation-study" class="level2">
+<h2 class="anchored" data-anchor-id="abalation-study">4.3 Abalation Study</h2>
+<p><img src="images/paste-2.png" class="img-fluid"></p>
+<p><strong>Queryフィルタリングの効果</strong> Figure2の左図は、Queryを一回フィルタリングした効果をしめしている。大多数のデータセットにとって、Queryフィルタリングが有効だが、逆効果のものも存在する。NFCorpus and SciFactは小さいデータセットなので、フィルタリングで過学習している可能性がある。</p>
+<p>また、詳細にフィルタリングされた例をみると、多くケースはQueryは一般化過ぎて多数のドキュメントにマッチングされていること、もしくは単純にQueryが間違っていることがわかる。</p>
+<p><strong>生成したQueryで人間のデータを代替することができるか？</strong> Figure2の真ん中の図は、8-shotのPromptagatorは5万件の人間がラベリングしたデータと同じ効果であることを示している。</p>
+<p><strong>PromptagatorのQuery生成が効いているか？</strong> Figure2の右図のGenQはBEIR論文の中で提案されたモデル、NQ-QGenはこの論文提案した方法でNQデータセット学習したモデル、NQ-QGenとGenQの違いはQuery生成の部分のみ。NQ-QGenの精度は2.7%高いため、提案したQuery生成の方法が有効だと言える。</p>
+<p><img src="images/paste-6.png" class="img-fluid"></p>
+<p><strong>FLANの影響</strong> PromptagatorのLLMはFLANを利用している。FLANの学習データの中にNQとQuaroデータが含まれいている。その影響を検証するため､それらを除いたデータセットでFLANを学習し、その結果を比較した(さすがGoogle Research、金ならあるの感じ)。その結果、精度は若干低下したが、以前の研究よりは高い精度を達成している。</p>
+</section>
+<section id="qualitative-analysis" class="level2">
+<h2 class="anchored" data-anchor-id="qualitative-analysis">4.4 Qualitative Analysis</h2>
+<p><img src="images/paste-5.png" class="img-fluid"></p>
+<p>Queryの最初のWordの分布を調査した。Few-shotが生成したQueryの分布は実際のQueryの分布と同じであることがわかる。</p>
+</section>
+</section>
+<section id="related-work" class="level1">
+<h1>5 Related Work</h1>
+<section id="neural-retrieval-models" class="level2">
+<h2 class="anchored" data-anchor-id="neural-retrieval-models"><strong>Neural retrieval models</strong></h2>
+<p>Neural retrieval modelはrepresentation based modelとinteraction based modelの2つに分類できる。</p>
+<p>Representation based modelはQueryとDocument両方とも分散表現に変換し、分散表現の類似度で相関性を測っている。最近の研究は以下のことにフォーカスしている：</p>
+<ol type="1">
+<li>より良い前学習するタスクやモデルのアーキテクチャを開発する</li>
+<li>Multi-Vectorでより分散表現の表現性能を向上させる</li>
+<li>よりよいNegative sample手法を開発する</li>
+<li>ドメイン横断での汎化性能を向上させる</li>
+</ol>
+<p>Interaction based modelだと、QueryとDocumentを一緒に処理するため、精度が高い。一方、計算コストが高いため、Rerankerとして使われることが多い。それに関する研究は以下のものがある：</p>
+<ol type="1">
+<li>Interaction based modelを蒸留し、Representation based modelとして使う。</li>
+<li>Interactionを最後にさせること。</li>
+</ol>
+</section>
+<section id="prompt-based-query-generation" class="level2">
+<h2 class="anchored" data-anchor-id="prompt-based-query-generation">Prompt-based query generation</h2>
+<p>UPR：直接LLMSを使ってRerankを行う</p>
+<p>InPars：GPT3でQueryを生成し、T5のRerankerを学習する</p>
+</section>
+<section id="retrievers-with-late-interactions" class="level2">
+<h2 class="anchored" data-anchor-id="retrievers-with-late-interactions">Retrievers with late interactions</h2>
+<p>Dual encoder modelの効率が良いが、QueryとDocumentの相互作用は最後の内積のみであるため、性能が弱い。ColBERTとSPLADEは最後のToken-level interactionを使ったため、計算コストを少し犠牲して性能を向上させた。</p>
+</section>
+</section>
+<section id="conclution-and-discussions" class="level1">
+<h1>6 Conclution and discussions</h1>
+<p>この論文はPromptagatorを提案した。一方、未解決の問題はいかのように存在する：</p>
+<ol type="1">
+<li>効率的に生成したデータを利用する手法が必要。</li>
+<li>PromptとRetrieverの性能との関係。</li>
+<li>LLMの情報を小さいモデルを転移すること。</li>
+</ol>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+<script src="https://utteranc.es/client.js" repo="AlbertRapp/blogComments" issue-term="pathname" theme="github-light" crossorigin="anonymous" async="">
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>

@@ -1,31 +1,87 @@
 [
   {
-    "objectID": "posts/jupyter-test/index.html",
-    "href": "posts/jupyter-test/index.html",
-    "title": "Post With Code",
+    "objectID": "posts/20230429_promptagator/index.html",
+    "href": "posts/20230429_promptagator/index.html",
+    "title": "Promptagator 論文解読",
     "section": "",
-    "text": "import numpy as np\na = np.arange(15).reshape(3, 5)\na\n\narray([[ 0,  1,  2,  3,  4],\n       [ 5,  6,  7,  8,  9],\n       [10, 11, 12, 13, 14]])"
+    "text": "論文URL：https://arxiv.org/abs/2209.11755"
   },
   {
-    "objectID": "posts/jupyter-test/index.html#numpy",
-    "href": "posts/jupyter-test/index.html#numpy",
-    "title": "Post With Code",
-    "section": "",
-    "text": "import numpy as np\na = np.arange(15).reshape(3, 5)\na\n\narray([[ 0,  1,  2,  3,  4],\n       [ 5,  6,  7,  8,  9],\n       [10, 11, 12, 13, 14]])"
+    "objectID": "posts/20230429_promptagator/index.html#prompt-base-query-generation",
+    "href": "posts/20230429_promptagator/index.html#prompt-base-query-generation",
+    "title": "Promptagator 論文解読",
+    "section": "3.1 Prompt-base query generation",
+    "text": "3.1 Prompt-base query generation\nLLMはFLANを利用した。Promptの形式としては、HotpotQAを例として説明すると以下になる。\nEvidence: passage 1 \nVexed question: query 1\n...\nEvidence: passage k\nVexed question: query k\nEvidence: target passage\n下表のようにタスクごとに違うPromptを設定した。（Promptの中の0と 1の意味が不明）\n\nPromptで使用した例は最大8個にし、例の長さによって調整している。文書が長い場合は、必要に応じて切断している。\n各コーパスから最大100万のドキュメントを抽出し、各ドキュメントで8個のQueryを生成している。LLMはFLAN137Bを使った。生成する際に0.7の温度を使った。"
   },
   {
-    "objectID": "posts/jupyter-test/index.html#matplotlib",
-    "href": "posts/jupyter-test/index.html#matplotlib",
-    "title": "Post With Code",
-    "section": "Matplotlib",
-    "text": "Matplotlib\n\nimport matplotlib.pyplot as plt\n\nfig = plt.figure()\nx = np.arange(10)\ny = 2.5 * np.sin(x / 20 * np.pi)\nyerr = np.linspace(0.05, 0.2, 10)\n\nplt.errorbar(x, y + 3, yerr=yerr, label='both limits (default)')\nplt.errorbar(x, y + 2, yerr=yerr, uplims=True, label='uplims=True')\nplt.errorbar(x, y + 1, yerr=yerr, uplims=True, lolims=True,\n             label='uplims=True, lolims=True')\n\nupperlimits = [True, False] * 5\nlowerlimits = [False, True] * 5\nplt.errorbar(x, y, yerr=yerr, uplims=upperlimits, lolims=lowerlimits,\n             label='subsets of uplims and lolims')\n\nplt.legend(loc='lower right')\nplt.show(fig)"
+    "objectID": "posts/20230429_promptagator/index.html#consistency-filtering-using-only-generated-data",
+    "href": "posts/20230429_promptagator/index.html#consistency-filtering-using-only-generated-data",
+    "title": "Promptagator 論文解読",
+    "section": "3.2 Consistency filtering using only generated data",
+    "text": "3.2 Consistency filtering using only generated data\n生成したQueryに対して、生成元がその答案を含む必要がある。今までの研究で、その原則で生成したQueryをフィルタリングすることは重要であることがしめされている。\n過去の研究の中で外部の質問応答モデルを用いて実現していたが、この研究では生成したデータで初期のRetrieverを学習されている。各生成したQueryに対して、Retrieverが検索したTopKの中に生成元のドキュメントが含まれていない場合は、そのQueryを除外する。"
   },
   {
-    "objectID": "posts/jupyter-test/index.html#plotly",
-    "href": "posts/jupyter-test/index.html#plotly",
-    "title": "Post With Code",
-    "section": "Plotly",
-    "text": "Plotly\n\nimport plotly.io as pio\npio.renderers.default = \"plotly_mimetype+notebook_connected\"\nimport plotly.express as px\nimport plotly.io as pio\ngapminder = px.data.gapminder()\ngapminder2007 = gapminder.query(\"year == 2007\")\nfig = px.scatter(gapminder2007, \n                 x=\"gdpPercap\", y=\"lifeExp\", color=\"continent\", \n                 size=\"pop\", size_max=60,\n                 hover_name=\"country\")\nfig.show()"
+    "objectID": "posts/20230429_promptagator/index.html#few-shot-promptagator-retriever",
+    "href": "posts/20230429_promptagator/index.html#few-shot-promptagator-retriever",
+    "title": "Promptagator 論文解読",
+    "section": "3.3 Few-shot promptagator retriever",
+    "text": "3.3 Few-shot promptagator retriever\nDural EncoderのRetrieverを利用している。ベースモデルはT5で、それをC4（Common Crawlのweb crawlコーパス）データセットを使って、Contriverが使用したindependent cropping taskでさらに学習させた。（independent cropping taskとは、同じ文書の異なる部分のペアをPositive example、異なる文書のテキストのペアをNegative exampleとして、教師なしでRetrieverを学習する手法）\nその後、生成されたQueryとDocumentのペアを使って継続的に学習させる。学習時にBatch内のQueryとDocumentのペアをシャッフルしてNegative exampleとする。また、一定のStep数を学習した後、それを初期のRetrieverとして生成されたQueryのフィルタリングを行う。フィルタリングした後、継続的に学習させる。\nまた、Promptagator++というRerankerも提案した。学習データがRetrieverと同じだが、モデルはもっと精度が高く、推論時間が長いCross-attention modelを使った。Retrieverから取得した上位の200件のDocumentから31個のDocumentをサンプリングして、Negative exampleとして使っている。"
+  },
+  {
+    "objectID": "posts/20230429_promptagator/index.html#zero-shot-promptagator-retriever",
+    "href": "posts/20230429_promptagator/index.html#zero-shot-promptagator-retriever",
+    "title": "Promptagator 論文解読",
+    "section": "3.4 Zero-shot promptagator retriever",
+    "text": "3.4 Zero-shot promptagator retriever\nZero-shotでQueryを生成する場合は以下の形式でPromptを書いた：\nf'{d} Read the passage and generate a query.'"
+  },
+  {
+    "objectID": "posts/20230429_promptagator/index.html#implementation",
+    "href": "posts/20230429_promptagator/index.html#implementation",
+    "title": "Promptagator 論文解読",
+    "section": "4.1 Implementation",
+    "text": "4.1 Implementation\nQueryを生成する際に温度を0.7にした。\n生成したQueryをフィルタリングする際にKを1にした。\nDual Encodersは同じT5-base v1.1 のEncoder(110M)を使っている。Encoderのトップの層を平均し、768次元のEmbeddingへ投影した。\nPromptagator++のRerankerもT5-base v1.1 のEncoder(110M)を使っているが、Cross AttentionのEncoderにしている。\nFine-tuningする際にの具体的なBatch sizeとStepsが下表の通り：\n\n\n\nModel type\nDataset size\nBatch size\nFine tune steps\n\n\n\n\nDual encoder\nBig(&gt;500k)\n6k\n5k\n\n\nDual encoder\nSmall(&lt;=500k)\n128\n1k\n\n\nReranker\nBig(&gt;500k)\n64\n20k\n\n\nReranker\nSmall(&lt;=500k)\n64\n5k"
+  },
+  {
+    "objectID": "posts/20230429_promptagator/index.html#main-results",
+    "href": "posts/20230429_promptagator/index.html#main-results",
+    "title": "Promptagator 論文解読",
+    "section": "4.2 Main Results",
+    "text": "4.2 Main Results\n\n表の前半ではRetrieverの比較が行われている。Zero-shotのPromptagatorはすでに大多数のMS MARCOでFine-tuningした教師ありのRetrieverと同等な精度を出している。Few-shotのPromptagatorはさらに教師ありのRetrieverより高い精度を出している。\n後半ではRetriever+Rerankerの組み合わせの比較になる。Retrieverと同じ傾向で、Zero-shotでかなり良い精度を出している。Few-shotになるとさらに更に精度が3%向上し、Sotaになっている。\nまた、Promptagatorのもう一つ優れている点はモデルのサイズである。他のモデルは大体3Bの大きさだが、Promptagatorはわずか110Mのみである。"
+  },
+  {
+    "objectID": "posts/20230429_promptagator/index.html#abalation-study",
+    "href": "posts/20230429_promptagator/index.html#abalation-study",
+    "title": "Promptagator 論文解読",
+    "section": "4.3 Abalation Study",
+    "text": "4.3 Abalation Study\n\nQueryフィルタリングの効果 Figure2の左図は、Queryを一回フィルタリングした効果をしめしている。大多数のデータセットにとって、Queryフィルタリングが有効だが、逆効果のものも存在する。NFCorpus and SciFactは小さいデータセットなので、フィルタリングで過学習している可能性がある。\nまた、詳細にフィルタリングされた例をみると、多くケースはQueryは一般化過ぎて多数のドキュメントにマッチングされていること、もしくは単純にQueryが間違っていることがわかる。\n生成したQueryで人間のデータを代替することができるか？ Figure2の真ん中の図は、8-shotのPromptagatorは5万件の人間がラベリングしたデータと同じ効果であることを示している。\nPromptagatorのQuery生成が効いているか？ Figure2の右図のGenQはBEIR論文の中で提案されたモデル、NQ-QGenはこの論文提案した方法でNQデータセット学習したモデル、NQ-QGenとGenQの違いはQuery生成の部分のみ。NQ-QGenの精度は2.7%高いため、提案したQuery生成の方法が有効だと言える。\n\nFLANの影響 PromptagatorのLLMはFLANを利用している。FLANの学習データの中にNQとQuaroデータが含まれいている。その影響を検証するため､それらを除いたデータセットでFLANを学習し、その結果を比較した(さすがGoogle Research、金ならあるの感じ)。その結果、精度は若干低下したが、以前の研究よりは高い精度を達成している。"
+  },
+  {
+    "objectID": "posts/20230429_promptagator/index.html#qualitative-analysis",
+    "href": "posts/20230429_promptagator/index.html#qualitative-analysis",
+    "title": "Promptagator 論文解読",
+    "section": "4.4 Qualitative Analysis",
+    "text": "4.4 Qualitative Analysis\n\nQueryの最初のWordの分布を調査した。Few-shotが生成したQueryの分布は実際のQueryの分布と同じであることがわかる。"
+  },
+  {
+    "objectID": "posts/20230429_promptagator/index.html#neural-retrieval-models",
+    "href": "posts/20230429_promptagator/index.html#neural-retrieval-models",
+    "title": "Promptagator 論文解読",
+    "section": "Neural retrieval models",
+    "text": "Neural retrieval models\nNeural retrieval modelはrepresentation based modelとinteraction based modelの2つに分類できる。\nRepresentation based modelはQueryとDocument両方とも分散表現に変換し、分散表現の類似度で相関性を測っている。最近の研究は以下のことにフォーカスしている：\n\nより良い前学習するタスクやモデルのアーキテクチャを開発する\nMulti-Vectorでより分散表現の表現性能を向上させる\nよりよいNegative sample手法を開発する\nドメイン横断での汎化性能を向上させる\n\nInteraction based modelだと、QueryとDocumentを一緒に処理するため、精度が高い。一方、計算コストが高いため、Rerankerとして使われることが多い。それに関する研究は以下のものがある：\n\nInteraction based modelを蒸留し、Representation based modelとして使う。\nInteractionを最後にさせること。"
+  },
+  {
+    "objectID": "posts/20230429_promptagator/index.html#prompt-based-query-generation",
+    "href": "posts/20230429_promptagator/index.html#prompt-based-query-generation",
+    "title": "Promptagator 論文解読",
+    "section": "Prompt-based query generation",
+    "text": "Prompt-based query generation\nUPR：直接LLMSを使ってRerankを行う\nInPars：GPT3でQueryを生成し、T5のRerankerを学習する"
+  },
+  {
+    "objectID": "posts/20230429_promptagator/index.html#retrievers-with-late-interactions",
+    "href": "posts/20230429_promptagator/index.html#retrievers-with-late-interactions",
+    "title": "Promptagator 論文解読",
+    "section": "Retrievers with late interactions",
+    "text": "Retrievers with late interactions\nDual encoder modelの効率が良いが、QueryとDocumentの相互作用は最後の内積のみであるため、性能が弱い。ColBERTとSPLADEは最後のToken-level interactionを使ったため、計算コストを少し犠牲して性能を向上させた。"
   },
   {
     "objectID": "posts/20230428_inpars/index.html",
@@ -88,7 +144,7 @@
     "href": "index.html",
     "title": "自然言語処理技術ブログ",
     "section": "",
-    "text": "Order By\n       Default\n         \n          Title\n        \n         \n          Date - Oldest\n        \n         \n          Date - Newest\n        \n     \n  \n    \n      \n      \n    \n\n\n\n\n  \n\n\n\n\nInPars 論文解読\n\n\n\n\n\n\n\nNLP\n\n\nInformation_retrieval\n\n\npaper\n\n\n\n\n\n\n\n\n\n\n\nApr 29, 2023\n\n\n1 min\n\n\n\n\n\n\n  \n\n\n\n\nPost With Code\n\n\n\n\n\n\n\nnews\n\n\ncode\n\n\nanalysis\n\n\n\n\n\n\n\n\n\n\n\nApr 27, 2023\n\n\n1 min\n\n\n\n\n\n\nNo matching items"
+    "text": "Order By\n       Default\n         \n          Title\n        \n         \n          Date - Oldest\n        \n         \n          Date - Newest\n        \n     \n  \n    \n      \n      \n    \n\n\n\n\n  \n\n\n\n\nPromptagator 論文解読\n\n\n\n\n\n\n\nNLP\n\n\nInformation_retrieval\n\n\npaper\n\n\n\n\n\n\n\n\n\n\n\nApr 29, 2023\n\n\n2 min\n\n\n\n\n\n\n  \n\n\n\n\nInPars 論文解読\n\n\n\n\n\n\n\nNLP\n\n\nInformation_retrieval\n\n\npaper\n\n\n\n\n\n\n\n\n\n\n\nApr 29, 2023\n\n\n1 min\n\n\n\n\n\n\nNo matching items"
   },
   {
     "objectID": "about.html",
