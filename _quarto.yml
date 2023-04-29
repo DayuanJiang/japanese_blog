@@ -10,6 +10,8 @@ website:
         href: http://www.linkedin.com/in/jiang-dayuan
     page-footer: "Copyright 2021, Norah Jones" 
   google-analytics: "UA-78379810-2"
+  site-url: 'https://jiang.jp'
+  site-path: '/'
   
 format:
   html:
