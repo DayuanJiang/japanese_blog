@@ -2,42 +2,42 @@
   {
     "objectID": "posts/20230430_HyDE/index.html",
     "href": "posts/20230430_HyDE/index.html",
-    "title": "HyDE 論文解読 Draft",
+    "title": "HyDE 論文解読",
     "section": "",
     "text": "論文URL：https://arxiv.org/abs/2204.07496"
   },
   {
     "objectID": "posts/20230430_HyDE/index.html#related-works",
     "href": "posts/20230430_HyDE/index.html#related-works",
-    "title": "HyDE 論文解読 Draft",
+    "title": "HyDE 論文解読",
     "section": "2 Related works",
     "text": "2 Related works"
   },
   {
     "objectID": "posts/20230430_HyDE/index.html#methology",
     "href": "posts/20230430_HyDE/index.html#methology",
-    "title": "HyDE 論文解読 Draft",
+    "title": "HyDE 論文解読",
     "section": "3 Methology",
     "text": "3 Methology"
   },
   {
     "objectID": "posts/20230430_HyDE/index.html#experiments",
     "href": "posts/20230430_HyDE/index.html#experiments",
-    "title": "HyDE 論文解読 Draft",
+    "title": "HyDE 論文解読",
     "section": "4 Experiments",
     "text": "4 Experiments\n仮想なDocumentはInstructGPTで生成した。生成したDocumentをContrieverを用いてEmbeddingに変換した。\nテストのデータとしては、MS-MARCOをベースとしたTREC DL19 DL20があり、BEIRからもLow-resourceのデータセットをいくつ利用した。また、英語以外、韓国語、日本語等データセットも使った。\n\n\n\nweb search query sets\n\n\n\n\n\nlow-resource datasets\n\n\n\n\n\nnon-English retrieval\n\n\n結果を見ると、教師なしの領域でHyDEは全面的に以前のContrieverを超えた。また、教師あるのモデルから比較しても遜色しない精度を出した。"
   },
   {
     "objectID": "posts/20230430_HyDE/index.html#analysis",
     "href": "posts/20230430_HyDE/index.html#analysis",
-    "title": "HyDE 論文解読 Draft",
+    "title": "HyDE 論文解読",
     "section": "5 Analysis",
     "text": "5 Analysis\n\n当たり前だが、仮想なドキュメントを生成するLLMによって最終の精度が違う。また、HyDEは教師なしの手法だが、教師ありのRetrieverの精度も向上できる。"
   },
   {
     "objectID": "posts/20230430_HyDE/index.html#実装",
     "href": "posts/20230430_HyDE/index.html#実装",
-    "title": "HyDE 論文解読 Draft",
+    "title": "HyDE 論文解読",
     "section": "実装",
     "text": "実装\nHyDEはすでにLangChainで実装されている。\nfrom langchain.llms import OpenAI\nfrom langchain.embeddings import OpenAIEmbeddings\nfrom langchain.chains import HypotheticalDocumentEmbedder\n\nbase_embeddings = OpenAIEmbeddings()\nllm = OpenAI()\n\n# Load with `web_search` prompt\nembeddings = HypotheticalDocumentEmbedder.from_llm(llm, base_embeddings, \"web_search\")\n\n# Now we can use it as any embedding class!\nresult = embeddings.embed_query(\"Where is the Taj Mahal?\")"
   },
@@ -186,7 +186,7 @@
     "href": "index.html",
     "title": "自然言語処理技術ブログ",
     "section": "",
-    "text": "Order By\n       Default\n         \n          Title\n        \n         \n          Date - Oldest\n        \n         \n          Date - Newest\n        \n     \n  \n    \n      \n      \n    \n\n\n\n\n  \n\n\n\n\nHyDE 論文解読 Draft\n\n\n\n\n\n\n\nNLP\n\n\nInformation_retrieval\n\n\npaper\n\n\n\n\n\n\n\n\n\n\n\nApr 30, 2023\n\n\n\n\n\n\n  \n\n\n\n\nPromptagator 論文解読\n\n\n\n\n\n\n\nNLP\n\n\nInformation_retrieval\n\n\npaper\n\n\n\n\n\n\n\n\n\n\n\nApr 29, 2023\n\n\n\n\n\n\n  \n\n\n\n\nInPars 論文解読\n\n\n\n\n\n\n\nNLP\n\n\nInformation_retrieval\n\n\npaper\n\n\n\n\n\n\n\n\n\n\n\nApr 29, 2023\n\n\n\n\n\n\nNo matching items"
+    "text": "Order By\n       Default\n         \n          Title\n        \n         \n          Date - Oldest\n        \n         \n          Date - Newest\n        \n     \n  \n    \n      \n      \n    \n\n\n\n\n  \n\n\n\n\nHyDE 論文解読\n\n\n\n\n\n\n\nNLP\n\n\nInformation_retrieval\n\n\npaper\n\n\n\n\n\n\n\n\n\n\n\nApr 30, 2023\n\n\n\n\n\n\n  \n\n\n\n\nPromptagator 論文解読\n\n\n\n\n\n\n\nNLP\n\n\nInformation_retrieval\n\n\npaper\n\n\n\n\n\n\n\n\n\n\n\nApr 29, 2023\n\n\n\n\n\n\n  \n\n\n\n\nInPars 論文解読\n\n\n\n\n\n\n\nNLP\n\n\nInformation_retrieval\n\n\npaper\n\n\n\n\n\n\n\n\n\n\n\nApr 29, 2023\n\n\n\n\n\n\nNo matching items"
   },
   {
     "objectID": "about.html",
