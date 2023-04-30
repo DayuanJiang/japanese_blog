@@ -3,13 +3,12 @@ project:
 
 website:
   title: "blog"
+  google-analytics: "G-8BFRN648V7"
   navbar:
     right:
       - about.qmd
       - icon: linkedin
         href: http://www.linkedin.com/in/jiang-dayuan
-    page-footer: "Copyright 2021, Norah Jones" 
-  google-analytics: "UA-78379810-2"
   site-url: 'https://jiang.jp'
   site-path: '/'
   
@@ -17,9 +16,6 @@ format:
   html:
     theme: cosmo
     css: styles.css
-    include-in-header: 
-      ga4.html
 
-body-footer: | 
-  This page brought to you by <https://example.com>
+
 
