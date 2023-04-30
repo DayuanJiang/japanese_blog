@@ -23,10 +23,85 @@
 <h1>1 Introduction</h1>
 <p>Dense retrievalについて様々な研究が行われているが、Zero-shot dense retrievalはまだ難しい。多くの研究はMS-MARCOのような大規模なデータセットを使って転移学習をしているが、MS-MARCOが商用不可の制限があるし、他のドメインに汎化が難しい課題がある。一方、新たなデータをラベリングするためには莫大なコストがかかる。</p>
 <p><img src="https://jiang.jp/posts/20230430_HyDE/images/paste-1.png" class="img-fluid"></p>
-<p>この論文では教師なしのZero-shot dense retrievalの仕組HyDEを提案した。 従来のDense retrieverはQueryとDocumentとの類似度でランクを決めている。HyDEはQueryを利用して、まずLLMでそのQueryを答える仮設なDocumentを生成する。生成したDocumentとDocumentの類似度でランキングしている。</p>
+<p>この論文では教師なしのZero-shot dense retrievalの仕組HyDEを提案した。 従来のDense retrieverはQueryとDocumentとの類似度でランクを決めている。HyDEはQueryを利用して、まずLLMでそのQueryを答える仮想なDocumentを生成する。生成したDocumentとDocumentの類似度でランキングしている。</p>
 <section id="related-works" class="level2">
 <h2 class="anchored" data-anchor-id="related-works">2 Related works</h2>
-<p>3 Methodology</p>
+</section>
+<section id="methology" class="level2">
+<h2 class="anchored" data-anchor-id="methology">3 Methology</h2>
+</section>
+<section id="experiments" class="level2">
+<h2 class="anchored" data-anchor-id="experiments">4 Experiments</h2>
+<p>仮想なDocumentはInstructGPTで生成した。生成したDocumentをContrieverを用いてEmbeddingに変換した。</p>
+<p>テストのデータとしては、MS-MARCOをベースとしたTREC DL19 DL20があり、BEIRからもLow-resourceのデータセットをいくつ利用した。また、英語以外、韓国語、日本語等データセットも使った。</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://jiang.jp/posts/20230430_HyDE/images/paste-2.png" class="img-fluid figure-img"></p>
+<figcaption class="figure-caption">web search query sets</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://jiang.jp/posts/20230430_HyDE/images/paste-4.png" class="img-fluid figure-img"></p>
+<figcaption class="figure-caption">low-resource datasets</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://jiang.jp/posts/20230430_HyDE/images/paste-5.png" class="img-fluid figure-img" width="400"></p>
+<figcaption class="figure-caption">non-English retrieval</figcaption>
+</figure>
+</div>
+<p>結果を見ると、教師なしの領域でHyDEは全面的に以前のContrieverを超えた。また、教師あるのモデルから比較しても遜色しない精度を出した。</p>
+</section>
+<section id="analysis" class="level2">
+<h2 class="anchored" data-anchor-id="analysis">5 Analysis</h2>
+<p><img src="https://jiang.jp/posts/20230430_HyDE/images/paste-6.png" class="img-fluid" width="300"></p>
+<p>当たり前だが、仮想なドキュメントを生成するLLMによって最終の精度が違う。また、HyDEは教師なしの手法だが、教師ありのRetrieverの精度も向上できる。</p>
+</section>
+<section id="実装" class="level2">
+<h2 class="anchored" data-anchor-id="実装">実装</h2>
+<p>HyDEはすでに<a href="https://python.langchain.com/en/latest/modules/chains/index_examples/hyde.html">LangChain</a>で実装されている。</p>
+<div class="sourceCode" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.llms <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> OpenAI</span>
+<span id="cb1-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.embeddings <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> OpenAIEmbeddings</span>
+<span id="cb1-3"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.chains <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> HypotheticalDocumentEmbedder</span>
+<span id="cb1-4"></span>
+<span id="cb1-5">base_embeddings <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> OpenAIEmbeddings()</span>
+<span id="cb1-6">llm <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> OpenAI()</span>
+<span id="cb1-7"></span>
+<span id="cb1-8"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Load with `web_search` prompt</span></span>
+<span id="cb1-9">embeddings <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> HypotheticalDocumentEmbedder.from_llm(llm, base_embeddings, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"web_search"</span>)</span>
+<span id="cb1-10"></span>
+<span id="cb1-11"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Now we can use it as any embedding class!</span></span>
+<span id="cb1-12">result <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> embeddings.embed_query(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Where is the Taj Mahal?"</span>)</span></code></pre></div>
 
 
 </section>

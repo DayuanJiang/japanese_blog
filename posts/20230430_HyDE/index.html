@@ -21,6 +21,40 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
 </style>
 
 
@@ -118,6 +152,10 @@ gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
   <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">1 Introduction</a>
   <ul class="collapse">
   <li><a href="#related-works" id="toc-related-works" class="nav-link" data-scroll-target="#related-works">2 Related works</a></li>
+  <li><a href="#methology" id="toc-methology" class="nav-link" data-scroll-target="#methology">3 Methology</a></li>
+  <li><a href="#experiments" id="toc-experiments" class="nav-link" data-scroll-target="#experiments">4 Experiments</a></li>
+  <li><a href="#analysis" id="toc-analysis" class="nav-link" data-scroll-target="#analysis">5 Analysis</a></li>
+  <li><a href="#実装" id="toc-実装" class="nav-link" data-scroll-target="#実装">実装</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -158,10 +196,57 @@ gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
 <h1>1 Introduction</h1>
 <p>Dense retrievalについて様々な研究が行われているが、Zero-shot dense retrievalはまだ難しい。多くの研究はMS-MARCOのような大規模なデータセットを使って転移学習をしているが、MS-MARCOが商用不可の制限があるし、他のドメインに汎化が難しい課題がある。一方、新たなデータをラベリングするためには莫大なコストがかかる。</p>
 <p><img src="images/paste-1.png" class="img-fluid"></p>
-<p>この論文では教師なしのZero-shot dense retrievalの仕組HyDEを提案した。 従来のDense retrieverはQueryとDocumentとの類似度でランクを決めている。HyDEはQueryを利用して、まずLLMでそのQueryを答える仮設なDocumentを生成する。生成したDocumentとDocumentの類似度でランキングしている。</p>
+<p>この論文では教師なしのZero-shot dense retrievalの仕組HyDEを提案した。 従来のDense retrieverはQueryとDocumentとの類似度でランクを決めている。HyDEはQueryを利用して、まずLLMでそのQueryを答える仮想なDocumentを生成する。生成したDocumentとDocumentの類似度でランキングしている。</p>
 <section id="related-works" class="level2">
 <h2 class="anchored" data-anchor-id="related-works">2 Related works</h2>
-<p>3 Methodology</p>
+</section>
+<section id="methology" class="level2">
+<h2 class="anchored" data-anchor-id="methology">3 Methology</h2>
+</section>
+<section id="experiments" class="level2">
+<h2 class="anchored" data-anchor-id="experiments">4 Experiments</h2>
+<p>仮想なDocumentはInstructGPTで生成した。生成したDocumentをContrieverを用いてEmbeddingに変換した。</p>
+<p>テストのデータとしては、MS-MARCOをベースとしたTREC DL19 DL20があり、BEIRからもLow-resourceのデータセットをいくつ利用した。また、英語以外、韓国語、日本語等データセットも使った。</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="images/paste-2.png" class="img-fluid figure-img"></p>
+<figcaption class="figure-caption">web search query sets</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="images/paste-4.png" class="img-fluid figure-img"></p>
+<figcaption class="figure-caption">low-resource datasets</figcaption>
+</figure>
+</div>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="images/paste-5.png" class="img-fluid figure-img" width="400"></p>
+<figcaption class="figure-caption">non-English retrieval</figcaption>
+</figure>
+</div>
+<p>結果を見ると、教師なしの領域でHyDEは全面的に以前のContrieverを超えた。また、教師あるのモデルから比較しても遜色しない精度を出した。</p>
+</section>
+<section id="analysis" class="level2">
+<h2 class="anchored" data-anchor-id="analysis">5 Analysis</h2>
+<p><img src="images/paste-6.png" class="img-fluid" width="300"></p>
+<p>当たり前だが、仮想なドキュメントを生成するLLMによって最終の精度が違う。また、HyDEは教師なしの手法だが、教師ありのRetrieverの精度も向上できる。</p>
+</section>
+<section id="実装" class="level2">
+<h2 class="anchored" data-anchor-id="実装">実装</h2>
+<p>HyDEはすでに<a href="https://python.langchain.com/en/latest/modules/chains/index_examples/hyde.html">LangChain</a>で実装されている。</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> langchain.llms <span class="im">import</span> OpenAI</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> langchain.embeddings <span class="im">import</span> OpenAIEmbeddings</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> langchain.chains <span class="im">import</span> HypotheticalDocumentEmbedder</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>base_embeddings <span class="op">=</span> OpenAIEmbeddings()</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>llm <span class="op">=</span> OpenAI()</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Load with `web_search` prompt</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>embeddings <span class="op">=</span> HypotheticalDocumentEmbedder.from_llm(llm, base_embeddings, <span class="st">"web_search"</span>)</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Now we can use it as any embedding class!</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> embeddings.embed_query(<span class="st">"Where is the Taj Mahal?"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 
 
 </section>
