@@ -1,19 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
+    <loc>https://jiang.jp/posts/20230430_HyDE/index.html</loc>
+    <lastmod>2023-04-30T14:23:12.156Z</lastmod>
+  </url>
+  <url>
     <loc>https://jiang.jp/posts/20230429_promptagator/index.html</loc>
-    <lastmod>2023-04-30T10:44:00.824Z</lastmod>
+    <lastmod>2023-04-30T14:23:12.859Z</lastmod>
   </url>
   <url>
     <loc>https://jiang.jp/posts/20230428_inpars/index.html</loc>
-    <lastmod>2023-04-30T10:44:01.207Z</lastmod>
+    <lastmod>2023-04-30T14:23:13.238Z</lastmod>
   </url>
   <url>
     <loc>https://jiang.jp/index.html</loc>
-    <lastmod>2023-04-30T10:44:01.772Z</lastmod>
+    <lastmod>2023-04-30T14:23:13.811Z</lastmod>
   </url>
   <url>
     <loc>https://jiang.jp/about.html</loc>
-    <lastmod>2023-04-30T10:44:02.114Z</lastmod>
+    <lastmod>2023-04-30T14:23:14.152Z</lastmod>
   </url>
 </urlset>
