@@ -3,7 +3,7 @@ project:
 
 website:
   title: "blog"
-  google-analytics: "G-8BFRN648V7"
+  google-analytics: "G-56TE34D1Z4"
   navbar:
     right:
       - about.qmd
