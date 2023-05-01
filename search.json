@@ -88,21 +88,21 @@
     "href": "posts/20230429_promptagator/index.html#main-results",
     "title": "Promptagator 論文解読",
     "section": "4.2 Main Results",
-    "text": "4.2 Main Results\n\n表の前半ではRetrieverの比較が行われている。Zero-shotのPromptagatorはすでに大多数のMS MARCOでFine-tuningした教師ありのRetrieverと同等な精度を出している。Few-shotのPromptagatorはさらに教師ありのRetrieverより高い精度を出している。\n後半ではRetriever+Rerankerの組み合わせの比較になる。Retrieverと同じ傾向で、Zero-shotでかなり良い精度を出している。Few-shotになるとさらに更に精度が3%向上し、Sotaになっている。\nまた、Promptagatorのもう一つ優れている点はモデルのサイズである。他のモデルは大体3Bの大きさだが、Promptagatorはわずか110Mのみである。"
+    "text": "4.2 Main Results\n\n\n\nMain result\n\n\n表の前半ではRetrieverの比較が行われている。Zero-shotのPromptagatorはすでに大多数のMS MARCOでFine-tuningした教師ありのRetrieverと同等な精度を出している。Few-shotのPromptagatorはさらに教師ありのRetrieverより高い精度を出している。\n後半ではRetriever+Rerankerの組み合わせの比較になる。Retrieverと同じ傾向で、Zero-shotでかなり良い精度を出している。Few-shotになるとさらに更に精度が3%向上し、Sotaになっている。\nまた、Promptagatorのもう一つ優れている点はモデルのサイズである。他のモデルは大体3Bの大きさだが、Promptagatorはわずか110Mのみである。"
   },
   {
     "objectID": "posts/20230429_promptagator/index.html#abalation-study",
     "href": "posts/20230429_promptagator/index.html#abalation-study",
     "title": "Promptagator 論文解読",
     "section": "4.3 Abalation Study",
-    "text": "4.3 Abalation Study\n\nQueryフィルタリングの効果 Figure2の左図は、Queryを一回フィルタリングした効果をしめしている。大多数のデータセットにとって、Queryフィルタリングが有効だが、逆効果のものも存在する。NFCorpus and SciFactは小さいデータセットなので、フィルタリングで過学習している可能性がある。\nまた、詳細にフィルタリングされた例をみると、多くケースはQueryは一般化過ぎて多数のドキュメントにマッチングされていること、もしくは単純にQueryが間違っていることがわかる。\n生成したQueryで人間のデータを代替することができるか？ Figure2の真ん中の図は、8-shotのPromptagatorは5万件の人間がラベリングしたデータと同じ効果であることを示している。\nPromptagatorのQuery生成が効いているか？ Figure2の右図のGenQはBEIR論文の中で提案されたモデル、NQ-QGenはこの論文提案した方法でNQデータセット学習したモデル、NQ-QGenとGenQの違いはQuery生成の部分のみ。NQ-QGenの精度は2.7%高いため、提案したQuery生成の方法が有効だと言える。\n\nFLANの影響 PromptagatorのLLMはFLANを利用している。FLANの学習データの中にNQとQuaroデータが含まれいている。その影響を検証するため､それらを除いたデータセットでFLANを学習し、その結果を比較した(さすがGoogle Research、金ならあるの感じ)。その結果、精度は若干低下したが、以前の研究よりは高い精度を達成している。"
+    "text": "4.3 Abalation Study\n\n\n\nAbalation study\n\n\nQueryフィルタリングの効果 Figure2の左図は、Queryを一回フィルタリングした効果をしめしている。大多数のデータセットにとって、Queryフィルタリングが有効だが、逆効果のものも存在する。NFCorpus and SciFactは小さいデータセットなので、フィルタリングで過学習している可能性がある。\nまた、詳細にフィルタリングされた例をみると、多くケースはQueryは一般化過ぎて多数のドキュメントにマッチングされていること、もしくは単純にQueryが間違っていることがわかる。\n生成したQueryで人間のデータを代替することができるか？ Figure2の真ん中の図は、8-shotのPromptagatorは5万件の人間がラベリングしたデータと同じ効果であることを示している。\nPromptagatorのQuery生成が効いているか？ Figure2の右図のGenQはBEIR論文の中で提案されたモデル、NQ-QGenはこの論文提案した方法でNQデータセット学習したモデル、NQ-QGenとGenQの違いはQuery生成の部分のみ。NQ-QGenの精度は2.7%高いため、提案したQuery生成の方法が有効だと言える。\n\n\n\nImpact of FLAN\n\n\nFLANの影響 PromptagatorのLLMはFLANを利用している。FLANの学習データの中にNQとQuaroデータが含まれいている。その影響を検証するため､それらを除いたデータセットでFLANを学習し、その結果を比較した(さすがGoogle Research、金ならあるの感じ)。その結果、精度は若干低下したが、以前の研究よりは高い精度を達成している。"
   },
   {
     "objectID": "posts/20230429_promptagator/index.html#qualitative-analysis",
     "href": "posts/20230429_promptagator/index.html#qualitative-analysis",
     "title": "Promptagator 論文解読",
     "section": "4.4 Qualitative Analysis",
-    "text": "4.4 Qualitative Analysis\n\nQueryの最初のWordの分布を調査した。Few-shotが生成したQueryの分布は実際のQueryの分布と同じであることがわかる。"
+    "text": "4.4 Qualitative Analysis\n\n\n\nTop word distribution\n\n\nQueryの最初のWordの分布を調査した。Few-shotが生成したQueryの分布は実際のQueryの分布と同じであることがわかる。"
   },
   {
     "objectID": "posts/20230429_promptagator/index.html#neural-retrieval-models",
@@ -151,14 +151,14 @@
     "href": "posts/20230428_inpars/index.html#our-method-inpars",
     "title": "InPars 論文解読",
     "section": "3. Our Method: InPars",
-    "text": "3. Our Method: InPars\n以下はInParsのステップ：\n\n複数のドキュメントとクエリーのペアが存在すると仮定する。それを例として、Few-shotでLLMでドキュメントに関連するクエリーを生成してもらう。(\n詳細は4.2で紹介する）\n生成したドキュメントとクエリーのペアについて、LLMが出力する際に出している結果のLog probabilityが上位のものを選択する。ちなみに、このステップが大きく精度を改善した。\n生成したqとdのペアを学習データとしてRerankのモデルをFine-tuningする。（詳細は4.3で紹介する）"
+    "text": "3. Our Method: InPars\n以下はInParsのステップ：\n\n複数のドキュメントとクエリーのペアが存在すると仮定する。それを例として、Few-shotでLLMでドキュメントに関連するクエリーを生成してもらう。(\n詳細は4.2で紹介する）\n生成したドキュメントとクエリーのペアについて、LLMが出力する際に出している結果のLog probabilityが上位のものを選択する。ちなみに、このステップが大きく精度を改善した。\n生成したqとdのペアを学習データとしてRerankのモデルをFine-tuningする。（詳細は4.3で紹介する）\n\n\n\n\nInPars"
   },
   {
     "objectID": "posts/20230428_inpars/index.html#experimental-setup",
     "href": "posts/20230428_inpars/index.html#experimental-setup",
     "title": "InPars 論文解読",
     "section": "4. Experimental Setup",
-    "text": "4. Experimental Setup\n\n4.1 Datasets\n今回使用したデータセットは以下：\n\nMS MARCO：Microsoftが出したBingの実際のユーザログをベースとした大型データセット。880万のドキュメントと50万のドキュメントとクエリーのペアがある。各クエリーが平均的に1ドキュメントに対応する。\nTREC-DL：MS MARCOと同じドキュメントを持っているが、クエリーは54件のみである。また、各クエリーについてアノテーションしたドキュメントが多い。\nRobust04：新聞領域のデータセット。52万のドキュメントがあり、249クエリーがある。各クエリーに対して、平均的に1250件のドキュメントをアノテーションした。\nNatural Questions：260万件のWikipediaテキストをベースとしたQuestion Answer データセット。QuestionはGoogleの検索エンジンのログから作ったもの。\nTREC-COVID：コロナの情報に関するデータセット\n\n\n\n4.2 Training Data Generation\n各学習データは（Query, Positive document, Negative document）のTripleによって構成させる。その生成のステップは以下：\n\n10万のドキュメントをサンプリングし、GPT3のCurieでQueryを生成させる。\n最終的にLog probabilityが上位の1万件のペアのみ学習データとして使う。\nBM25で検索した1000件の中でランダムに1件を抽出し、それをNegative Documentとする。（このやり方で多くのノイズを入れてしまうのでは？）\n\n以下は２点の補足：\n\n生成する際に温度とTopーPのパラメータ設定は結果に有意の影響しない。\n長さが300文字のドキュメントは捨てられる。\n\nQuery生成する際にPromptの書き方は2つを利用した（Figure２)：\n\n一般方法（Vanilla)：MS MARCOからランダムに3つのデータを抽出し、それを例として、FewーshotでQueryを生成させる。\nGBQ（Guided by Bad Questions）：一般方法と同じように、MS MARCOからランダムに3つのデータを抽出する。しかし、MS MARCOのQueryが漠然すぎるため、それをBad questionとして提示する。Documentを読んで、より関連するGood Questionを手動で作った。（Document, Good Question, Bad Question)で例を提示し、生成したGood QuestionをQueryとする。\n\n\n\n\n4.3 Retrieval Methods\n２段階の検索を採用している。まずBM25で上位1000のドキュメントを取り出す。その次、MonoT5を使ってRerankingをする。\nMonoT5はTransformerのEncoderとDecoder両方とも使っているモデルで、Cross-Encoderモデルである。今回の実験では、サイズは220Mと3Bのモデルでテストした。\n各データセットにおいて作成された擬似データでMonoT5をFine-tuningした。"
+    "text": "4. Experimental Setup\n\n4.1 Datasets\n今回使用したデータセットは以下：\n\nMS MARCO：Microsoftが出したBingの実際のユーザログをベースとした大型データセット。880万のドキュメントと50万のドキュメントとクエリーのペアがある。各クエリーが平均的に1ドキュメントに対応する。\nTREC-DL：MS MARCOと同じドキュメントを持っているが、クエリーは54件のみである。また、各クエリーについてアノテーションしたドキュメントが多い。\nRobust04：新聞領域のデータセット。52万のドキュメントがあり、249クエリーがある。各クエリーに対して、平均的に1250件のドキュメントをアノテーションした。\nNatural Questions：260万件のWikipediaテキストをベースとしたQuestion Answer データセット。QuestionはGoogleの検索エンジンのログから作ったもの。\nTREC-COVID：コロナの情報に関するデータセット\n\n\n\n4.2 Training Data Generation\n各学習データは（Query, Positive document, Negative document）のTripleによって構成させる。その生成のステップは以下：\n\n10万のドキュメントをサンプリングし、GPT3のCurieでQueryを生成させる。\n最終的にLog probabilityが上位の1万件のペアのみ学習データとして使う。\nBM25で検索した1000件の中でランダムに1件を抽出し、それをNegative Documentとする。（このやり方で多くのノイズを入れてしまうのでは？）\n\n以下は２点の補足：\n\n生成する際に温度とTopーPのパラメータ設定は結果に有意の影響しない。\n長さが300文字のドキュメントは捨てられる。\n\nQuery生成する際にPromptの書き方は2つを利用した（Figure２)：\n\n一般方法（Vanilla)：MS MARCOからランダムに3つのデータを抽出し、それを例として、FewーshotでQueryを生成させる。\nGBQ（Guided by Bad Questions）：一般方法と同じように、MS MARCOからランダムに3つのデータを抽出する。しかし、MS MARCOのQueryが漠然すぎるため、それをBad questionとして提示する。Documentを読んで、より関連するGood Questionを手動で作った。（Document, Good Question, Bad Question)で例を提示し、生成したGood QuestionをQueryとする。\n\n\n\n\nPrompt example\n\n\n\n\n4.3 Retrieval Methods\n２段階の検索を採用している。まずBM25で上位1000のドキュメントを取り出す。その次、MonoT5を使ってRerankingをする。\nMonoT5はTransformerのEncoderとDecoder両方とも使っているモデルで、Cross-Encoderモデルである。今回の実験では、サイズは220Mと3Bのモデルでテストした。\n各データセットにおいて作成された擬似データでMonoT5をFine-tuningした。"
   },
   {
     "objectID": "posts/20230428_inpars/index.html#results",

@@ -126,7 +126,12 @@ font-style: inherit;">"Where is the Taj Mahal?"</span>)</span></code></pre></div
 <p>論文URL：<a href="https://arxiv.org/abs/2209.11755" class="uri">https://arxiv.org/abs/2209.11755</a></p>
 <section id="introduction" class="level1">
 <h1>1 Introduction</h1>
-<p><img src="https://jiang.jp/posts/20230429_promptagator/images/Untitled.png" class="img-fluid"></p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://jiang.jp/posts/20230429_promptagator/images/paste-7.png" class="img-fluid figure-img" alt="Few-shot retrieval with PROMPTAGATOR" width="700"></p>
+<figcaption class="figure-caption">Few-shot retrieval with PROMPTAGATOR</figcaption>
+</figure>
+</div>
 <p>BEIRのような異なる種類のデータセットによって構成されるベンチマークがある。特定のデータセットで学習したモデルは他領域への汎化が難しい。その理由は主に2つある。</p>
 <p>まず、異なるタスクはそれぞれ検索意図が違う。例えば、図1の左側に示されているように、Dbpedia-Entityはクエリで言及されたエンティティを検索するタスクであり、FEVERは与えられた声明を支持または反証する証拠を検索するタスクである。</p>
 <p>また、検索意図が類似していても、データの分布が異なることがある。例えば、HotpotQAのように違う領域の質問もあるし、FiQAのようにファイナンシャル専門の質問もある。</p>
@@ -159,8 +164,8 @@ Evidence: passage k
 Vexed question: query k
 Evidence: target passage</code></pre>
 <p>下表のようにタスクごとに違うPromptを設定した。（Promptの中の0と 1の意味が不明）</p>
-<p><img src="https://jiang.jp/posts/20230429_promptagator/images/Untitled 1.png" class="img-fluid"></p>
-<p>Promptで使用した例は最大8個にし、例の長さによって調整している。文書が長い場合は、必要に応じて切断している。</p>
+<p><img src="https://jiang.jp/posts/20230429_promptagator/images/paste-8.png" class="img-fluid" alt="Prompt template for each dataset"><br>
+Promptで使用した例は最大8個にし、例の長さによって調整している。文書が長い場合は、必要に応じて切断している。</p>
 <p>各コーパスから最大100万のドキュメントを抽出し、各ドキュメントで8個のQueryを生成している。LLMはFLAN137Bを使った。生成する際に0.7の温度を使った。</p>
 </section>
 <section id="consistency-filtering-using-only-generated-data" class="level2">
@@ -236,24 +241,44 @@ font-style: inherit;"> Read the passage and generate a query.'</span></span></co
 </section>
 <section id="main-results" class="level2">
 <h2 class="anchored" data-anchor-id="main-results">4.2 Main Results</h2>
-<p><img src="https://jiang.jp/posts/20230429_promptagator/images/paste-1.png" class="img-fluid"></p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://jiang.jp/posts/20230429_promptagator/images/paste-9.png" class="img-fluid figure-img" alt="Main result"></p>
+<figcaption class="figure-caption">Main result</figcaption>
+</figure>
+</div>
 <p>表の前半ではRetrieverの比較が行われている。Zero-shotのPromptagatorはすでに大多数のMS MARCOでFine-tuningした教師ありのRetrieverと同等な精度を出している。Few-shotのPromptagatorはさらに教師ありのRetrieverより高い精度を出している。</p>
 <p>後半ではRetriever+Rerankerの組み合わせの比較になる。Retrieverと同じ傾向で、Zero-shotでかなり良い精度を出している。Few-shotになるとさらに更に精度が3%向上し、Sotaになっている。</p>
 <p>また、Promptagatorのもう一つ優れている点はモデルのサイズである。他のモデルは大体3Bの大きさだが、Promptagatorはわずか110Mのみである。</p>
 </section>
 <section id="abalation-study" class="level2">
 <h2 class="anchored" data-anchor-id="abalation-study">4.3 Abalation Study</h2>
-<p><img src="https://jiang.jp/posts/20230429_promptagator/images/paste-2.png" class="img-fluid"></p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://jiang.jp/posts/20230429_promptagator/images/paste-10.png" class="img-fluid figure-img" alt="Abalation study"></p>
+<figcaption class="figure-caption">Abalation study</figcaption>
+</figure>
+</div>
 <p><strong>Queryフィルタリングの効果</strong> Figure2の左図は、Queryを一回フィルタリングした効果をしめしている。大多数のデータセットにとって、Queryフィルタリングが有効だが、逆効果のものも存在する。NFCorpus and SciFactは小さいデータセットなので、フィルタリングで過学習している可能性がある。</p>
 <p>また、詳細にフィルタリングされた例をみると、多くケースはQueryは一般化過ぎて多数のドキュメントにマッチングされていること、もしくは単純にQueryが間違っていることがわかる。</p>
 <p><strong>生成したQueryで人間のデータを代替することができるか？</strong> Figure2の真ん中の図は、8-shotのPromptagatorは5万件の人間がラベリングしたデータと同じ効果であることを示している。</p>
 <p><strong>PromptagatorのQuery生成が効いているか？</strong> Figure2の右図のGenQはBEIR論文の中で提案されたモデル、NQ-QGenはこの論文提案した方法でNQデータセット学習したモデル、NQ-QGenとGenQの違いはQuery生成の部分のみ。NQ-QGenの精度は2.7%高いため、提案したQuery生成の方法が有効だと言える。</p>
-<p><img src="https://jiang.jp/posts/20230429_promptagator/images/paste-6.png" class="img-fluid"></p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://jiang.jp/posts/20230429_promptagator/images/paste-6.png" class="img-fluid figure-img" alt="Impact of FLAN"></p>
+<figcaption class="figure-caption">Impact of FLAN</figcaption>
+</figure>
+</div>
 <p><strong>FLANの影響</strong> PromptagatorのLLMはFLANを利用している。FLANの学習データの中にNQとQuaroデータが含まれいている。その影響を検証するため､それらを除いたデータセットでFLANを学習し、その結果を比較した(さすがGoogle Research、金ならあるの感じ)。その結果、精度は若干低下したが、以前の研究よりは高い精度を達成している。</p>
 </section>
 <section id="qualitative-analysis" class="level2">
 <h2 class="anchored" data-anchor-id="qualitative-analysis">4.4 Qualitative Analysis</h2>
-<p><img src="https://jiang.jp/posts/20230429_promptagator/images/paste-5.png" class="img-fluid"></p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://jiang.jp/posts/20230429_promptagator/images/paste-5.png" class="img-fluid figure-img" alt="Top word distribution"></p>
+<figcaption class="figure-caption">Top word distribution</figcaption>
+</figure>
+</div>
 <p>Queryの最初のWordの分布を調査した。Few-shotが生成したQueryの分布は実際のQueryの分布と同じであることがわかる。</p>
 </section>
 </section>
@@ -333,7 +358,12 @@ font-style: inherit;"> Read the passage and generate a query.'</span></span></co
 <li><p>生成したドキュメントとクエリーのペアについて、LLMが出力する際に出している結果のLog probabilityが上位のものを選択する。ちなみに、このステップが大きく精度を改善した。</p></li>
 <li><p>生成したqとdのペアを学習データとしてRerankのモデルをFine-tuningする。（詳細は4.3で紹介する）</p></li>
 </ol>
-<p><img src="https://jiang.jp/posts/20230428_inpars/images/paste-1.png" class="img-fluid"></p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://jiang.jp/posts/20230428_inpars/images/paste-1.png" class="img-fluid figure-img" alt="InPars "></p>
+<figcaption class="figure-caption">InPars</figcaption>
+</figure>
+</div>
 </section>
 <section id="experimental-setup" class="level2">
 <h2 class="anchored" data-anchor-id="experimental-setup">4. Experimental Setup</h2>
@@ -366,7 +396,12 @@ font-style: inherit;"> Read the passage and generate a query.'</span></span></co
 <li>一般方法（Vanilla)：MS MARCOからランダムに3つのデータを抽出し、それを例として、FewーshotでQueryを生成させる。</li>
 <li>GBQ（Guided by Bad Questions）：一般方法と同じように、MS MARCOからランダムに3つのデータを抽出する。しかし、MS MARCOのQueryが漠然すぎるため、それをBad questionとして提示する。Documentを読んで、より関連するGood Questionを手動で作った。（Document, Good Question, Bad Question)で例を提示し、生成したGood QuestionをQueryとする。</li>
 </ol>
-<p><img src="https://jiang.jp/posts/20230428_inpars/images/Untitled.png" class="img-fluid"></p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://jiang.jp/posts/20230428_inpars/images/paste-2.png" class="img-fluid figure-img" alt="Prompt example"></p>
+<figcaption class="figure-caption">Prompt example</figcaption>
+</figure>
+</div>
 </section>
 <section id="retrieval-methods" class="level3">
 <h3 class="anchored" data-anchor-id="retrieval-methods">4.3 Retrieval Methods</h3>
@@ -377,7 +412,7 @@ font-style: inherit;"> Read the passage and generate a query.'</span></span></co
 </section>
 <section id="results" class="level2">
 <h2 class="anchored" data-anchor-id="results">5 Results</h2>
-<p><img src="https://jiang.jp/posts/20230428_inpars/images/Untitled 1.png" class="img-fluid"></p>
+<p><img src="https://jiang.jp/posts/20230428_inpars/images/Snipaste_2023-05-01_09-49-20.png" class="img-fluid"></p>
 <p>7,8行目を見ると、BM25やContriever等の以前のUnsupervised結果より優れていることがわかる。また、16行目はMS MARCOでFine-tuningした後さらに擬似データでFine-tuningした結果。幾つかのデータセットで単純にMS MARCOでFine-tuningするより良い結果が出ている。</p>
 </section>
 <section id="ablation-study-and-analysis" class="level2">

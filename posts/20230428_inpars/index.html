@@ -183,7 +183,12 @@ gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
 <li><p>生成したドキュメントとクエリーのペアについて、LLMが出力する際に出している結果のLog probabilityが上位のものを選択する。ちなみに、このステップが大きく精度を改善した。</p></li>
 <li><p>生成したqとdのペアを学習データとしてRerankのモデルをFine-tuningする。（詳細は4.3で紹介する）</p></li>
 </ol>
-<p><img src="images/paste-1.png" class="img-fluid"></p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="images/paste-1.png" class="img-fluid figure-img" alt="InPars "></p>
+<figcaption class="figure-caption">InPars</figcaption>
+</figure>
+</div>
 </section>
 <section id="experimental-setup" class="level2">
 <h2 class="anchored" data-anchor-id="experimental-setup">4. Experimental Setup</h2>
@@ -216,7 +221,12 @@ gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
 <li>一般方法（Vanilla)：MS MARCOからランダムに3つのデータを抽出し、それを例として、FewーshotでQueryを生成させる。</li>
 <li>GBQ（Guided by Bad Questions）：一般方法と同じように、MS MARCOからランダムに3つのデータを抽出する。しかし、MS MARCOのQueryが漠然すぎるため、それをBad questionとして提示する。Documentを読んで、より関連するGood Questionを手動で作った。（Document, Good Question, Bad Question)で例を提示し、生成したGood QuestionをQueryとする。</li>
 </ol>
-<p><img src="images/Untitled.png" class="img-fluid"></p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="images/paste-2.png" class="img-fluid figure-img" alt="Prompt example"></p>
+<figcaption class="figure-caption">Prompt example</figcaption>
+</figure>
+</div>
 </section>
 <section id="retrieval-methods" class="level3">
 <h3 class="anchored" data-anchor-id="retrieval-methods">4.3 Retrieval Methods</h3>
@@ -227,7 +237,7 @@ gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
 </section>
 <section id="results" class="level2">
 <h2 class="anchored" data-anchor-id="results">5 Results</h2>
-<p><img src="images/Untitled 1.png" class="img-fluid"></p>
+<p><img src="images/Snipaste_2023-05-01_09-49-20.png" class="img-fluid"></p>
 <p>7,8行目を見ると、BM25やContriever等の以前のUnsupervised結果より優れていることがわかる。また、16行目はMS MARCOでFine-tuningした後さらに擬似データでFine-tuningした結果。幾つかのデータセットで単純にMS MARCOでFine-tuningするより良い結果が出ている。</p>
 </section>
 <section id="ablation-study-and-analysis" class="level2">
