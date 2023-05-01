@@ -10,7 +10,67 @@
 <atom:link href="https://jiang.jp/index.xml" rel="self" type="application/rss+xml"/>
 <description></description>
 <generator>quarto-1.3.340</generator>
-<lastBuildDate>Sat, 29 Apr 2023 15:00:00 GMT</lastBuildDate>
+<lastBuildDate>Sun, 30 Apr 2023 15:00:00 GMT</lastBuildDate>
+<item>
+  <title>InPars V2 論文解読</title>
+  <link>https://jiang.jp/posts/20230501_inpars_v2/index.html</link>
+  <description><![CDATA[ 
+
+
+
+<p>InPars V2論文では、Query生成に使用するLLMがGPT3からオープンソースのGPT-J(6B)に変更され、生成したQueryのフィルタリング方法がLog Probabilityからmonot5(3B)をRerankerとして利用する方法に変更された点を挙げている。実験結果としては、V2の精度がV1と比べてわずかに向上したことが報告されている。</p>
+<p>論文URL：<a href="https://arxiv.org/abs/2301.01820" class="uri">https://arxiv.org/abs/2301.01820</a></p>
+<section id="introduction" class="level2">
+<h2 class="anchored" data-anchor-id="introduction">1 Introduction</h2>
+<p>InPars v1とv2の違いは、主に以下の2点：</p>
+<table class="table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Difference</th>
+<th>InPars v1</th>
+<th>InPars v2</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Queryを生成するLLM</td>
+<td>GPT3</td>
+<td>GPT-J(6B) (オープンソース)</td>
+</tr>
+<tr class="even">
+<td>生成したQueryのフィルタリング方法</td>
+<td>生成時のLog Probabilityでフィルタリング</td>
+<td>monot5(3B)をRerankerとしてフィルタリング</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="methodology" class="level2">
+<h2 class="anchored" data-anchor-id="methodology">2 Methodology</h2>
+<p>BEIRの各データセットに対して100kのドキュメントをサンプリングする。MS MARCOからの3つの例を利用してGBQの形式でPromptを作成し、各ドキュメントに対して一個のQueryを生成する。GPT-J(6B)を利用してQueryを生成した。A100一枚で100kのQueryを生成するためには30時間かかる。</p>
+<p>フィルタリングについては以前は生成時のLog Probabilityが上位の10kのペアを選んだが、今回はMS-MARCOでFine-tuningしたものT5-3BをRerankerとして使った。100kのQueryとDocumentのペアについて相関度を出して、上位の10kペアを利用した。</p>
+<p>Negative sampleはまた各QueryについてBM25で上位1000ドキュメント中で1個ランダム選んだ。</p>
+</section>
+<section id="result" class="level2">
+<h2 class="anchored" data-anchor-id="result">3 Result</h2>
+<p><img src="https://jiang.jp/posts/20230501_inpars_v2/images/paste-1.png" class="img-fluid" width="500"></p>
+<p>実験結果を見ると、v2はv1と比べて精度が少し良くなった(0.006)。</p>
+
+
+</section>
+
+ ]]></description>
+  <category>NLP</category>
+  <category>Information_retrieval</category>
+  <category>paper</category>
+  <guid>https://jiang.jp/posts/20230501_inpars_v2/index.html</guid>
+  <pubDate>Sun, 30 Apr 2023 15:00:00 GMT</pubDate>
+</item>
 <item>
   <title>HyDE 論文解読</title>
   <link>https://jiang.jp/posts/20230430_HyDE/index.html</link>

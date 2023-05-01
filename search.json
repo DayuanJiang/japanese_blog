@@ -182,11 +182,39 @@
     "text": "7 Conclusion and Future Work\n本文は、LLMを利用してQueryを生成して、生成したQueryとドキュメントのペアを学習データでモデルを学習する手法を提案した。\n今後の改善点としては、\n\n擬似データでDense RetrieverをFine-tuningする（今回はRerankerのみ）\nデータを生成する際に作った”BAD question”をNegative exampleとして使用する\n擬似データの数を増やす\n（Query, Document)のペアを探すもっと良い手法を開発する"
   },
   {
+    "objectID": "posts/20230501_inpars_v2/index.html",
+    "href": "posts/20230501_inpars_v2/index.html",
+    "title": "InPars V2 論文解読",
+    "section": "",
+    "text": "InPars V2論文では、Query生成に使用するLLMがGPT3からオープンソースのGPT-J(6B)に変更され、生成したQueryのフィルタリング方法がLog Probabilityからmonot5(3B)をRerankerとして利用する方法に変更された点を挙げている。実験結果としては、V2の精度がV1と比べてわずかに向上したことが報告されている。\n論文URL：https://arxiv.org/abs/2301.01820"
+  },
+  {
+    "objectID": "posts/20230501_inpars_v2/index.html#introduction",
+    "href": "posts/20230501_inpars_v2/index.html#introduction",
+    "title": "InPars V2 論文解読",
+    "section": "1 Introduction",
+    "text": "1 Introduction\nInPars v1とv2の違いは、主に以下の2点：\n\n\n\n\n\n\n\n\nDifference\nInPars v1\nInPars v2\n\n\n\n\nQueryを生成するLLM\nGPT3\nGPT-J(6B) (オープンソース)\n\n\n生成したQueryのフィルタリング方法\n生成時のLog Probabilityでフィルタリング\nmonot5(3B)をRerankerとしてフィルタリング"
+  },
+  {
+    "objectID": "posts/20230501_inpars_v2/index.html#methodology",
+    "href": "posts/20230501_inpars_v2/index.html#methodology",
+    "title": "InPars V2 論文解読",
+    "section": "2 Methodology",
+    "text": "2 Methodology\nBEIRの各データセットに対して100kのドキュメントをサンプリングする。MS MARCOからの3つの例を利用してGBQの形式でPromptを作成し、各ドキュメントに対して一個のQueryを生成する。GPT-J(6B)を利用してQueryを生成した。A100一枚で100kのQueryを生成するためには30時間かかる。\nフィルタリングについては以前は生成時のLog Probabilityが上位の10kのペアを選んだが、今回はMS-MARCOでFine-tuningしたものT5-3BをRerankerとして使った。100kのQueryとDocumentのペアについて相関度を出して、上位の10kペアを利用した。\nNegative sampleはまた各QueryについてBM25で上位1000ドキュメント中で1個ランダム選んだ。"
+  },
+  {
+    "objectID": "posts/20230501_inpars_v2/index.html#result",
+    "href": "posts/20230501_inpars_v2/index.html#result",
+    "title": "InPars V2 論文解読",
+    "section": "3 Result",
+    "text": "3 Result\n\n実験結果を見ると、v2はv1と比べて精度が少し良くなった(0.006)。"
+  },
+  {
     "objectID": "index.html",
     "href": "index.html",
     "title": "自然言語処理技術ブログ",
     "section": "",
-    "text": "Order By\n       Default\n         \n          Title\n        \n         \n          Date - Oldest\n        \n         \n          Date - Newest\n        \n     \n  \n    \n      \n      \n    \n\n\n\n\n  \n\n\n\n\nHyDE 論文解読\n\n\n\n\n\n\n\nNLP\n\n\nInformation_retrieval\n\n\npaper\n\n\n\n\n\n\n\n\n\n\n\nApr 30, 2023\n\n\n\n\n\n\n  \n\n\n\n\nPromptagator 論文解読\n\n\n\n\n\n\n\nNLP\n\n\nInformation_retrieval\n\n\npaper\n\n\n\n\n\n\n\n\n\n\n\nApr 29, 2023\n\n\n\n\n\n\n  \n\n\n\n\nInPars 論文解読\n\n\n\n\n\n\n\nNLP\n\n\nInformation_retrieval\n\n\npaper\n\n\n\n\n\n\n\n\n\n\n\nApr 29, 2023\n\n\n\n\n\n\nNo matching items"
+    "text": "Order By\n       Default\n         \n          Title\n        \n         \n          Date - Oldest\n        \n         \n          Date - Newest\n        \n     \n  \n    \n      \n      \n    \n\n\n\n\n  \n\n\n\n\nInPars V2 論文解読\n\n\n\n\n\n\n\nNLP\n\n\nInformation_retrieval\n\n\npaper\n\n\n\n\n\n\n\n\n\n\n\nMay 1, 2023\n\n\n\n\n\n\n  \n\n\n\n\nHyDE 論文解読\n\n\n\n\n\n\n\nNLP\n\n\nInformation_retrieval\n\n\npaper\n\n\n\n\n\n\n\n\n\n\n\nApr 30, 2023\n\n\n\n\n\n\n  \n\n\n\n\nPromptagator 論文解読\n\n\n\n\n\n\n\nNLP\n\n\nInformation_retrieval\n\n\npaper\n\n\n\n\n\n\n\n\n\n\n\nApr 29, 2023\n\n\n\n\n\n\n  \n\n\n\n\nInPars 論文解読\n\n\n\n\n\n\n\nNLP\n\n\nInformation_retrieval\n\n\npaper\n\n\n\n\n\n\n\n\n\n\n\nApr 29, 2023\n\n\n\n\n\n\nNo matching items"
   },
   {
     "objectID": "about.html",
