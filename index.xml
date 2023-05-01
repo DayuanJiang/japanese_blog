@@ -23,7 +23,12 @@
 <section id="introduction" class="level1">
 <h1>1 Introduction</h1>
 <p>Dense retrievalについて様々な研究が行われているが、Zero-shot dense retrievalはまだ難しい。多くの研究はMS-MARCOのような大規模なデータセットを使って転移学習をしているが、MS-MARCOが商用不可の制限があるし、他のドメインに汎化が難しい課題がある。一方、新たなデータをラベリングするためには莫大なコストがかかる。</p>
-<p><img src="https://jiang.jp/posts/20230430_HyDE/images/paste-1.png" class="img-fluid"></p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://jiang.jp/posts/20230430_HyDE/images/paste-1.png" class="img-fluid figure-img" alt="HyDE"></p>
+<figcaption class="figure-caption">HyDE</figcaption>
+</figure>
+</div>
 <p>この論文では教師なしのZero-shot dense retrievalの仕組HyDEを提案した。 従来のDense retrieverはQueryとDocumentとの類似度でランクを決めている。HyDEはQueryを利用して、まずLLMでそのQueryを答える仮想なDocumentを生成する。生成したDocumentとDocumentの類似度でランキングしている。</p>
 <section id="related-works" class="level2">
 <h2 class="anchored" data-anchor-id="related-works">2 Related works</h2>
@@ -57,7 +62,12 @@
 </section>
 <section id="analysis" class="level2">
 <h2 class="anchored" data-anchor-id="analysis">5 Analysis</h2>
-<p><img src="https://jiang.jp/posts/20230430_HyDE/images/paste-6.png" class="img-fluid" width="300"></p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://jiang.jp/posts/20230430_HyDE/images/paste-6.png" class="img-fluid figure-img" alt="LLM difference" width="300"></p>
+<figcaption class="figure-caption">LLM difference</figcaption>
+</figure>
+</div>
 <p>当たり前だが、仮想なドキュメントを生成するLLMによって最終の精度が違う。また、HyDEは教師なしの手法だが、教師ありのRetrieverの精度も向上できる。</p>
 </section>
 <section id="実装" class="level2">

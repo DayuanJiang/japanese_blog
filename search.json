@@ -32,7 +32,7 @@
     "href": "posts/20230430_HyDE/index.html#analysis",
     "title": "HyDE 論文解読",
     "section": "5 Analysis",
-    "text": "5 Analysis\n\n当たり前だが、仮想なドキュメントを生成するLLMによって最終の精度が違う。また、HyDEは教師なしの手法だが、教師ありのRetrieverの精度も向上できる。"
+    "text": "5 Analysis\n\n\n\nLLM difference\n\n\n当たり前だが、仮想なドキュメントを生成するLLMによって最終の精度が違う。また、HyDEは教師なしの手法だが、教師ありのRetrieverの精度も向上できる。"
   },
   {
     "objectID": "posts/20230430_HyDE/index.html#実装",
