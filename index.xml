@@ -18,6 +18,7 @@
 
 
 
+<p>HyDE論文では、教師なしのZero-shot dense retrievalシステムを提案。従来のDense retrieverとは異なり、HyDEはQueryから仮想的なDocumentを生成し、その類似度でランキング。InstructGPTで仮想ドキュメントを生成し、Contrieverを使ってEmbeddingに変換。様々なデータセットでテストした結果、HyDEは教師なし領域で従来のContrieverを凌駕し、教師ありモデルとも遜色ない精度を示した。実装はLangChainで利用可能。</p>
 <p>論文URL：<a href="https://arxiv.org/abs/2204.07496" class="uri">https://arxiv.org/abs/2204.07496</a></p>
 <section id="introduction" class="level1">
 <h1>1 Introduction</h1>
@@ -121,6 +122,7 @@ font-style: inherit;">"Where is the Taj Mahal?"</span>)</span></code></pre></div
 
 
 
+<p>Promptagator論文では、Few-shot Retrieval settingを提案し、異なる検索タスクに対応するために専用のPromptを作成してLLMでDocumentに関連するQueryを生成。生成されたQueryをフィルタリングし、Retrieverを学習させる。実験結果から、Promptagatorは既存の50万件以上の学習データを使ったモデルより高い精度を達成し、教師ありのRetrieverよりも優れていることが分かった。</p>
 <p>論文URL：<a href="https://arxiv.org/abs/2209.11755" class="uri">https://arxiv.org/abs/2209.11755</a></p>
 <section id="introduction" class="level1">
 <h1>1 Introduction</h1>
@@ -309,6 +311,7 @@ font-style: inherit;"> Read the passage and generate a query.'</span></span></co
 
 
 
+<p>InPars論文では、擬似データ（Pseudo data）生成によるランキングモデル学習手法を提案。LLMを用いて擬似データを生成し、それを使ってモデルを学習させることで、情報検索（IR）の精度を向上させる。実験では、生成された擬似データでMonoT5をFine-tuningし、結果として従来のUnsupervisedモデルより優れた性能を示した。</p>
 <p>論文URL：<a href="https://arxiv.org/abs/2202.05144" class="uri">https://arxiv.org/abs/2202.05144</a></p>
 <section id="introduction" class="level2">
 <h2 class="anchored" data-anchor-id="introduction">1. Introduction</h2>
