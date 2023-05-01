@@ -1,14 +1,17 @@
 ---
 title: "Promptagator 論文解読"
 date: "2023-04-29"
+description-meta: "Promptagator論文では、Few-shot Retrieval settingを提案し、異なる検索タスクに対応するために専用のPromptを作成してLLMでDocumentに関連するQueryを生成。生成されたQueryをフィルタリングし、Retrieverを学習させる。実験結果から、Promptagatorは既存の50万件以上の学習データを使ったモデルより高い精度を達成し、教師ありのRetrieverよりも優れていることが分かった。"
 categories: [NLP, Information_retrieval, paper]
 ---
+
+Promptagator論文では、Few-shot Retrieval settingを提案し、異なる検索タスクに対応するために専用のPromptを作成してLLMでDocumentに関連するQueryを生成。生成されたQueryをフィルタリングし、Retrieverを学習させる。実験結果から、Promptagatorは既存の50万件以上の学習データを使ったモデルより高い精度を達成し、教師ありのRetrieverよりも優れていることが分かった。
 
 論文URL：<https://arxiv.org/abs/2209.11755>
 
 # 1 Introduction
 
-![](images/Untitled.png)
+![Few-shot retrieval with PROMPTAGATOR](images/paste-7.png){fig-alt="Few-shot retrieval with PROMPTAGATOR" width="700"}
 
 BEIRのような異なる種類のデータセットによって構成されるベンチマークがある。特定のデータセットで学習したモデルは他領域への汎化が難しい。その理由は主に2つある。
 
@@ -21,7 +24,7 @@ BEIRのような異なる種類のデータセットによって構成される�
 この論文は以下の貢献がある：
 
 1.  異なる検索タスクの意図とQueryの分布を分析し、Few-shot Retrieval settingを提案した。
-2.  Promptgatorを提案した。2~8個の例を使えば既往の50万以上の例で学習したモデルより高い精度を達成できている。
+2.  Promptgatorを提案した。2\~8個の例を使えば既往の50万以上の例で学習したモデルより高い精度を達成できている。
 
 # 2 Few-shot retrieval task
 
@@ -50,8 +53,7 @@ Evidence: target passage
 
 下表のようにタスクごとに違うPromptを設定した。（Promptの中の0と 1の意味が不明）
 
-![](images/Untitled%201.png)
-
+![Prompt template for each dataset](images/paste-8.png)\
 Promptで使用した例は最大8個にし、例の長さによって調整している。文書が長い場合は、必要に応じて切断している。
 
 各コーパスから最大100万のドキュメントを抽出し、各ドキュメントで8個のQueryを生成している。LLMはFLAN137Bを使った。生成する際に0.7の温度を使った。
@@ -101,7 +103,7 @@ Fine-tuningする際にの具体的なBatch sizeとStepsが下表の通り：
 
 ## 4.2 Main Results
 
-![](images/paste-1.png)
+![Main result](images/paste-9.png){fig-alt="Main result"}
 
 表の前半ではRetrieverの比較が行われている。Zero-shotのPromptagatorはすでに大多数のMS MARCOでFine-tuningした教師ありのRetrieverと同等な精度を出している。Few-shotのPromptagatorはさらに教師ありのRetrieverより高い精度を出している。
 
@@ -111,7 +113,7 @@ Fine-tuningする際にの具体的なBatch sizeとStepsが下表の通り：
 
 ## 4.3 Abalation Study
 
-![](images/paste-2.png)
+![Abalation study](images/paste-10.png){fig-alt="Abalation study"}
 
 **Queryフィルタリングの効果** Figure2の左図は、Queryを一回フィルタリングした効果をしめしている。大多数のデータセットにとって、Queryフィルタリングが有効だが、逆効果のものも存在する。NFCorpus and SciFactは小さいデータセットなので、フィルタリングで過学習している可能性がある。
 
@@ -121,19 +123,19 @@ Fine-tuningする際にの具体的なBatch sizeとStepsが下表の通り：
 
 **PromptagatorのQuery生成が効いているか？** Figure2の右図のGenQはBEIR論文の中で提案されたモデル、NQ-QGenはこの論文提案した方法でNQデータセット学習したモデル、NQ-QGenとGenQの違いはQuery生成の部分のみ。NQ-QGenの精度は2.7%高いため、提案したQuery生成の方法が有効だと言える。
 
-![](images/paste-6.png)
+![Impact of FLAN](images/paste-6.png){fig-alt="Impact of FLAN"}
 
 **FLANの影響** PromptagatorのLLMはFLANを利用している。FLANの学習データの中にNQとQuaroデータが含まれいている。その影響を検証するため､それらを除いたデータセットでFLANを学習し、その結果を比較した(さすがGoogle Research、金ならあるの感じ)。その結果、精度は若干低下したが、以前の研究よりは高い精度を達成している。
 
 ## 4.4 Qualitative Analysis
 
-![](images/paste-5.png)
+![Top word distribution](images/paste-5.png){fig-alt="Top word distribution"}
 
 Queryの最初のWordの分布を調査した。Few-shotが生成したQueryの分布は実際のQueryの分布と同じであることがわかる。
 
 # 5 Related Work
 
-## **Neural retrieval models** 
+## **Neural retrieval models**
 
 Neural retrieval modelはrepresentation based modelとinteraction based modelの2つに分類できる。
 

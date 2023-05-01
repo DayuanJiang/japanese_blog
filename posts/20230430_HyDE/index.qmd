@@ -1,8 +1,11 @@
 ---
-title: "HyDE 論文解読 Draft"
+title: "HyDE 論文解読"
 date: "2023-04-30"
+description-meta: "HyDE論文では、教師なしのZero-shot dense retrievalシステムを提案。従来のDense retrieverとは異なり、HyDEはQueryから仮想的なDocumentを生成し、その類似度でランキング。InstructGPTで仮想ドキュメントを生成し、Contrieverを使ってEmbeddingに変換。様々なデータセットでテストした結果、HyDEは教師なし領域で従来のContrieverを凌駕し、教師ありモデルとも遜色ない精度を示した。実装はLangChainで利用可能。"
 categories: [NLP, Information_retrieval, paper]
 ---
+
+HyDE論文では、教師なしのZero-shot dense retrievalシステムを提案。従来のDense retrieverとは異なり、HyDEはQueryから仮想的なDocumentを生成し、その類似度でランキング。InstructGPTで仮想ドキュメントを生成し、Contrieverを使ってEmbeddingに変換。様々なデータセットでテストした結果、HyDEは教師なし領域で従来のContrieverを凌駕し、教師ありモデルとも遜色ない精度を示した。実装はLangChainで利用可能。
 
 論文URL：<https://arxiv.org/abs/2204.07496>
 
@@ -10,7 +13,7 @@ categories: [NLP, Information_retrieval, paper]
 
 Dense retrievalについて様々な研究が行われているが、Zero-shot dense retrievalはまだ難しい。多くの研究はMS-MARCOのような大規模なデータセットを使って転移学習をしているが、MS-MARCOが商用不可の制限があるし、他のドメインに汎化が難しい課題がある。一方、新たなデータをラベリングするためには莫大なコストがかかる。
 
-![](images/paste-1.png)
+![HyDE](images/paste-1.png){fig-alt="HyDE"}
 
 この論文では教師なしのZero-shot dense retrievalの仕組HyDEを提案した。 従来のDense retrieverはQueryとDocumentとの類似度でランクを決めている。HyDEはQueryを利用して、まずLLMでそのQueryを答える仮想なDocumentを生成する。生成したDocumentとDocumentの類似度でランキングしている。
 
@@ -34,7 +37,7 @@ Dense retrievalについて様々な研究が行われているが、Zero-shot d
 
 ## 5 Analysis
 
-![](images/paste-6.png){width="300"}
+![LLM difference](images/paste-6.png){fig-alt="LLM difference" width="300"}
 
 当たり前だが、仮想なドキュメントを生成するLLMによって最終の精度が違う。また、HyDEは教師なしの手法だが、教師ありのRetrieverの精度も向上できる。
 
@@ -42,7 +45,7 @@ Dense retrievalについて様々な研究が行われているが、Zero-shot d
 
 HyDEはすでに[LangChain](https://python.langchain.com/en/latest/modules/chains/index_examples/hyde.html)で実装されている。
 
-```{python}
+``` python
 from langchain.llms import OpenAI
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.chains import HypotheticalDocumentEmbedder

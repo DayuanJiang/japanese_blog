@@ -1,8 +1,11 @@
 ---
 title: "InPars 論文解読"
 date: "2023-04-29"
+description-meta: "InPars論文では、擬似データ（Pseudo data）生成によるランキングモデル学習手法を提案。LLMを用いて擬似データを生成し、それを使ってモデルを学習させることで、情報検索（IR）の精度を向上させる。実験では、生成された擬似データでMonoT5をFine-tuningし、結果として従来のUnsupervisedモデルより優れた性能を示した。"
 categories: [NLP, Information_retrieval, paper]
 ---
+
+InPars論文では、擬似データ（Pseudo data）生成によるランキングモデル学習手法を提案。LLMを用いて擬似データを生成し、それを使ってモデルを学習させることで、情報検索（IR）の精度を向上させる。実験では、生成された擬似データでMonoT5をFine-tuningし、結果として従来のUnsupervisedモデルより優れた性能を示した。
 
 論文URL：<https://arxiv.org/abs/2202.05144>
 
@@ -32,7 +35,7 @@ LLMは高性能を誇るものの、情報検索（IR）への応用が制限さ
 
 3.  生成したqとdのペアを学習データとしてRerankのモデルをFine-tuningする。（詳細は4.3で紹介する）
 
-![](images/paste-1.png)
+![InPars](images/paste-1.png){fig-alt="InPars "}
 
 ## 4. Experimental Setup
 
@@ -71,7 +74,7 @@ Query生成する際にPromptの書き方は2つを利用した（Figure２)：
 1.  一般方法（Vanilla)：MS MARCOからランダムに3つのデータを抽出し、それを例として、FewーshotでQueryを生成させる。
 2.  GBQ（Guided by Bad Questions）：一般方法と同じように、MS MARCOからランダムに3つのデータを抽出する。しかし、MS MARCOのQueryが漠然すぎるため、それをBad questionとして提示する。Documentを読んで、より関連するGood Questionを手動で作った。（Document, Good Question, Bad Question)で例を提示し、生成したGood QuestionをQueryとする。
 
-![](images/Untitled.png)
+![Prompt example](images/paste-2.png){fig-alt="Prompt example"}
 
 ### 4.3 Retrieval Methods
 
@@ -83,7 +86,7 @@ MonoT5はTransformerのEncoderとDecoder両方とも使っているモデルで�
 
 ## 5 Results
 
-![](images/Untitled%201.png)
+![](images/Snipaste_2023-05-01_09-49-20.png)
 
 7,8行目を見ると、BM25やContriever等の以前のUnsupervised結果より優れていることがわかる。また、16行目はMS MARCOでFine-tuningした後さらに擬似データでFine-tuningした結果。幾つかのデータセットで単純にMS MARCOでFine-tuningするより良い結果が出ている。
 
