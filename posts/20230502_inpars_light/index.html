@@ -6,10 +6,10 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="dcterms.date" content="2023-05-01">
-<meta name="description" content="InPars V2論文では、Query生成に使用するLLMがGPT3からオープンソースのGPT-J(6B)に変更され、生成したQueryのフィルタリング方法がLog Probabilityからmonot5(3B)をRerankerとして利用する方法に変更された点を挙げている。実験結果としては、V2の精度がV1と比べてわずかに向上したことが報告されている。">
+<meta name="dcterms.date" content="2023-05-02">
+<meta name="description" content="InPars-lightは、無料で利用可能な言語モデルBLOOMをランキングモデルを使用し、1000個ではなく100個の候補レコードを再ランクしした。 先行研究の主要な知見を再現するだけでなく、Consistency checkingとAll-domain pre-trainingを組み合わせることで、非常に効率的で小型なモデルMiniLM-L6-30Mを訓練し、すべてのデータセットでBM25を上回る性能を達成した。最後に、大きなDeBERTA-v3-435Mモデルを使用して、7倍大きなMonoT5-3Bの性能をほぼマッチさせることができた。">
 
-<title>blog - InPars V2 論文解読</title>
+<title>blog - InPars light 論文解読</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -116,9 +116,18 @@ gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">1 Introduction</a></li>
-  <li><a href="#methodology" id="toc-methodology" class="nav-link" data-scroll-target="#methodology">2 Methodology</a></li>
-  <li><a href="#result" id="toc-result" class="nav-link" data-scroll-target="#result">3 Result</a></li>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">1 Introduction</a>
+  <ul class="collapse">
+  <li><a href="#related-work" id="toc-related-work" class="nav-link" data-scroll-target="#related-work">2 Related Work</a></li>
+  <li><a href="#methods" id="toc-methods" class="nav-link" data-scroll-target="#methods">3 Methods</a></li>
+  <li><a href="#データセット" id="toc-データセット" class="nav-link" data-scroll-target="#データセット">4 データセット</a></li>
+  <li><a href="#results" id="toc-results" class="nav-link" data-scroll-target="#results">5 Results</a>
+  <ul class="collapse">
+  <li><a href="#main-results" id="toc-main-results" class="nav-link" data-scroll-target="#main-results">5.1 Main Results</a></li>
+  <li><a href="#cost-and-efficiency" id="toc-cost-and-efficiency" class="nav-link" data-scroll-target="#cost-and-efficiency">5.2 Cost and Efficiency</a></li>
+  </ul></li>
+  <li><a href="#section" id="toc-section" class="nav-link" data-scroll-target="#section"></a></li>
+  </ul></li>
   </ul>
 </nav>
     </div>
@@ -127,7 +136,7 @@ gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">InPars V2 論文解読</h1>
+<h1 class="title">InPars light 論文解読</h1>
   <div class="quarto-categories">
     <div class="quarto-category">NLP</div>
     <div class="quarto-category">Information_retrieval</div>
@@ -143,7 +152,7 @@ gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">May 1, 2023</p>
+      <p class="date">May 2, 2023</p>
     </div>
   </div>
   
@@ -153,55 +162,92 @@ gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
 
 </header>
 
-<p>InPars V2論文では、Query生成に使用するLLMがGPT3からオープンソースのGPT-J(6B)に変更され、生成したQueryのフィルタリング方法がLog Probabilityからmonot5(3B)をRerankerとして利用する方法に変更された点を挙げている。実験結果としては、V2の精度がV1と比べてわずかに向上したことが報告されている。</p>
-<p>論文URL：<a href="https://arxiv.org/abs/2301.01820" class="uri">https://arxiv.org/abs/2301.01820</a></p>
-<section id="introduction" class="level2">
-<h2 class="anchored" data-anchor-id="introduction">1 Introduction</h2>
-<p>InPars v1とv2の違いは、主に以下の2点：</p>
-<table class="table">
-<colgroup>
-<col style="width: 33%">
-<col style="width: 33%">
-<col style="width: 33%">
-</colgroup>
-<thead>
-<tr class="header">
-<th>Difference</th>
-<th>InPars v1</th>
-<th>InPars v2</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>Queryを生成するLLM</td>
-<td>GPT3</td>
-<td>GPT-J(6B) (オープンソース)</td>
-</tr>
-<tr class="even">
-<td>生成したQueryのフィルタリング方法</td>
-<td>生成時のLog Probabilityでフィルタリング</td>
-<td>monot5(3B)をRerankerとしてフィルタリング</td>
-</tr>
-</tbody>
-</table>
+<p>InPars-lightは、無料で利用可能な言語モデルBLOOMをランキングモデルを使用し、1000個ではなく100個の候補レコードを再ランクしした。 先行研究の主要な知見を再現するだけでなく、Consistency checkingとAll-domain pre-trainingを組み合わせることで、非常に効率的で小型なモデルMiniLM-L6-30Mを訓練し、すべてのデータセットでBM25を上回る性能を達成した。最後に、大きなDeBERTA-v3-435Mモデルを使用して、7倍大きなMonoT5-3Bの性能をほぼマッチさせることができた。</p>
+<p>論文URL：&lt;https://arxiv.org/abs/2301.02998&gt;</p>
+<section id="introduction" class="level1">
+<h1>1 Introduction</h1>
+<p>IR領域でのニューラルモデルを学習させるためには、大量なラベリングしたデータが必要である。データラベリングのコストが非常に高い：Document-Queryのペアが関連するかを判断するには1分以上かかる。一個のQueryについては通常50件以上のドキュメントを見る必要がある。そのため、最近の研究は主にラベリングデータを生成することに集中している。</p>
+<p>一方、今までの研究はお主にLLMsを使っていて、費用対効果が良くない。また、GPT3のようなLLMsはAPIのみアクセスしかできない。その2つの問題を解決するためには、この論文はInParsを再現し、改善を行った。</p>
+<p>InParsがmonoT5-3Bとmonot5-220Mを使ったが、この論文は30MのLMと435MのDebertaを使って同等レベルの結果を得られた。Inparsは上位1000件のドキュメントをRerankしたが、この論文は100件のみRerankしている。</p>
+<p>この論文は以下のResearch Questionを提起した：</p>
+<ol type="1">
+<li>情報検索（IR）能力は、単に大規模なnext-token-prediction学習から生まれるか。</li>
+<li>データ生成においてOpen sourceのモデルは同じサイズのGPT3より劣るか。</li>
+<li>一致性検査(Consistency checking)はほんとに有用か。</li>
+<li>より小さいBertモデルでMonoT5-3Bを置換する場合は同じ性能を出せるか</li>
+<li>30Mの小さいLMを使う場合はBM25に勝てるか。</li>
+</ol>
+<p>結果：</p>
+<p>1&amp;2: BLOOMやGPT-JのようなOpen source LLMは同等サイズなGPT3より高性能の同時に、コストが1/10のみ。</p>
+<p>3: 一致性検査はいつも有効である。</p>
+<p>4&amp;5：InParsのやり方だと小さいモデルは使えない。一方、全部のデータゼットで前学習し、さらに生成したデータでFine-Tuningした30MのモデルがいつもBM25よりよい結果を出した。</p>
+<section id="related-work" class="level2">
+<h2 class="anchored" data-anchor-id="related-work">2 Related Work</h2>
+<p>UPR: 3BのLLMをRerankとして使った。第一段階で取り出したドキュメントに対して”please write a question for this document”でQueyrを生成するLog probabiltyを計算し、それでRerankをしている。(LLMを学習させる際にLossの計算と同じやり方)</p>
+<p>その他、InPars-v1、InPars-v2、Promptagator、HyDEが紹介された。以前の論文紹介で詳細を書いたため、今回は割愛する。</p>
 </section>
-<section id="methodology" class="level2">
-<h2 class="anchored" data-anchor-id="methodology">2 Methodology</h2>
-<p>BEIRの各データセットに対して100kのドキュメントをサンプリングする。MS MARCOからの3つの例を利用してGBQの形式でPromptを作成し、各ドキュメントに対して一個のQueryを生成する。GPT-J(6B)を利用してQueryを生成した。A100一枚で100kのQueryを生成するためには30時間かかる。</p>
-<p>フィルタリングについては以前は生成時のLog Probabilityが上位の10kのペアを選んだが、今回はMS-MARCOでFine-tuningしたものT5-3BをRerankerとして使った。100kのQueryとDocumentのペアについて相関度を出して、上位の10kペアを利用した。</p>
-<p>Negative sampleはまた各QueryについてBM25で上位1000ドキュメント中で1個ランダム選んだ。</p>
+<section id="methods" class="level2">
+<h2 class="anchored" data-anchor-id="methods">3 Methods</h2>
+<p>この論文も2段階の検索を使った。まずBM25で大量なDocumentから関連するDocumentをフィルタリングする。そのつぎにニューラルモデルでRerankする。</p>
+<p>RerankはCross-encoderを利用した。具体的に以下の3種類なものがある。</p>
+<ol type="1">
+<li>MiniLM-L6(30M)</li>
+<li>ERNIE-v2(335M)</li>
+<li>DeBERTA-v3(435M)</li>
+</ol>
+<p>ERNIEとDeBERTAを利用した理由としては、今2つのモデルはMS MARCOで強い結果を出したことがある。</p>
+<p>Inparsと同じように各データセットに対して100kのQueryを生成した。生成したQueryとDocumentのペアでRerankerを学習させ、それを使ってConsistency checkingをした。Consistency checkingをする時に、生成したQueryで検索をかけて、生成元のDocumentがTop-Kにないとそれを捨てる。Kについては、1でも良いが、3のほうが精度が高かった。</p>
+<p>また、面白いのは、Consistency checkingでフィルタリングしたデータとLog Probabilityでフィルタリングしたデータは20〜30%のみ共通している。</p>
+<p>Rerankerを学習させる際に、まず生成した全データで学習させ、その上で、フィルタリングしたデータでFine-Tuningを行った。</p>
+<p>この研究でMiniMLに対して、まずすべてのデータセットで生成したすべてのデータで学習し、さらにすべてのデータセットのフィルタリングしたデータでFine-Tuningしたが、過学習した。</p>
+<p>実装する際に、FlexNeuARTのフレームワークを使った。モデルを学習させる際にInfoNCE Lossを使った。各Queryに対してNegative sampleを、BM25で検索できた上位1000件の中から3つサンプリングした。</p>
+<p>各モデルについて、3つのSeedで3回学習し、結果の平均値をとった。結果の有意性のチェックはpaired two-sided t-testを使った。大きいデータセットだと0.01の閾値を使った。小さいデータセットだと、0.05の閾値を使った。</p>
+<p>Promptの作り方はInParsが使った一般的なやり方と同じ。Queryを生成する際に、最大Token数を32に設定した。</p>
 </section>
-<section id="result" class="level2">
-<h2 class="anchored" data-anchor-id="result">3 Result</h2>
+<section id="データセット" class="level2">
+<h2 class="anchored" data-anchor-id="データセット">4 データセット</h2>
+<p>InPars[4]の主要結果を再現するために、同じクエリとデータセットを使用した。MS MARCO以外のデータセットは「ir_datasets」というツールを利用して処理した。</p>
+<p>InParsの論文で提供したGithubにGPT-3 Curieモデルで生成されたクエリと、それを生成するための文書が提供されている。これにより、GPT-3 CurieとオープンソースモデルGPT-J、BLOOMで生成されたQueryの品質を比較できる。クエリの生成コストがまだ高いため、他のオープンソースモデルの検討は将来の課題である。</p>
+</section>
+<section id="results" class="level2">
+<h2 class="anchored" data-anchor-id="results">5 Results</h2>
+<section id="main-results" class="level3">
+<h3 class="anchored" data-anchor-id="main-results">5.1 Main Results</h3>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="images/paste-1.png" class="img-fluid figure-img" alt="result" width="500"></p>
-<figcaption class="figure-caption">result</figcaption>
+<p><img src="images/paste-1.png" class="img-fluid figure-img" alt="main results"></p>
+<figcaption class="figure-caption">main results</figcaption>
 </figure>
 </div>
-<p>実験結果を見ると、v2はv1と比べて精度が少し良くなった(0.006)。</p>
+<p><strong>BM25</strong> この論文は使うフィールドについて少し調整したが、InParsの結果と大きく変わらない。</p>
+<p><strong>教師なし学習</strong> 今回使ったDeBERTA-v3-435Mは以前のMonoT5-3Bの性能と同じ。また今回提案したMiniLM-L6-30MはInParsのものT5-220M相当な性能を出している。</p>
+<p><strong>Consistency checkingとall-domain pre-training</strong> 両方とも良い影響を与えることがわかる。Deberta-v3-435Mに対してAll-domain pre-trainingが逆効果があるが、理由が不明。</p>
+<p><strong>教師あり学習</strong> 今回提案した2つのモデルの性能がいまいち。</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="images/paste-3.png" class="img-fluid figure-img" alt="model performance"></p>
+<figcaption class="figure-caption">model performance</figcaption>
+</figure>
+</div>
+<p>Queryを生成するLLMモデルの比較について、オープンソースのGPT-JとBLOOMはOpen AI Curieよりよい性能を出している。</p>
+<p>また、Rerankerについては、Deberta-v3-435MはERNIE-v2-335Mよりよいことがわかる。</p>
+</section>
+<section id="cost-and-efficiency" class="level3">
+<h3 class="anchored" data-anchor-id="cost-and-efficiency">5.2 Cost and Efficiency</h3>
+<p>RTX3039を使う場合は：</p>
+<ol type="1">
+<li>MiniLM-L6-30Mの推論のThroughputは1秒500ドキュメント(LLM各ドキュメントの長さは477キャラクター以下)、そのため、100ドキュメントをRerankする場合は1秒かからない。</li>
+<li>MiniLM-L6-30Mを全データセットで前学習しても2時間しかかからない。一方、Deberta-v3-435Mは28時間かかる。</li>
+<li>all-domain pre-trainingをする際に、一番時間がかかる操作はMS MARCOのような大きいなデータセットのバリデーションとConsistency checking。Deberta-v3-435MでMS MARCOでのバリデーション時間は6時間、Consistency checkingだと48時間かかった。</li>
+<li>Query生成の時間：100kのQueryを生成するためには15時間がかかる。</li>
+</ol>
+</section>
+</section>
+<section id="section" class="level2">
+<h2 class="anchored" data-anchor-id="section"></h2>
 
 
+</section>
 </section>
 
 </main> <!-- /main -->
