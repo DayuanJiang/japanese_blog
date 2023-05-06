@@ -10,7 +10,641 @@
 <atom:link href="https://jiang.jp/index.xml" rel="self" type="application/rss+xml"/>
 <description></description>
 <generator>quarto-1.3.340</generator>
-<lastBuildDate>Thu, 04 May 2023 15:00:00 GMT</lastBuildDate>
+<lastBuildDate>Fri, 05 May 2023 15:00:00 GMT</lastBuildDate>
+<item>
+  <title>LangChainのベーシックを全面解説する</title>
+  <link>https://jiang.jp/posts/20230505_LangChain_basic/index.html</link>
+  <description><![CDATA[ 
+
+
+
+<section id="前書き" class="level2">
+<h2 class="anchored" data-anchor-id="前書き">前書き</h2>
+<p>OpenAIのGPTのAPIを利用してアプリを作成するには、今まで一番使いやすいパッケージはLangChainだと思います。一方、LLMはブームになったのはつい最近の話し、それを扱うLangChainはなおさらまだ未熟しています。未熟している特徴としては、関するのワッパーが深すぎて、エラーになったら時どこに問題があるかがなかながわからないことです。 本文では、LangChainの基本的な使い方を優しく説明します。</p>
+</section>
+<section id="環境設定" class="level2">
+<h2 class="anchored" data-anchor-id="環境設定">環境設定</h2>
+<p>まずは定番の<code>pip</code>からインストールすることです。</p>
+<div class="sourceCode" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><span class="ex" style="color: null;
+background-color: null;
+font-style: inherit;">pip</span> install langchain, openai</span></code></pre></div>
+<p>そのつぎに、OpenAIのAPIキーを取得して、環境変数に設定します。 APIは<a href="https://platform.openai.com/account/api-keys">ここ</a>から取得できます。</p>
+<div class="sourceCode" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> os</span>
+<span id="cb2-2">os.environ[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"OPENAI_API_KEY"</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"..."</span></span></code></pre></div>
+<p>直接にAPIキーを書くのはセキュリティ上の問題があるので、スクリプトを共有する場合は(例えば本文)、APIキーを別ファイルに保存し、ファイルから読み込んだほうよいです。</p>
+<div class="cell" data-execution_count="34">
+<div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> os </span>
+<span id="cb3-2"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">with</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">open</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"../../.env"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"r"</span>) <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> f: </span>
+<span id="cb3-3">    os.environ.update(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">dict</span>([line.strip().split(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"="</span>) <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> line <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> f.readlines()]))</span></code></pre></div>
+</div>
+</section>
+<section id="openaiのgptモデル" class="level2">
+<h2 class="anchored" data-anchor-id="openaiのgptモデル">OpenAIのGPTモデル</h2>
+<p>LangChainの中にOpenAIのGPTモデルを使うラッパーがあります。現在使えるモデルはテキスト補完モデルとChatモデルの2種類あります。生成モデルの場合はいかのように使います。</p>
+<div class="cell" data-execution_count="17">
+<div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.llms <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> OpenAI</span>
+<span id="cb4-2">llm <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> OpenAI(temperature<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>)</span>
+<span id="cb4-3">output <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> llm(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"日本の首都は?"</span>)</span>
+<span id="cb4-4"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(output.strip())</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>東京です。</code></pre>
+</div>
+</div>
+<p>また、Chatモデルを利用して、対話を行うこともできます。</p>
+<div class="cell" data-execution_count="19">
+<div class="sourceCode cell-code" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.chat_models <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> ChatOpenAI</span>
+<span id="cb6-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.schema <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> (</span>
+<span id="cb6-3">    AIMessage,</span>
+<span id="cb6-4">    HumanMessage,</span>
+<span id="cb6-5">    SystemMessage</span>
+<span id="cb6-6">)</span>
+<span id="cb6-7"></span>
+<span id="cb6-8">chat <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> ChatOpenAI(temperature<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>)</span>
+<span id="cb6-9">output <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> chat([HumanMessage(content<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"文法を修正してください:I loves programming."</span>)])</span>
+<span id="cb6-10"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(output.content)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>I love programming.</code></pre>
+</div>
+</div>
+<section id="各モデルの特性のまとめ" class="level3">
+<h3 class="anchored" data-anchor-id="各モデルの特性のまとめ">各モデルの特性のまとめ</h3>
+<p>各モデルの値段や、最大トークン数、モデルサイズは以下の表にまとめました。</p>
+<p><strong>テキスト補完モデル</strong></p>
+
+<table style="width:100%">
+<tbody><tr>
+<th>
+モデル名
+</th>
+<th>
+値段(1k tokensごと)
+</th>
+<th>
+最大トークン数
+</th>
+<th>
+モデルサイズ(推測)
+</th>
+</tr>
+<tr>
+<td>
+Davinci
+</td>
+<td>
+$0.0200
+</td>
+<td>
+4,097
+</td>
+<td>
+175B
+</td>
+</tr>
+<tr>
+<td>
+Curie
+</td>
+<td>
+$0.0020
+</td>
+<td>
+4,097
+</td>
+<td>
+6.7B
+</td>
+</tr>
+<tr>
+<td>
+Babbage
+</td>
+<td>
+$0.0005
+</td>
+<td>
+4,097
+</td>
+<td>
+1.3B
+</td>
+</tr>
+<tr>
+<td>
+Ada
+</td>
+<td>
+$0.0004
+</td>
+<td>
+4,097
+</td>
+<td>
+350M
+</td>
+</tr>
+
+</tbody></table>
+<strong>Chatモデル</strong>
+
+<table style="width:100%">
+<tbody><tr>
+<th>
+モデル名
+</th>
+<th>
+値段(**Prompt)
+</th>
+<th>
+値段(**補完)
+</th>
+<th>
+最大トークン数
+</th>
+<th>
+モデルサイズ(推測)
+</th>
+</tr>
+<tr>
+<td>
+gpt-3.5-turbo
+</td>
+<td>
+$0.002
+</td>
+<td>
+$0.002
+</td>
+<td>
+4,096
+</td>
+<td>
+6.7B
+</td>
+</tr>
+<tr>
+<td>
+gpt-4
+</td>
+<td>
+$0.03
+</td>
+<td>
+$0.06
+</td>
+<td>
+8,192
+</td>
+<td>
+6.7B
+</td>
+</tr>
+<tr>
+<td>
+gpt-4-32k
+</td>
+<td>
+$0.06
+</td>
+<td>
+$0.12
+</td>
+<td>
+32,768
+</td>
+<td>
+1.3B
+</td>
+</tr>
+
+</tbody></table>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>ここで注意することとしてはGPT4の値段です。インプットするテキストが<code>prompt</code>、生成したテキストは<code>completion</code>に分かれていて、<code>prompt</code>の値段と<code>completion</code>の値段を足したものがGPT4の値段になります。</p>
+</div>
+</div>
+</section>
+<section id="モデルの使い分け" class="level3">
+<h3 class="anchored" data-anchor-id="モデルの使い分け">モデルの使い分け</h3>
+<p>モデルの使い分けについては、最も使われているのはChatモデルの<code>gpt-3.5-turbo</code>と<code>gpt-4</code>です。<code>gpt-3.5-turbo</code>はモデルのサイズが小さいので、生成時間が短いし、値段も安いです。一方、<code>gpt-4</code>は性能が良いので、性能を求める場合は<code>gpt-4</code>のほうが良いです。また、<code>gpt-4</code>の最大トークン数が8Kになっているので、生成するテキストの長さが長い場合もはこちらを使うほうがいいです。</p>
+<p>他のモデルはほとんど使われないので、必要に応じて詳細を見れば良いです。</p>
+</section>
+<section id="tokenの計算方法" class="level3">
+<h3 class="anchored" data-anchor-id="tokenの計算方法">Tokenの計算方法</h3>
+<p>Tokenの計算方法については、<a href="https://www.jiang.jp/posts/20230505_tiktoken/#tictoken%E3%81%AE%E6%8C%99%E5%8B%95">こちら</a>で紹介したので、本文では割愛します。要すると、日本語千文字のドキュメントはおおよそ1,000トークンになり、それを処理するには<code>gpt-3.5-turbo</code>の場合は概算で0.59円、<code>gpt-4</code>の場合は概算で$9.7円かかります。</p>
+</section>
+</section>
+<section id="prompt-template" class="level2">
+<h2 class="anchored" data-anchor-id="prompt-template">Prompt Template</h2>
+<p>LangChainのPrompt TemplateはPromptを簡単に作成するためのモジュールです。Example selector付きのPromptを作るにはとても役に立ちます。でもそれはよりアドバンス的なやり方なので、入門の段階では単純にPythonのf-stringとして使えれば良いです。</p>
+<p>Promptのテンプレートを書いた後、それを<code>PromptTemplate</code>のインスタンスに渡して、<code>PromptTemplate</code>の<code>format</code>メソッドを呼び出すと、Promptが生成されます。</p>
+<div class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb8" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> PromptTemplate</span>
+<span id="cb8-2"></span>
+<span id="cb8-3">template <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"私は</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{fruit}</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">が好きです。"</span></span>
+<span id="cb8-4">prompt_template <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> PromptTemplate.from_template(template)</span>
+<span id="cb8-5"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(prompt_template.<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">format</span>(fruit<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"りんご"</span>))</span>
+<span id="cb8-6"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(prompt_template.<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">format</span>(fruit<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"みかん"</span>))</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>私はりんごが好きです。
+私はみかんが好きです。</code></pre>
+</div>
+</div>
+</section>
+<section id="vectorstore" class="level2">
+<h2 class="anchored" data-anchor-id="vectorstore">VectorStore</h2>
+<p>ドキュメントを検索するためには、<code>VectorStore</code>を作成する必要があります。<code>VectorStore</code>はドキュメントのリストを受け取って、それをベクトルに変換して保存します。検索する際に、検索クエリをベクトルに変換して、ベクトルの類似度を計算して、類似度が高いドキュメントを返します。</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+FAISSについて
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>FAISSはMetaが開発した高速な類似性検索ライブラリです。Faissは、大量のベクトルデータを格納し、高速な検索を行うことができます。</p>
+</div>
+</div>
+<div class="cell" data-execution_count="24">
+<div class="sourceCode cell-code" id="cb10" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.document_loaders <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> TextLoader</span>
+<span id="cb10-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.indexes <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> VectorstoreIndexCreator</span>
+<span id="cb10-3"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.vectorstores <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> FAISS</span>
+<span id="cb10-4"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># create test data</span></span>
+<span id="cb10-5"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">with</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">open</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"./test_data.txt"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"w"</span>) <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> f:</span>
+<span id="cb10-6">    fruits <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"りんご"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"みかん"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"バナナ"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"パイナップル"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"ぶどう"</span>]</span>
+<span id="cb10-7">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> fruit <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> fruits:</span>
+<span id="cb10-8">        f.write(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"私は</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>fruit<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">が好きです。</span><span class="ch" style="color: #20794D;
+background-color: null;
+font-style: inherit;">\n</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb10-9">        </span>
+<span id="cb10-10"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># load test data</span></span>
+<span id="cb10-11">loader <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> TextLoader(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'./test_data.txt'</span>, encoding<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'utf8'</span>)</span>
+<span id="cb10-12"></span>
+<span id="cb10-13"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># query test data</span></span>
+<span id="cb10-14">index <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> VectorstoreIndexCreator(vectorstore_cls<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>FAISS).from_loaders([loader])</span>
+<span id="cb10-15">index.query(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"りんご"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="24">
+<pre><code>' 私はりんごが好きです。'</code></pre>
+</div>
+</div>
+</section>
+<section id="chain" class="level2">
+<h2 class="anchored" data-anchor-id="chain">Chain</h2>
+<p>ChainはLangChainの中心的な概念です。今まで紹介した複数の部品を組み合わせでChainを作ることができます。インプットが入力された後、Chainの内部で処理し、アウトプットを出す。</p>
+<p>例えば、PromptTemplateとLLMをつなぐChainを作ることができます。PromptTemplateはPromptを生成するので、LLMのインプットになります。LLMはPromptを受け取って、それを補完して、アウトプットを生成します。こうしてPromptTemplateとLLMをつなぐChainを作ることができます。</p>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<div>
+<pre class="mermaid mermaid-js">flowchart LR
+    Input([Input])--&gt;PromptTemplate
+    LLM--&gt;Output([Output])
+    subgraph Chain
+    PromptTemplate--&gt;formattedPrompt([Formatted Prompt])
+    formattedPrompt--&gt;LLM
+    end
+    style PromptTemplate stroke:#333,stroke-width:4px
+    style LLM stroke:#333,stroke-width:4px
+</pre>
+</div>
+<p>Chainのダイアグラムの例</p>
+</div>
+</div>
+</div>
+<div class="cell" data-execution_count="29">
+<div class="sourceCode cell-code" id="cb12" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.prompts <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> PromptTemplate</span>
+<span id="cb12-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.llms <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> OpenAI</span>
+<span id="cb12-3"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.chains <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> LLMChain</span>
+<span id="cb12-4">llm <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> OpenAI(temperature<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.9</span>)</span>
+<span id="cb12-5">prompt <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> PromptTemplate.from_template(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{country}</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">の首都は何ですか？"</span>)</span>
+<span id="cb12-6">chain <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> LLMChain(llm<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>llm, prompt<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>prompt)</span></code></pre></div>
+</div>
+<p>これで各国の首都は簡単に検索できるようになりました。</p>
+<div class="cell" data-execution_count="30">
+<div class="sourceCode cell-code" id="cb13" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(chain.run({<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"country"</span>: <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"日本"</span>}).strip())</span>
+<span id="cb13-2"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(chain.run({<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"country"</span>: <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"アメリカ"</span>}).strip())</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>東京です。
+ワシントンD.C.</code></pre>
+</div>
+</div>
+</section>
+<section id="agent" class="level2">
+<h2 class="anchored" data-anchor-id="agent">Agent</h2>
+<p>AgentはChainよりも高いレベルの概念です。Agentはツールを使うことができます。それにより、Agentは内部環境にとどまらず、外部環境ともやり取りできます。</p>
+<p>一番シンプルの例としてはBingChatです。ユーザーのクエリーを受けた後、BingChatはインタネットから検索し、情報をサマリーして、ユーザーのクエリーに答えます。</p>
+<p>Agentの中身が複雑でドキュメントに書いていないので、今回は挙動だけ見せます。ここでBingChatに似ている機能を実現するAgentを作ります。</p>
+<p>このAgentはユーザーのクエリーを受け取って、それをインタネットで検索し、その答えを返すことができます。また、外部の電卓ツールを利用して計算もできます。</p>
+<div class="cell" data-execution_count="32">
+<div class="sourceCode cell-code" id="cb15" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.agents <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> load_tools</span>
+<span id="cb15-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.agents <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> initialize_agent</span>
+<span id="cb15-3"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.agents <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> AgentType</span>
+<span id="cb15-4"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.llms <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> OpenAI</span>
+<span id="cb15-5"></span>
+<span id="cb15-6">llm <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> OpenAI(temperature<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>)</span>
+<span id="cb15-7">tools <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> load_tools([<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"serpapi"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"llm-math"</span>], llm<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>llm)</span>
+<span id="cb15-8">agent <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> initialize_agent(tools, llm, agent<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>AgentType.ZERO_SHOT_REACT_DESCRIPTION, verbose<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span></code></pre></div>
+</div>
+<div class="cell" data-execution_count="38">
+<div class="sourceCode cell-code" id="cb16" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1">agent.run(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"今日の気温は何度ですか？その2乗は何ですか？"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+
+&gt; Entering new AgentExecutor chain...
+ I need to find out the temperature and then calculate its square.
+Action: Search
+Action Input: 今日の気温
+Observation: ニューヨーク, NY, アメリカ合衆国 の天気. 4. 今日 · 1時間ごと · 10日間 · レーダー. 1時間ごとの天気-ニューヨーク, NY, アメリカ合衆国. 13:48 EDT時点 ...
+Thought: I need to find the temperature from the search results
+Action: Search
+Action Input: 今日の気温 ニューヨーク
+Observation: 16:00 · 体感温度16° · 風南東 8 km/h · 湿度47% · 紫外線指数2/10 · 雲量78% · 雨量0 cm ...
+Thought: I now have the temperature, I need to calculate its square
+Action: Calculator
+Action Input: 16^2
+Observation: Answer: 256
+Thought: I now know the final answer
+Final Answer: 今日の気温は16度で、その2乗は256です。
+
+&gt; Finished chain.</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="38">
+<pre><code>'今日の気温は16度で、その2乗は256です。'</code></pre>
+</div>
+</div>
+<p>「今日の気温は何度ですか？その2乗は何ですか？」のクエリーを投げた後、Agentのほうはまずやるべきことを決めました。やるべきことをプランニングしながら、自分が持っているツールを駆使し、クエリーに答えました。</p>
+</section>
+<section id="まとめ" class="level2">
+<h2 class="anchored" data-anchor-id="まとめ">まとめ</h2>
+<p>これでLangChainの中にあるMemory以外のものをひと通り浅く紹介しました。前書きにも書いてありますが、LangChainの開発はまだ初期の段階なので、APIの設計や、ドキュメントの充実さなどの問題があります。今後は各概念を解剖する記事を書いていきます。</p>
+
+
+</section>
+
+ ]]></description>
+  <category>NLP</category>
+  <category>LLMs</category>
+  <category>LangChain</category>
+  <guid>https://jiang.jp/posts/20230505_LangChain_basic/index.html</guid>
+  <pubDate>Fri, 05 May 2023 15:00:00 GMT</pubDate>
+</item>
 <item>
   <title>OpenAIのGPTのAPIのToken数に関する調査</title>
   <link>https://jiang.jp/posts/20230505_tiktoken/index.html</link>
@@ -34,7 +668,7 @@
 </ol>
 <strong>テキスト補完モデル</strong>
 
-<table>
+<table style="width:100%">
 <tbody><tr>
 <th>
 モデル名

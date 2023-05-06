@@ -102,6 +102,10 @@ function gtag(){dataLayer.push(arguments);}
 gtag('js', new Date());
 gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
 </script>
+<meta name="mermaid-theme" content="neutral">
+<script src="../../site_libs/quarto-diagram/mermaid.min.js"></script>
+<script src="../../site_libs/quarto-diagram/mermaid-init.js"></script>
+<link href="../../site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
 
 
 <link rel="stylesheet" href="../../styles.css">
@@ -173,7 +177,7 @@ gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
 
 <section id="前書き" class="level2">
 <h2 class="anchored" data-anchor-id="前書き">前書き</h2>
-<p>OpenAIのGPTのAPIを利用してアプリを作成するには、今まで一番使いやすいパッケージはLangChainだと思います。一方、LLMはブームになったのはつい最近の話し、それを扱うLangChainはなおさらまだ未熟しています。本文では、LangChainの基本的な使い方を優しく説明します。</p>
+<p>OpenAIのGPTのAPIを利用してアプリを作成するには、今まで一番使いやすいパッケージはLangChainだと思います。一方、LLMはブームになったのはつい最近の話し、それを扱うLangChainはなおさらまだ未熟しています。未熟している特徴としては、関するのワッパーが深すぎて、エラーになったら時どこに問題があるかがなかながわからないことです。 本文では、LangChainの基本的な使い方を優しく説明します。</p>
 </section>
 <section id="環境設定" class="level2">
 <h2 class="anchored" data-anchor-id="環境設定">環境設定</h2>
@@ -183,8 +187,10 @@ gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
 <div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>os.environ[<span class="st">"OPENAI_API_KEY"</span>] <span class="op">=</span> <span class="st">"..."</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>直接にAPIキーを書くのはセキュリティ上の問題があるので、スクリプトを共有する場合は(例えば本文)、APIキーを別ファイルに保存し、ファイルから読み込んだほうよいです。</p>
-<div class="cell" data-execution_count="1">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os <span class="cf">with</span> <span class="bu">open</span>(<span class="st">"../../.env"</span>, <span class="st">"r"</span>) <span class="im">as</span> f: os.environ.update(<span class="bu">dict</span>(\[line.strip().split(<span class="st">"="</span>) <span class="cf">for</span> line <span class="kw">in</span> f.readlines()\]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell" data-execution_count="34">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os </span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> <span class="bu">open</span>(<span class="st">"../../.env"</span>, <span class="st">"r"</span>) <span class="im">as</span> f: </span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    os.environ.update(<span class="bu">dict</span>([line.strip().split(<span class="st">"="</span>) <span class="cf">for</span> line <span class="kw">in</span> f.readlines()]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="openaiのgptの使い方" class="level2">
@@ -220,7 +226,7 @@ gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
 <p>各モデルの値段や、最大トークン数、モデルサイズは以下の表にまとめました。</p>
 <p><strong>テキスト補完モデル</strong></p>
 
-<table>
+<table style="width:100%">
 <tbody><tr>
 <th>
 モデル名
@@ -295,7 +301,7 @@ $0.0004
 </tbody></table>
 <strong>Chatモデル</strong>
 
-<table>
+<table style="width:100%">
 <tbody><tr>
 <th>
 モデル名
@@ -366,7 +372,19 @@ $0.12
 </tr>
 
 </tbody></table>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
 <p>ここで注意することとしてはGPT4の値段です。インプットするテキストが<code>prompt</code>、生成したテキストは<code>completion</code>に分かれていて、<code>prompt</code>の値段と<code>completion</code>の値段を足したものがGPT4の値段になります。</p>
+</div>
+</div>
 </section>
 <section id="モデルの使い分け" class="level3">
 <h3 class="anchored" data-anchor-id="モデルの使い分け">モデルの使い分け</h3>
@@ -375,9 +393,150 @@ $0.12
 </section>
 <section id="tokenの計算方法" class="level3">
 <h3 class="anchored" data-anchor-id="tokenの計算方法">Tokenの計算方法</h3>
-
-
+<p>Tokenの計算方法については、<a href="https://www.jiang.jp/posts/20230505_tiktoken/#tictoken%E3%81%AE%E6%8C%99%E5%8B%95">こちら</a>で紹介したので、本文では割愛します。要すると、日本語千文字のドキュメントはおおよそ1,000トークンになり、それを処理するには<code>gpt-3.5-turbo</code>の場合は概算で0.59円、<code>gpt-4</code>の場合は概算で$9.7円かかります。</p>
 </section>
+</section>
+<section id="prompt-templateの使い方" class="level2">
+<h2 class="anchored" data-anchor-id="prompt-templateの使い方">Prompt Templateの使い方</h2>
+<p>LangChainのPrompt TemplateはPromptを簡単に作成するためのモジュールです。Example selector付きのPromptを作るにはとても役に立ちます。でもそれはよりアドバンス的なやり方なので、入門の段階では単純にPythonのf-stringとして使えれば良いです。</p>
+<p>Promptのテンプレートを書いた後、それを<code>PromptTemplate</code>のインスタンスに渡して、<code>PromptTemplate</code>の<code>format</code>メソッドを呼び出すと、Promptが生成されます。</p>
+<div class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> langchain <span class="im">import</span> PromptTemplate</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>template <span class="op">=</span> <span class="st">"私は</span><span class="sc">{fruit}</span><span class="st">が好きです。"</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>prompt_template <span class="op">=</span> PromptTemplate.from_template(template)</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(prompt_template.<span class="bu">format</span>(fruit<span class="op">=</span><span class="st">"りんご"</span>))</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(prompt_template.<span class="bu">format</span>(fruit<span class="op">=</span><span class="st">"みかん"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>私はりんごが好きです。
+私はみかんが好きです。</code></pre>
+</div>
+</div>
+</section>
+<section id="vectorstoreの使い方" class="level2">
+<h2 class="anchored" data-anchor-id="vectorstoreの使い方">VectorStoreの使い方</h2>
+<p>ドキュメントを検索するためには、<code>VectorStore</code>を作成する必要があります。<code>VectorStore</code>はドキュメントのリストを受け取って、それをベクトルに変換して保存します。検索する際に、検索クエリをベクトルに変換して、ベクトルの類似度を計算して、類似度が高いドキュメントを返します。</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+FAISSについて
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>FAISSはMetaが開発した高速な類似性検索ライブラリです。Faissは、大量のベクトルデータを格納し、高速な検索を行うことができます。</p>
+</div>
+</div>
+<div class="cell" data-execution_count="24">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> langchain.document_loaders <span class="im">import</span> TextLoader</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> langchain.indexes <span class="im">import</span> VectorstoreIndexCreator</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> langchain.vectorstores <span class="im">import</span> FAISS</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="co"># create test data</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> <span class="bu">open</span>(<span class="st">"./test_data.txt"</span>, <span class="st">"w"</span>) <span class="im">as</span> f:</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    fruits <span class="op">=</span> [<span class="st">"りんご"</span>, <span class="st">"みかん"</span>, <span class="st">"バナナ"</span>, <span class="st">"パイナップル"</span>, <span class="st">"ぶどう"</span>]</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> fruit <span class="kw">in</span> fruits:</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>        f.write(<span class="ss">f"私は</span><span class="sc">{</span>fruit<span class="sc">}</span><span class="ss">が好きです。</span><span class="ch">\n</span><span class="ss">"</span>)</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="co"># load test data</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>loader <span class="op">=</span> TextLoader(<span class="st">'./test_data.txt'</span>, encoding<span class="op">=</span><span class="st">'utf8'</span>)</span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a><span class="co"># query test data</span></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>index <span class="op">=</span> VectorstoreIndexCreator(vectorstore_cls<span class="op">=</span>FAISS).from_loaders([loader])</span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>index.query(<span class="st">"りんご"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="24">
+<pre><code>' 私はりんごが好きです。'</code></pre>
+</div>
+</div>
+</section>
+<section id="chainについて" class="level2">
+<h2 class="anchored" data-anchor-id="chainについて">Chainについて</h2>
+<p>ChainはLangChainの中心的な概念です。今まで紹介した複数の部品を組み合わせでChainを作ることができます。インプットが入力された後、Chainの内部で処理し、アウトプットを出す。</p>
+<p>例えば、PromptTemplateとLLMをつなぐChainを作ることができます。PromptTemplateはPromptを生成するので、LLMのインプットになります。LLMはPromptを受け取って、それを補完して、アウトプットを生成します。こうしてPromptTemplateとLLMをつなぐChainを作ることができます。</p>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<div>
+<pre class="mermaid mermaid-js">flowchart LR
+    Input([Input])--&gt;PromptTemplate
+    LLM--&gt;Output([Output])
+    subgraph Chain
+    PromptTemplate--&gt;formattedPrompt([Formatted Prompt])
+    formattedPrompt--&gt;LLM
+    end
+    style PromptTemplate stroke:#333,stroke-width:4px
+    style LLM stroke:#333,stroke-width:4px
+</pre>
+</div>
+<p>Chainのダイアグラムの例</p>
+</div>
+</div>
+</div>
+<div class="cell" data-execution_count="29">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> langchain.prompts <span class="im">import</span> PromptTemplate</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> langchain.llms <span class="im">import</span> OpenAI</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> langchain.chains <span class="im">import</span> LLMChain</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>llm <span class="op">=</span> OpenAI(temperature<span class="op">=</span><span class="fl">0.9</span>)</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>prompt <span class="op">=</span> PromptTemplate.from_template(<span class="st">"</span><span class="sc">{country}</span><span class="st">の首都は何ですか？"</span>)</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>chain <span class="op">=</span> LLMChain(llm<span class="op">=</span>llm, prompt<span class="op">=</span>prompt)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>これで各国の首都は簡単に検索できるようになりました。</p>
+<div class="cell" data-execution_count="30">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(chain.run({<span class="st">"country"</span>: <span class="st">"日本"</span>}).strip())</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(chain.run({<span class="st">"country"</span>: <span class="st">"アメリカ"</span>}).strip())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>東京です。
+ワシントンD.C.</code></pre>
+</div>
+</div>
+</section>
+<section id="agentの利用" class="level2">
+<h2 class="anchored" data-anchor-id="agentの利用">Agentの利用</h2>
+<p>AgentはChainよりも高いレベルの概念です。Agentはツールを使うことができます。それにより、Agentは内部環境にとどまらず、外部環境ともやり取りできます。</p>
+<p>一番シンプルの例としてはBingChatです。ユーザーのクエリーを受けた後、BingChatはインタネットから検索し、情報をサマリーして、ユーザーのクエリーに答えます。</p>
+<p>Agentの中身が複雑でドキュメントに書いていないので、今回は挙動だけ見せます。ここでBingChatに似ている機能を実現するAgentを作ります。</p>
+<p>このAgentはユーザーのクエリーを受け取って、それをインタネットで検索し、その答えを返すことができます。また、外部の電卓ツールを利用して計算もできます。</p>
+<div class="cell" data-execution_count="32">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> langchain.agents <span class="im">import</span> load_tools</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> langchain.agents <span class="im">import</span> initialize_agent</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> langchain.agents <span class="im">import</span> AgentType</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> langchain.llms <span class="im">import</span> OpenAI</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>llm <span class="op">=</span> OpenAI(temperature<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>tools <span class="op">=</span> load_tools([<span class="st">"serpapi"</span>, <span class="st">"llm-math"</span>], llm<span class="op">=</span>llm)</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>agent <span class="op">=</span> initialize_agent(tools, llm, agent<span class="op">=</span>AgentType.ZERO_SHOT_REACT_DESCRIPTION, verbose<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="38">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>agent.run(<span class="st">"今日の気温は何度ですか？その2乗は何ですか？"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+
+&gt; Entering new AgentExecutor chain...
+ I need to find out the temperature and then calculate its square.
+Action: Search
+Action Input: 今日の気温
+Observation: ニューヨーク, NY, アメリカ合衆国 の天気. 4. 今日 · 1時間ごと · 10日間 · レーダー. 1時間ごとの天気-ニューヨーク, NY, アメリカ合衆国. 13:48 EDT時点 ...
+Thought: I need to find the temperature from the search results
+Action: Search
+Action Input: 今日の気温 ニューヨーク
+Observation: 16:00 · 体感温度16° · 風南東 8 km/h · 湿度47% · 紫外線指数2/10 · 雲量78% · 雨量0 cm ...
+Thought: I now have the temperature, I need to calculate its square
+Action: Calculator
+Action Input: 16^2
+Observation: Answer: 256
+Thought: I now know the final answer
+Final Answer: 今日の気温は16度で、その2乗は256です。
+
+&gt; Finished chain.</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="38">
+<pre><code>'今日の気温は16度で、その2乗は256です。'</code></pre>
+</div>
+</div>
+<p>「今日の気温は何度ですか？その2乗は何ですか？」のクエリーを投げた後、Agentのほうはまずやるべきことを決めました。やるべきことをプランニングしながら、自分が持っているツールを駆使し、クエリーに答えました。</p>
+
+
 </section>
 
 </main> <!-- /main -->

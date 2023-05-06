@@ -1,47 +1,43 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://jiang.jp/draft/20230505_LangChain_basic/table.html</loc>
-    <lastmod>2023-05-06T06:32:47.111Z</lastmod>
-  </url>
-  <url>
-    <loc>https://jiang.jp/draft/20230505_LangChain_basic/index.html</loc>
-    <lastmod>2023-05-06T06:32:47.563Z</lastmod>
-  </url>
-  <url>
     <loc>https://jiang.jp/draft/20230505_react/index.html</loc>
-    <lastmod>2023-05-06T06:32:48.078Z</lastmod>
+    <lastmod>2023-05-06T13:46:46.852Z</lastmod>
+  </url>
+  <url>
+    <loc>https://jiang.jp/posts/20230505_LangChain_basic/index.html</loc>
+    <lastmod>2023-05-06T13:46:47.336Z</lastmod>
   </url>
   <url>
     <loc>https://jiang.jp/posts/20230430_HyDE/index.html</loc>
-    <lastmod>2023-05-06T06:32:48.419Z</lastmod>
+    <lastmod>2023-05-06T13:46:47.765Z</lastmod>
   </url>
   <url>
     <loc>https://jiang.jp/posts/20230429_promptagator/index.html</loc>
-    <lastmod>2023-05-06T06:32:49.087Z</lastmod>
+    <lastmod>2023-05-06T13:46:48.376Z</lastmod>
   </url>
   <url>
     <loc>https://jiang.jp/posts/20230428_inpars/index.html</loc>
-    <lastmod>2023-05-06T06:32:49.500Z</lastmod>
+    <lastmod>2023-05-06T13:46:48.719Z</lastmod>
   </url>
   <url>
     <loc>https://jiang.jp/posts/20230502_inpars_light/index.html</loc>
-    <lastmod>2023-05-06T06:32:49.894Z</lastmod>
+    <lastmod>2023-05-06T13:46:49.106Z</lastmod>
   </url>
   <url>
     <loc>https://jiang.jp/posts/20230505_tiktoken/index.html</loc>
-    <lastmod>2023-05-06T06:32:50.334Z</lastmod>
+    <lastmod>2023-05-06T13:46:49.571Z</lastmod>
   </url>
   <url>
     <loc>https://jiang.jp/posts/20230501_inpars_v2/index.html</loc>
-    <lastmod>2023-05-06T06:32:50.701Z</lastmod>
+    <lastmod>2023-05-06T13:46:49.916Z</lastmod>
   </url>
   <url>
     <loc>https://jiang.jp/index.html</loc>
-    <lastmod>2023-05-06T06:32:51.476Z</lastmod>
+    <lastmod>2023-05-06T13:46:50.616Z</lastmod>
   </url>
   <url>
     <loc>https://jiang.jp/about.html</loc>
-    <lastmod>2023-05-06T06:32:51.826Z</lastmod>
+    <lastmod>2023-05-06T13:46:50.951Z</lastmod>
   </url>
 </urlset>
