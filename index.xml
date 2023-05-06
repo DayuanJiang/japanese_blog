@@ -20,7 +20,13 @@
 
 <section id="前書き" class="level2">
 <h2 class="anchored" data-anchor-id="前書き">前書き</h2>
-<p>OpenAIのGPTのAPIを利用してアプリを作成するには、今まで一番使いやすいパッケージはLangChainだと思います。一方、LLMはブームになったのはつい最近の話し、それを扱うLangChainはなおさらまだ未熟しています。未熟している特徴としては、関するのワッパーが深すぎて、エラーになったら時どこに問題があるかがなかながわからないことです。 本文では、LangChainの基本的な使い方を優しく説明します。</p>
+<p>OpenAIのGPTのAPIを利用してアプリを作成するには、今まで一番使いやすいパッケージはLangChain🦜️🔗 だと思います。本文では、LangChainの基本的な使い方を優しく説明します。</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://jiang.jp/posts/20230505_LangChain_basic/langchain.png" class="img-fluid figure-img" width="300"></p>
+<figcaption class="figure-caption">LangChain</figcaption>
+</figure>
+</div>
 </section>
 <section id="環境設定" class="level2">
 <h2 class="anchored" data-anchor-id="環境設定">環境設定</h2>
@@ -39,7 +45,7 @@ background-color: null;
 font-style: inherit;">=</span> <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"..."</span></span></code></pre></div>
-<p>直接にAPIキーを書くのはセキュリティ上の問題があるので、スクリプトを共有する場合は(例えば本文)、APIキーを別ファイルに保存し、ファイルから読み込んだほうよいです。</p>
+<p>直接にAPIキーを書くのはセキュリティ上の問題があるので、スクリプトを共有する場合は(例えば本文)、APIキーを別ファイルに保存し、ファイルから読み込んだほうがよいです。</p>
 <div class="cell" data-execution_count="34">
 <div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><span class="im" style="color: #00769E;
 background-color: null;
@@ -68,7 +74,7 @@ font-style: inherit;">in</span> f.readlines()]))</span></code></pre></div>
 </section>
 <section id="openaiのgptモデル" class="level2">
 <h2 class="anchored" data-anchor-id="openaiのgptモデル">OpenAIのGPTモデル</h2>
-<p>LangChainの中にOpenAIのGPTモデルを使うラッパーがあります。現在使えるモデルはテキスト補完モデルとChatモデルの2種類あります。生成モデルの場合はいかのように使います。</p>
+<p>LangChainの中にOpenAIのGPTモデルを使うラッパーがあります。現在使えるモデルはテキスト補完モデルとChatモデルの2種類あります。生成モデルの場合は以下のように使います。</p>
 <div class="cell" data-execution_count="17">
 <div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><span class="im" style="color: #00769E;
 background-color: null;
@@ -94,7 +100,7 @@ font-style: inherit;">print</span>(output.strip())</span></code></pre></div>
 <pre><code>東京です。</code></pre>
 </div>
 </div>
-<p>また、Chatモデルを利用して、対話を行うこともできます。</p>
+<p>また、Chatモデルを利用して対話を行うこともできます。</p>
 <div class="cell" data-execution_count="19">
 <div class="sourceCode cell-code" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><span class="im" style="color: #00769E;
 background-color: null;
@@ -299,12 +305,12 @@ Note
 </section>
 <section id="モデルの使い分け" class="level3">
 <h3 class="anchored" data-anchor-id="モデルの使い分け">モデルの使い分け</h3>
-<p>モデルの使い分けについては、最も使われているのはChatモデルの<code>gpt-3.5-turbo</code>と<code>gpt-4</code>です。<code>gpt-3.5-turbo</code>はモデルのサイズが小さいので、生成時間が短いし、値段も安いです。一方、<code>gpt-4</code>は性能が良いので、性能を求める場合は<code>gpt-4</code>のほうが良いです。また、<code>gpt-4</code>の最大トークン数が8Kになっているので、生成するテキストの長さが長い場合もはこちらを使うほうがいいです。</p>
+<p>モデルの使い分けについては、最も使われているのはChatモデルの<code>gpt-3.5-turbo</code>と<code>gpt-4</code>です。<code>gpt-3.5-turbo</code>はモデルのサイズが小さいので、生成時間が短く、値段も安いです。一方、<code>gpt-4</code>は性能が良いので、性能を求める場合は<code>gpt-4</code>のほうが良いです。また、<code>gpt-4</code>の最大トークン数が8Kになっているので、生成するテキストの長さが長い場合もこちらを使うほうがいいです。</p>
 <p>他のモデルはほとんど使われないので、必要に応じて詳細を見れば良いです。</p>
 </section>
 <section id="tokenの計算方法" class="level3">
 <h3 class="anchored" data-anchor-id="tokenの計算方法">Tokenの計算方法</h3>
-<p>Tokenの計算方法については、<a href="https://www.jiang.jp/posts/20230505_tiktoken/#tictoken%E3%81%AE%E6%8C%99%E5%8B%95">こちら</a>で紹介したので、本文では割愛します。要すると、日本語千文字のドキュメントはおおよそ1,000トークンになり、それを処理するには<code>gpt-3.5-turbo</code>の場合は概算で0.59円、<code>gpt-4</code>の場合は概算で$9.7円かかります。</p>
+<p>Tokenの計算方法については、<a href="https://www.jiang.jp/posts/20230505_tiktoken/#tictoken%E3%81%AE%E6%8C%99%E5%8B%95">こちら</a>で紹介したので、本文では割愛します。要するに、日本語千文字のドキュメントはおおよそ1,000トークンになり、それを処理するには<code>gpt-3.5-turbo</code>の場合は概算で0.59円、<code>gpt-4</code>の場合は概算で$9.7円かかります。</p>
 </section>
 </section>
 <section id="prompt-template" class="level2">
@@ -549,9 +555,8 @@ font-style: inherit;">"アメリカ"</span>}).strip())</span></code></pre></div>
 <section id="agent" class="level2">
 <h2 class="anchored" data-anchor-id="agent">Agent</h2>
 <p>AgentはChainよりも高いレベルの概念です。Agentはツールを使うことができます。それにより、Agentは内部環境にとどまらず、外部環境ともやり取りできます。</p>
-<p>一番シンプルの例としてはBingChatです。ユーザーのクエリーを受けた後、BingChatはインタネットから検索し、情報をサマリーして、ユーザーのクエリーに答えます。</p>
-<p>Agentの中身が複雑でドキュメントに書いていないので、今回は挙動だけ見せます。ここでBingChatに似ている機能を実現するAgentを作ります。</p>
-<p>このAgentはユーザーのクエリーを受け取って、それをインタネットで検索し、その答えを返すことができます。また、外部の電卓ツールを利用して計算もできます。</p>
+<p>一番シンプルの例としてはBingChatがあげられます。ユーザーのクエリーを受けた後、BingChatはインタネットから情報を検索し、それをサマリーして、ユーザーのクエリに答えます。</p>
+<p>Agentの中身は複雑でドキュメントに書いていないので、今回は挙動だけ見せます。ここでBingChatに似ている機能を実現するAgentを作ります。このAgentはユーザーのクエリーを受け取って、それをインタネットで検索し、その答えを返すことができます。また、外部の電卓ツールを利用して計算もできます。</p>
 <div class="cell" data-execution_count="32">
 <div class="sourceCode cell-code" id="cb15" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><span class="im" style="color: #00769E;
 background-color: null;
@@ -633,7 +638,7 @@ Final Answer: 今日の気温は16度で、その2乗は256です。
 </section>
 <section id="まとめ" class="level2">
 <h2 class="anchored" data-anchor-id="まとめ">まとめ</h2>
-<p>これでLangChainの中にあるMemory以外のものをひと通り浅く紹介しました。前書きにも書いてありますが、LangChainの開発はまだ初期の段階なので、APIの設計や、ドキュメントの充実さなどの問題があります。今後は各概念を解剖する記事を書いていきます。</p>
+<p>これでLangChainの中にあるMemory以外のものをひと通り浅く紹介しました。LangChainの開発はまだ初期の段階なので、APIの設計や、ドキュメントの充実さなどの問題があります。今後は各概念を解剖する記事を書いていきます。</p>
 
 
 </section>

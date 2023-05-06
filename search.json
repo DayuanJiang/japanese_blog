@@ -11,28 +11,28 @@
     "href": "posts/20230505_LangChain_basic/index.html",
     "title": "LangChainのベーシックを全面解説する",
     "section": "",
-    "text": "OpenAIのGPTのAPIを利用してアプリを作成するには、今まで一番使いやすいパッケージはLangChainだと思います。一方、LLMはブームになったのはつい最近の話し、それを扱うLangChainはなおさらまだ未熟しています。未熟している特徴としては、関するのワッパーが深すぎて、エラーになったら時どこに問題があるかがなかながわからないことです。 本文では、LangChainの基本的な使い方を優しく説明します。"
+    "text": "OpenAIのGPTのAPIを利用してアプリを作成するには、今まで一番使いやすいパッケージはLangChain🦜️🔗 だと思います。本文では、LangChainの基本的な使い方を優しく説明します。\n\n\n\nLangChain"
   },
   {
     "objectID": "posts/20230505_LangChain_basic/index.html#前書き",
     "href": "posts/20230505_LangChain_basic/index.html#前書き",
     "title": "LangChainのベーシックを全面解説する",
     "section": "",
-    "text": "OpenAIのGPTのAPIを利用してアプリを作成するには、今まで一番使いやすいパッケージはLangChainだと思います。一方、LLMはブームになったのはつい最近の話し、それを扱うLangChainはなおさらまだ未熟しています。未熟している特徴としては、関するのワッパーが深すぎて、エラーになったら時どこに問題があるかがなかながわからないことです。 本文では、LangChainの基本的な使い方を優しく説明します。"
+    "text": "OpenAIのGPTのAPIを利用してアプリを作成するには、今まで一番使いやすいパッケージはLangChain🦜️🔗 だと思います。本文では、LangChainの基本的な使い方を優しく説明します。\n\n\n\nLangChain"
   },
   {
     "objectID": "posts/20230505_LangChain_basic/index.html#環境設定",
     "href": "posts/20230505_LangChain_basic/index.html#環境設定",
     "title": "LangChainのベーシックを全面解説する",
     "section": "環境設定",
-    "text": "環境設定\nまずは定番のpipからインストールすることです。\npip install langchain, openai\nそのつぎに、OpenAIのAPIキーを取得して、環境変数に設定します。 APIはここから取得できます。\nimport os\nos.environ[\"OPENAI_API_KEY\"] = \"...\"\n直接にAPIキーを書くのはセキュリティ上の問題があるので、スクリプトを共有する場合は(例えば本文)、APIキーを別ファイルに保存し、ファイルから読み込んだほうよいです。\n\nimport os \nwith open(\"../../.env\", \"r\") as f: \n    os.environ.update(dict([line.strip().split(\"=\") for line in f.readlines()]))"
+    "text": "環境設定\nまずは定番のpipからインストールすることです。\npip install langchain, openai\nそのつぎに、OpenAIのAPIキーを取得して、環境変数に設定します。 APIはここから取得できます。\nimport os\nos.environ[\"OPENAI_API_KEY\"] = \"...\"\n直接にAPIキーを書くのはセキュリティ上の問題があるので、スクリプトを共有する場合は(例えば本文)、APIキーを別ファイルに保存し、ファイルから読み込んだほうがよいです。\n\nimport os \nwith open(\"../../.env\", \"r\") as f: \n    os.environ.update(dict([line.strip().split(\"=\") for line in f.readlines()]))"
   },
   {
     "objectID": "posts/20230505_LangChain_basic/index.html#openaiのgptモデル",
     "href": "posts/20230505_LangChain_basic/index.html#openaiのgptモデル",
     "title": "LangChainのベーシックを全面解説する",
     "section": "OpenAIのGPTモデル",
-    "text": "OpenAIのGPTモデル\nLangChainの中にOpenAIのGPTモデルを使うラッパーがあります。現在使えるモデルはテキスト補完モデルとChatモデルの2種類あります。生成モデルの場合はいかのように使います。\n\nfrom langchain.llms import OpenAI\nllm = OpenAI(temperature=0)\noutput = llm(\"日本の首都は?\")\nprint(output.strip())\n\n東京です。\n\n\nまた、Chatモデルを利用して、対話を行うこともできます。\n\nfrom langchain.chat_models import ChatOpenAI\nfrom langchain.schema import (\n    AIMessage,\n    HumanMessage,\n    SystemMessage\n)\n\nchat = ChatOpenAI(temperature=0)\noutput = chat([HumanMessage(content=\"文法を修正してください:I loves programming.\")])\nprint(output.content)\n\nI love programming.\n\n\n\n各モデルの特性のまとめ\n各モデルの値段や、最大トークン数、モデルサイズは以下の表にまとめました。\nテキスト補完モデル\n\n\n\n\nモデル名\n\n\n値段(1k tokensごと)\n\n\n最大トークン数\n\n\nモデルサイズ(推測)\n\n\n\n\nDavinci\n\n\n$0.0200\n\n\n4,097\n\n\n175B\n\n\n\n\nCurie\n\n\n$0.0020\n\n\n4,097\n\n\n6.7B\n\n\n\n\nBabbage\n\n\n$0.0005\n\n\n4,097\n\n\n1.3B\n\n\n\n\nAda\n\n\n$0.0004\n\n\n4,097\n\n\n350M\n\n\n\n\nChatモデル\n\n\n\n\nモデル名\n\n\n値段(**Prompt)\n\n\n値段(**補完)\n\n\n最大トークン数\n\n\nモデルサイズ(推測)\n\n\n\n\ngpt-3.5-turbo\n\n\n$0.002\n\n\n$0.002\n\n\n4,096\n\n\n6.7B\n\n\n\n\ngpt-4\n\n\n$0.03\n\n\n$0.06\n\n\n8,192\n\n\n6.7B\n\n\n\n\ngpt-4-32k\n\n\n$0.06\n\n\n$0.12\n\n\n32,768\n\n\n1.3B\n\n\n\n\n\n\n\n\n\n\nNote\n\n\n\nここで注意することとしてはGPT4の値段です。インプットするテキストがprompt、生成したテキストはcompletionに分かれていて、promptの値段とcompletionの値段を足したものがGPT4の値段になります。\n\n\n\n\nモデルの使い分け\nモデルの使い分けについては、最も使われているのはChatモデルのgpt-3.5-turboとgpt-4です。gpt-3.5-turboはモデルのサイズが小さいので、生成時間が短いし、値段も安いです。一方、gpt-4は性能が良いので、性能を求める場合はgpt-4のほうが良いです。また、gpt-4の最大トークン数が8Kになっているので、生成するテキストの長さが長い場合もはこちらを使うほうがいいです。\n他のモデルはほとんど使われないので、必要に応じて詳細を見れば良いです。\n\n\nTokenの計算方法\nTokenの計算方法については、こちらで紹介したので、本文では割愛します。要すると、日本語千文字のドキュメントはおおよそ1,000トークンになり、それを処理するにはgpt-3.5-turboの場合は概算で0.59円、gpt-4の場合は概算で$9.7円かかります。"
+    "text": "OpenAIのGPTモデル\nLangChainの中にOpenAIのGPTモデルを使うラッパーがあります。現在使えるモデルはテキスト補完モデルとChatモデルの2種類あります。生成モデルの場合は以下のように使います。\n\nfrom langchain.llms import OpenAI\nllm = OpenAI(temperature=0)\noutput = llm(\"日本の首都は?\")\nprint(output.strip())\n\n東京です。\n\n\nまた、Chatモデルを利用して対話を行うこともできます。\n\nfrom langchain.chat_models import ChatOpenAI\nfrom langchain.schema import (\n    AIMessage,\n    HumanMessage,\n    SystemMessage\n)\n\nchat = ChatOpenAI(temperature=0)\noutput = chat([HumanMessage(content=\"文法を修正してください:I loves programming.\")])\nprint(output.content)\n\nI love programming.\n\n\n\n各モデルの特性のまとめ\n各モデルの値段や、最大トークン数、モデルサイズは以下の表にまとめました。\nテキスト補完モデル\n\n\n\n\nモデル名\n\n\n値段(1k tokensごと)\n\n\n最大トークン数\n\n\nモデルサイズ(推測)\n\n\n\n\nDavinci\n\n\n$0.0200\n\n\n4,097\n\n\n175B\n\n\n\n\nCurie\n\n\n$0.0020\n\n\n4,097\n\n\n6.7B\n\n\n\n\nBabbage\n\n\n$0.0005\n\n\n4,097\n\n\n1.3B\n\n\n\n\nAda\n\n\n$0.0004\n\n\n4,097\n\n\n350M\n\n\n\n\nChatモデル\n\n\n\n\nモデル名\n\n\n値段(**Prompt)\n\n\n値段(**補完)\n\n\n最大トークン数\n\n\nモデルサイズ(推測)\n\n\n\n\ngpt-3.5-turbo\n\n\n$0.002\n\n\n$0.002\n\n\n4,096\n\n\n6.7B\n\n\n\n\ngpt-4\n\n\n$0.03\n\n\n$0.06\n\n\n8,192\n\n\n6.7B\n\n\n\n\ngpt-4-32k\n\n\n$0.06\n\n\n$0.12\n\n\n32,768\n\n\n1.3B\n\n\n\n\n\n\n\n\n\n\nNote\n\n\n\nここで注意することとしてはGPT4の値段です。インプットするテキストがprompt、生成したテキストはcompletionに分かれていて、promptの値段とcompletionの値段を足したものがGPT4の値段になります。\n\n\n\n\nモデルの使い分け\nモデルの使い分けについては、最も使われているのはChatモデルのgpt-3.5-turboとgpt-4です。gpt-3.5-turboはモデルのサイズが小さいので、生成時間が短く、値段も安いです。一方、gpt-4は性能が良いので、性能を求める場合はgpt-4のほうが良いです。また、gpt-4の最大トークン数が8Kになっているので、生成するテキストの長さが長い場合もこちらを使うほうがいいです。\n他のモデルはほとんど使われないので、必要に応じて詳細を見れば良いです。\n\n\nTokenの計算方法\nTokenの計算方法については、こちらで紹介したので、本文では割愛します。要するに、日本語千文字のドキュメントはおおよそ1,000トークンになり、それを処理するにはgpt-3.5-turboの場合は概算で0.59円、gpt-4の場合は概算で$9.7円かかります。"
   },
   {
     "objectID": "posts/20230505_LangChain_basic/index.html#prompt-template",
@@ -60,14 +60,14 @@
     "href": "posts/20230505_LangChain_basic/index.html#agent",
     "title": "LangChainのベーシックを全面解説する",
     "section": "Agent",
-    "text": "Agent\nAgentはChainよりも高いレベルの概念です。Agentはツールを使うことができます。それにより、Agentは内部環境にとどまらず、外部環境ともやり取りできます。\n一番シンプルの例としてはBingChatです。ユーザーのクエリーを受けた後、BingChatはインタネットから検索し、情報をサマリーして、ユーザーのクエリーに答えます。\nAgentの中身が複雑でドキュメントに書いていないので、今回は挙動だけ見せます。ここでBingChatに似ている機能を実現するAgentを作ります。\nこのAgentはユーザーのクエリーを受け取って、それをインタネットで検索し、その答えを返すことができます。また、外部の電卓ツールを利用して計算もできます。\n\nfrom langchain.agents import load_tools\nfrom langchain.agents import initialize_agent\nfrom langchain.agents import AgentType\nfrom langchain.llms import OpenAI\n\nllm = OpenAI(temperature=0)\ntools = load_tools([\"serpapi\", \"llm-math\"], llm=llm)\nagent = initialize_agent(tools, llm, agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION, verbose=True)\n\n\nagent.run(\"今日の気温は何度ですか？その2乗は何ですか？\")\n\n\n\n&gt; Entering new AgentExecutor chain...\n I need to find out the temperature and then calculate its square.\nAction: Search\nAction Input: 今日の気温\nObservation: ニューヨーク, NY, アメリカ合衆国 の天気. 4. 今日 · 1時間ごと · 10日間 · レーダー. 1時間ごとの天気-ニューヨーク, NY, アメリカ合衆国. 13:48 EDT時点 ...\nThought: I need to find the temperature from the search results\nAction: Search\nAction Input: 今日の気温 ニューヨーク\nObservation: 16:00 · 体感温度16° · 風南東 8 km/h · 湿度47% · 紫外線指数2/10 · 雲量78% · 雨量0 cm ...\nThought: I now have the temperature, I need to calculate its square\nAction: Calculator\nAction Input: 16^2\nObservation: Answer: 256\nThought: I now know the final answer\nFinal Answer: 今日の気温は16度で、その2乗は256です。\n\n&gt; Finished chain.\n\n\n'今日の気温は16度で、その2乗は256です。'\n\n\n「今日の気温は何度ですか？その2乗は何ですか？」のクエリーを投げた後、Agentのほうはまずやるべきことを決めました。やるべきことをプランニングしながら、自分が持っているツールを駆使し、クエリーに答えました。"
+    "text": "Agent\nAgentはChainよりも高いレベルの概念です。Agentはツールを使うことができます。それにより、Agentは内部環境にとどまらず、外部環境ともやり取りできます。\n一番シンプルの例としてはBingChatがあげられます。ユーザーのクエリーを受けた後、BingChatはインタネットから情報を検索し、それをサマリーして、ユーザーのクエリに答えます。\nAgentの中身は複雑でドキュメントに書いていないので、今回は挙動だけ見せます。ここでBingChatに似ている機能を実現するAgentを作ります。このAgentはユーザーのクエリーを受け取って、それをインタネットで検索し、その答えを返すことができます。また、外部の電卓ツールを利用して計算もできます。\n\nfrom langchain.agents import load_tools\nfrom langchain.agents import initialize_agent\nfrom langchain.agents import AgentType\nfrom langchain.llms import OpenAI\n\nllm = OpenAI(temperature=0)\ntools = load_tools([\"serpapi\", \"llm-math\"], llm=llm)\nagent = initialize_agent(tools, llm, agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION, verbose=True)\n\n\nagent.run(\"今日の気温は何度ですか？その2乗は何ですか？\")\n\n\n\n&gt; Entering new AgentExecutor chain...\n I need to find out the temperature and then calculate its square.\nAction: Search\nAction Input: 今日の気温\nObservation: ニューヨーク, NY, アメリカ合衆国 の天気. 4. 今日 · 1時間ごと · 10日間 · レーダー. 1時間ごとの天気-ニューヨーク, NY, アメリカ合衆国. 13:48 EDT時点 ...\nThought: I need to find the temperature from the search results\nAction: Search\nAction Input: 今日の気温 ニューヨーク\nObservation: 16:00 · 体感温度16° · 風南東 8 km/h · 湿度47% · 紫外線指数2/10 · 雲量78% · 雨量0 cm ...\nThought: I now have the temperature, I need to calculate its square\nAction: Calculator\nAction Input: 16^2\nObservation: Answer: 256\nThought: I now know the final answer\nFinal Answer: 今日の気温は16度で、その2乗は256です。\n\n&gt; Finished chain.\n\n\n'今日の気温は16度で、その2乗は256です。'\n\n\n「今日の気温は何度ですか？その2乗は何ですか？」のクエリーを投げた後、Agentのほうはまずやるべきことを決めました。やるべきことをプランニングしながら、自分が持っているツールを駆使し、クエリーに答えました。"
   },
   {
     "objectID": "posts/20230505_LangChain_basic/index.html#まとめ",
     "href": "posts/20230505_LangChain_basic/index.html#まとめ",
     "title": "LangChainのベーシックを全面解説する",
     "section": "まとめ",
-    "text": "まとめ\nこれでLangChainの中にあるMemory以外のものをひと通り浅く紹介しました。前書きにも書いてありますが、LangChainの開発はまだ初期の段階なので、APIの設計や、ドキュメントの充実さなどの問題があります。今後は各概念を解剖する記事を書いていきます。"
+    "text": "まとめ\nこれでLangChainの中にあるMemory以外のものをひと通り浅く紹介しました。LangChainの開発はまだ初期の段階なので、APIの設計や、ドキュメントの充実さなどの問題があります。今後は各概念を解剖する記事を書いていきます。"
   },
   {
     "objectID": "posts/20230430_HyDE/index.html",
