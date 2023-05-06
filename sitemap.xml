@@ -1,31 +1,47 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
+    <loc>https://jiang.jp/draft/20230505_LangChain_basic/table.html</loc>
+    <lastmod>2023-05-06T06:32:47.111Z</lastmod>
+  </url>
+  <url>
+    <loc>https://jiang.jp/draft/20230505_LangChain_basic/index.html</loc>
+    <lastmod>2023-05-06T06:32:47.563Z</lastmod>
+  </url>
+  <url>
+    <loc>https://jiang.jp/draft/20230505_react/index.html</loc>
+    <lastmod>2023-05-06T06:32:48.078Z</lastmod>
+  </url>
+  <url>
     <loc>https://jiang.jp/posts/20230430_HyDE/index.html</loc>
-    <lastmod>2023-05-03T01:22:08.269Z</lastmod>
+    <lastmod>2023-05-06T06:32:48.419Z</lastmod>
   </url>
   <url>
     <loc>https://jiang.jp/posts/20230429_promptagator/index.html</loc>
-    <lastmod>2023-05-03T01:22:08.863Z</lastmod>
+    <lastmod>2023-05-06T06:32:49.087Z</lastmod>
   </url>
   <url>
     <loc>https://jiang.jp/posts/20230428_inpars/index.html</loc>
-    <lastmod>2023-05-03T01:22:09.223Z</lastmod>
+    <lastmod>2023-05-06T06:32:49.500Z</lastmod>
   </url>
   <url>
     <loc>https://jiang.jp/posts/20230502_inpars_light/index.html</loc>
-    <lastmod>2023-05-03T01:22:09.645Z</lastmod>
+    <lastmod>2023-05-06T06:32:49.894Z</lastmod>
+  </url>
+  <url>
+    <loc>https://jiang.jp/posts/20230505_tiktoken/index.html</loc>
+    <lastmod>2023-05-06T06:32:50.334Z</lastmod>
   </url>
   <url>
     <loc>https://jiang.jp/posts/20230501_inpars_v2/index.html</loc>
-    <lastmod>2023-05-03T01:22:09.997Z</lastmod>
+    <lastmod>2023-05-06T06:32:50.701Z</lastmod>
   </url>
   <url>
     <loc>https://jiang.jp/index.html</loc>
-    <lastmod>2023-05-03T01:22:10.691Z</lastmod>
+    <lastmod>2023-05-06T06:32:51.476Z</lastmod>
   </url>
   <url>
     <loc>https://jiang.jp/about.html</loc>
-    <lastmod>2023-05-03T01:22:11.017Z</lastmod>
+    <lastmod>2023-05-06T06:32:51.826Z</lastmod>
   </url>
 </urlset>

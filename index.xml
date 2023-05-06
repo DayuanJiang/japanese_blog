@@ -10,7 +10,572 @@
 <atom:link href="https://jiang.jp/index.xml" rel="self" type="application/rss+xml"/>
 <description></description>
 <generator>quarto-1.3.340</generator>
-<lastBuildDate>Mon, 01 May 2023 15:00:00 GMT</lastBuildDate>
+<lastBuildDate>Thu, 04 May 2023 15:00:00 GMT</lastBuildDate>
+<item>
+  <title>OpenAIのGPTのAPIのToken数に関する調査</title>
+  <link>https://jiang.jp/posts/20230505_tiktoken/index.html</link>
+  <description><![CDATA[ 
+
+
+
+<section id="結論" class="level2">
+<h2 class="anchored" data-anchor-id="結論">結論</h2>
+<p>OpenAIのGPTモデルでドキュメントを処理する際に、日本語の1文字は大よそ1Tokenに等しいです。千文字のドキュメントを処理するためには、概算で、スピード重視の<code>gpt-3.5-turbo</code>を使う場合は0.59円かかります。性能重視の<code>gpt-4-32k</code>を利用する場合は、9.7円かかります。</p>
+</section>
+<section id="目的" class="level2">
+<h2 class="anchored" data-anchor-id="目的">目的</h2>
+<p>GPT3を用いた提案をする際によく聞かれることとしては、コストいくらかのことです。GPT3のAPIの課金は下記のように文字数ではなく、<code>token</code>を単位としているため、説明するのは簡単ではないです。</p>
+<p>本文は値段の説明をしやすいように、実際のデータで実験してみます。ついてにTicTokenの挙動についても掘り下げてみます。 実験のステップは下記の通りです。</p>
+<ol type="1">
+<li>livedoor ニュースコーパスをダウンロードする<br>
+</li>
+<li>ニュースコーパスを<code>tiktoken</code>でトークナイズする</li>
+<li>Token数/文字数で、千文字あたりの値段を計算する</li>
+</ol>
+<strong>テキスト補完モデル</strong>
+
+<table>
+<tbody><tr>
+<th>
+モデル名
+</th>
+<th>
+値段(<strong>Prompt</strong>)
+</th>
+<th>
+値段(<strong>補完</strong>)
+</th>
+<th>
+最大トークン数
+</th>
+<th>
+モデルサイズ(推測)
+</th>
+</tr>
+<tr>
+<td>
+gpt-3.5-turbo
+</td>
+<td>
+$0.002
+</td>
+<td>
+$0.002
+</td>
+<td>
+4,096
+</td>
+<td>
+6.7B
+</td>
+</tr>
+<tr>
+<td>
+gpt-4
+</td>
+<td>
+$0.03
+</td>
+<td>
+$0.06
+</td>
+<td>
+8,192
+</td>
+<td>
+不明
+</td>
+</tr>
+<tr>
+<td>
+gpt-4-32k
+</td>
+<td>
+$0.06
+</td>
+<td>
+$0.12
+</td>
+<td>
+32,768
+</td>
+<td>
+不明
+</td>
+</tr>
+
+</tbody></table>
+</section>
+<section id="前準備" class="level2">
+<h2 class="anchored" data-anchor-id="前準備">前準備</h2>
+<p>GPT3のTokenizerは<a href="https://github.com/openai/tiktoken"><code>tiktoken</code></a>というライブラリを利用しているので、検証するためには<code>tiktoken</code>をインストールする必要があります。</p>
+<p>今回利用するデータは、<a href="https://www.rondhuit.com/download.html">livedoor ニュースコーパス</a>です。livedoor ニュースコーパスは、9つのカテゴリに分類された、記事のデータセットです。</p>
+<div class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">!</span>pip install tiktoken</span>
+<span id="cb1-2"><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">!</span>curl <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span>O https:<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">//</span>www.rondhuit.com<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span>download<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span>ldcc<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">20140209.</span><span class="er" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">tar</span>.gz</span>
+<span id="cb1-3"><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">!</span>tar <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span>zxvf ldcc<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">20140209.</span><span class="er" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">tar</span>.gz</span></code></pre></div>
+</div>
+<p>次に文字数とトークン数の関係を計算します。</p>
+<div class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> glob</span>
+<span id="cb2-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> pandas <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> pd</span>
+<span id="cb2-3"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> matplotlib <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> pyplot <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> plt</span>
+<span id="cb2-4"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> tiktoken</span>
+<span id="cb2-5"></span>
+<span id="cb2-6"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># load data</span></span>
+<span id="cb2-7">path_list <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> glob.glob(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'./text/*/*.txt'</span>)</span>
+<span id="cb2-8">txt_list <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>[]</span>
+<span id="cb2-9"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> path <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> path_list:</span>
+<span id="cb2-10">    category <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> path.split(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'/'</span>)[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>]</span>
+<span id="cb2-11">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">with</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">open</span>(path) <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> f:</span>
+<span id="cb2-12">        <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># skip first 2 lines</span></span>
+<span id="cb2-13">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> i <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">range</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>):</span>
+<span id="cb2-14">            f.readline()</span>
+<span id="cb2-15">        txt_list.append(( category, f.read()))</span>
+<span id="cb2-16">df <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>  pd.DataFrame( txt_list, columns<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'category'</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'text'</span>])</span>
+<span id="cb2-17">df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"word_count"</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"text"</span>].<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">apply</span>(<span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">lambda</span> x: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">len</span>(x))</span>
+<span id="cb2-18"></span>
+<span id="cb2-19"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># cl100k_base is for gpt-4, gpt-3.5-turbo, text-embedding-ada-002</span></span>
+<span id="cb2-20"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># https://github.com/openai/openai-cookbook/blob/main/examples/How_to_count_tokens_with_tiktoken.ipynb</span></span>
+<span id="cb2-21">encoder <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> tiktoken.get_encoding(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"cl100k_base"</span>)</span>
+<span id="cb2-22">df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"token_ids"</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"text"</span>].<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">apply</span>(<span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">lambda</span> x: encoder.encode(x))</span>
+<span id="cb2-23">df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"token_count"</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"token_ids"</span>].<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">apply</span>(<span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">lambda</span> x: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">len</span>(x))</span>
+<span id="cb2-24">df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"tokens"</span>]  <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"token_ids"</span>].<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">apply</span>(<span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">lambda</span> x: encoder.decode_tokens_bytes(x))</span>
+<span id="cb2-25">df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"word_token_ratio"</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"token_count"</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"word_count"</span>]</span></code></pre></div>
+</div>
+</section>
+<section id="計算" class="level2">
+<h2 class="anchored" data-anchor-id="計算">計算</h2>
+<p>まず、処理するデータの様子を実際に見てみましょう。</p>
+<div class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"ドキュメントのサンプル："</span>)</span>
+<span id="cb3-2"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> i <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> txt_list[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>][<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>].split(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'</span><span class="ch" style="color: #20794D;
+background-color: null;
+font-style: inherit;">\n</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'</span>)[:<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span>]:</span>
+<span id="cb3-3">    <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(i)</span>
+<span id="cb3-4"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"..."</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>ドキュメントのサンプル：
+【DVDエンター！】誘拐犯に育てられた女が目にした真実は、孤独か幸福か
+　2005年11月から翌2006年7月まで読売新聞にて連載された、直木賞作家・角田光代による初の長編サスペンス『八日目の蝉』。2010年に檀れいと北乃きいの出演によりテレビドラマ化された同作が、2011年4月に永作博美と井上真央の出演によって映画化。そして、劇場公開から半年が過ぎた10月28日、DVD＆ブルーレイとなって発売されました。
+
+八日目の蝉
+　妻子ある男と愛し合い、その子を身ごもりながら、あきらめざるをえなかった女。彼女は同時に、男の妻が子供を産んだことを知る。その赤ん坊を見に行った女は、突発的にその子を連れ去り、逃避行を続けた挙句、小豆島に落ち着き、母と娘として暮らしはじめる。
+
+
+不倫相手の子供を誘拐し、4年間育てた女
+　永作博美が演じる野々宮希和子は、不倫相手の子を宿しながらも、彼の「いずれ妻と別れるから、それまで待ってくれ」という常套句を信じて、中絶。後遺症により、二度と子供を産めない身体となってしまいます。その後、不倫相手から彼の妻が出産したことを知らされ、別れを決意。最後に諦めをつけるため、彼らの生後6ヶ月の赤ん坊・恵理菜の顔を見た希和子でしたが、自分に笑顔で向けた恵理菜を見て、思わず誘拐。名前を変えて恵理菜を薫と名付けると、人目を避けて各地を転々とし、二人で幸せな時間を過ごしますが、辿り着いた最後の場所・小豆島で4年の逃避行に終止符を打ちます。
+
+...</code></pre>
+</div>
+</div>
+<p>合計7,376件のドキュメントがあり、平均文字数は1,200文字程度です。</p>
+<div class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1">df.word_count.describe().astype(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">int</span>)</span></code></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="3">
+<pre><code>count     7376
+mean      1259
+std        763
+min         37
+25%        730
+50%       1069
+75%       1602
+max      12163
+Name: word_count, dtype: int64</code></pre>
+</div>
+</div>
+<p><span style="background-color: #FFFF00"> 文字数とトークン数の割合を見ると、以外に1文字が1トークンになっていることがわかります。 </span> また、この傾向が記事の種類によりますが、大きな違いはありません。</p>
+<div class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1">df.word_token_ratio.mean()</span></code></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="4">
+<pre><code>1.008244127016698</code></pre>
+</div>
+</div>
+<div class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb9" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1">df.groupby(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"category"</span>).word_token_ratio.mean().sort_values().plot.barh(figsize<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>))</span></code></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="5">
+<pre><code>&lt;Axes: ylabel='category'&gt;</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="https://jiang.jp/posts/20230505_tiktoken/index_files/figure-html/cell-7-output-2.png" class="img-fluid"></p>
+</div>
+</div>
+<p>これで文字数とトークン数の関係がわかることによって、ドキュメントを処理する課金を概算計算することができます。概算ロジックは以下と仮定です。</p>
+<ul>
+<li><p>インプットの長さは2000字とする。内訳は以下の通り。</p>
+<ul>
+<li><p>処理するドキュメントの長さは1000字とする。</p></li>
+<li><p>タスクの説明や、処理の例は1000字とする。</p></li>
+</ul></li>
+<li><p>アウトプットは200字とする。</p></li>
+<li><p>為替レートは1ドル=135円とする。</p></li>
+</ul>
+<p>これで計算すると1ドキュメントを処理するためには:</p>
+<ul>
+<li><p>スピードを求める<code>gpt-3.5-turbo</code>の場合は、0.002 * 2200 / 1000 * 135 = 0.59円 かかります。</p></li>
+<li><p>性能を重視する<code>gpt-4-32k</code>を利用する場合は(0.03 * 2000 + 0.06 * 200) / 1000 * 135 = 9.7円 かかります。</p></li>
+</ul>
+</section>
+<section id="tictokenの挙動" class="level2">
+<h2 class="anchored" data-anchor-id="tictokenの挙動">TicTokenの挙動</h2>
+<section id="bpeモデルが違う" class="level3">
+<h3 class="anchored" data-anchor-id="bpeモデルが違う">BPEモデルが違う</h3>
+<p>日本語は英語よりトークン数が多いと話している投稿は過去Twitterで見たことがあります。今回実際に計算してみると、日本語の1文字は大よそ1Tokenに等しいことがわかりました。それはDecodingするモデルが違うためです。</p>
+<p>ここからはちょっと深い話をします。<code>TikToken</code>はBPE(Byte Pair Encoding)というデータ圧縮法に基づいて開発しました。コンピューターは文字を扱うことができないので、文字を数値に変換する必要があります。BPEは文字列をシンボルに置き換えることで、文字列を数値に変換します。BPEは頻繁に現れる文字のペアや、複数の文字を組み合わせたシンボルを生成します。それにより、入力するシーケンスの長さを短くすることができます。</p>
+<p>例えば、“ab ab b”の文字列について、“ab”を0に、“b”を1に置き換えると、“0 0 1”という文字列になります。このように、BPEは文字列をシンボルに置き換えることで、もともと長さが7の文字列を長さが5のシーケンスに変換できました。</p>
+<p>また、どの組み合わせをシンボルにするかはデータから学習することによって決められています。<code>gpt-3.5-turbo</code>と<code>gpt-4-32k</code>のモデルは以前のGPT3のモデルが違うので、Tokenizeした結果も違います。</p>
+<p>実際の例を見ましょう。</p>
+<div class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb11" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1">gpt4_encoder <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> tiktoken.encoding_for_model(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"gpt-4-32k"</span>)</span>
+<span id="cb11-2">gpt3_encoder <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> tiktoken.encoding_for_model(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"text-davinci-003"</span>)</span>
+<span id="cb11-3"></span>
+<span id="cb11-4"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"GPT3のトークン数："</span>)</span>
+<span id="cb11-5"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"こんにちは: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">len</span>(gpt3_encoder.encode(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'こんにちは'</span>))<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb11-6"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>()</span>
+<span id="cb11-7"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"GPT4のトークン数："</span>)</span>
+<span id="cb11-8"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"こんにちは: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">len</span>(gpt4_encoder.encode(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'こんにちは'</span>))<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>GPT3のトークン数：
+こんにちは: 6
+
+GPT4のトークン数：
+こんにちは: 1</code></pre>
+</div>
+</div>
+</section>
+<section id="gptのbpeモデルは日本語をバイト化してからトークン化している" class="level3">
+<h3 class="anchored" data-anchor-id="gptのbpeモデルは日本語をバイト化してからトークン化している">GPTのBPEモデルは日本語をバイト化してからトークン化している</h3>
+<p>GPT3のToken数がGPT4より多いことがわかります。例えば、「こんにちは」はGPT3で6Tokenになりますが、GPT4では1Tokenになります。</p>
+<p>「こんにちは」については5文字はしかないですが、なぜ6Tokenになっているかに疑問を思うかもしれません。それはGPT3が多言語に対応するために、直接テキストで切っていなくて、日本語をまずバイトに変換して切っているからです。バイト化することにより違う言語でも共通のTokenで表現することができます。</p>
+<div class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb13" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1">tokeinzer_result_byte <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> gpt3_encoder.decode_tokens_bytes(gpt3_encoder.encode(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'こんにちは'</span>))</span>
+<span id="cb13-2"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Tokenize結果:"</span>, tokeinzer_result_byte)</span>
+<span id="cb13-3">tokeinzer_result <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [i.decode() <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">if</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">len</span>(i) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">else</span> i <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> i <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> tokeinzer_result_byte ]</span>
+<span id="cb13-4"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Decoding結果:"</span>, tokeinzer_result)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Tokenize結果: [b'\xe3\x81\x93', b'\xe3\x82\x93', b'\xe3\x81\xab', b'\xe3\x81', b'\xa1', b'\xe3\x81\xaf']
+Decoding結果: ['こ', 'ん', 'に', b'\xe3\x81', b'\xa1', 'は']</code></pre>
+</div>
+</div>
+<p>上記の結果からわかることとしては、日本語1キャラクターは3バイトで表示しています。「こんにちは」の中の「ち」のみ2Tokenに分解されました。</p>
+</section>
+<section id="実際の比較" class="level3">
+<h3 class="anchored" data-anchor-id="実際の比較">実際の比較</h3>
+<p>つぎに、実際にデータでGPT3とGPT4のTokenizeの結果を比較してみましょう。</p>
+<div class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb15" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1">df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"token_ids_gpt3"</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"text"</span>].<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">apply</span>(<span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">lambda</span> x: gpt3_encoder.encode(x))</span>
+<span id="cb15-2">df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"token_count_gpt3"</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"token_ids_gpt3"</span>].<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">apply</span>(<span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">lambda</span> x: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">len</span>(x))</span>
+<span id="cb15-3">df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"word_token_ratio_gpt3"</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"token_count_gpt3"</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"word_count"</span>]</span>
+<span id="cb15-4">df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"word_token_ratio_gpt3"</span>].mean()</span></code></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="8">
+<pre><code>1.317645208825121</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="まとめ" class="level2">
+<h2 class="anchored" data-anchor-id="まとめ">まとめ</h2>
+<p>過去にGPT3を使う場合は日本語のToken数は英語の2倍になる噂があります。GPTモデルで日本語のドキュメントを処理する際、1文字はおおよそ1トークンに等しいことがわかりました。千文字のドキュメントを処理するための概算コストは、スピード重視のgpt-3.5-turboを使う場合は0.59円、性能重視のgpt-4-32kを利用する場合は9.7円です。</p>
+<p>また、GPT3とGPT4が使うTokenizerが違い、GPT3のトークン数はおおよそGPT4の1.3倍になります。</p>
+
+
+</section>
+
+ ]]></description>
+  <category>NLP</category>
+  <category>LLMs</category>
+  <category>LangChain</category>
+  <guid>https://jiang.jp/posts/20230505_tiktoken/index.html</guid>
+  <pubDate>Thu, 04 May 2023 15:00:00 GMT</pubDate>
+</item>
 <item>
   <title>InPars light 論文解読</title>
   <link>https://jiang.jp/posts/20230502_inpars_light/index.html</link>
