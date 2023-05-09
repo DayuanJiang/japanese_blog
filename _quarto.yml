@@ -16,6 +16,11 @@ format:
   html:
     theme: cosmo
     css: styles.css
+    code-line-numbers: true
+    code-annotations: below
+
+highlight-style: atom-one
+
 
 
 

@@ -22,5 +22,41 @@
   },
   "posts/20230430_HyDE/index.qmd": {
     "index.html": "4f6fc6af"
+  },
+  "posts/20230501_inpars_v2/index.qmd": {
+    "index.html": "4e0ded3c"
+  },
+  "posts/20230502_inpars_light/index.qmd": {
+    "index.html": "417d9714"
+  },
+  "posts/20230505_react/index.ipynb": {
+    "index.html": "80853c52"
+  },
+  "posts/20230505_LangChain_basic/index.ipynb": {
+    "index.html": "b02a1d60"
+  },
+  "draft/20230505_react/index.ipynb": {
+    "index.html": "26f03f5b"
+  },
+  "draft/20230505_tiktoken/index.ipynb": {
+    "index.html": "0fe6c6fe"
+  },
+  "posts/20230505_LangChain_basic/table.qmd": {
+    "table.html": "9ea43d46"
+  },
+  "posts/20230505_tiktoken/index.ipynb": {
+    "index.html": "df0297d7"
+  },
+  "draft/20230505_LangChain_basic/table.qmd": {
+    "table.html": "fd965c52"
+  },
+  "draft/20230505_LangChain_basic/index.ipynb": {
+    "index.html": "c870da4f"
+  },
+  "draft/20230505_react/draft.ipynb": {
+    "draft.html": "b3e89638"
+  },
+  "posts/20230509_react/index.ipynb": {
+    "index.html": "d60ac988"
   }
 }

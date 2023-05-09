@@ -1,1 +1,9 @@
 /* css styles */
+/* set quarto-margin-sidebar's width */
+#quarto-margin-sidebar {
+    width: 20em;
+}
+
+.cell-output {
+    background-color: rgb(249, 249, 249)
+}

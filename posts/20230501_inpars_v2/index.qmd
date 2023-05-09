@@ -28,6 +28,6 @@ Negative sampleはまた各QueryについてBM25で上位1000ドキュメント�
 
 ## 3 Result
 
-![](images/paste-1.png){width="500"}
+![result](images/paste-1.png){fig-alt="result" width="500"}
 
 実験結果を見ると、v2はv1と比べて精度が少し良くなった(0.006)。
