@@ -156,6 +156,10 @@ gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
   <ul class="collapse">
   <li><a href="#ツールを定義する" id="toc-ツールを定義する" class="nav-link" data-scroll-target="#ツールを定義する">ツールを定義する</a></li>
   <li><a href="#promptを定義する" id="toc-promptを定義する" class="nav-link" data-scroll-target="#promptを定義する"><code>prompt</code>を定義する</a></li>
+  <li><a href="#最初のプランを建てる" id="toc-最初のプランを建てる" class="nav-link" data-scroll-target="#最初のプランを建てる">最初のプランを建てる</a></li>
+  <li><a href="#第一ステップを実行する" id="toc-第一ステップを実行する" class="nav-link" data-scroll-target="#第一ステップを実行する">第一ステップを実行する</a></li>
+  <li><a href="#実行した結果を観察しつぎのステップを決める" id="toc-実行した結果を観察しつぎのステップを決める" class="nav-link" data-scroll-target="#実行した結果を観察しつぎのステップを決める">実行した結果を観察し、つぎのステップを決める</a></li>
+  <li><a href="#終了条件" id="toc-終了条件" class="nav-link" data-scroll-target="#終了条件">終了条件</a></li>
   </ul></li>
   </ul>
 </nav>
@@ -529,6 +533,9 @@ Search: useful for when you need to ask with search
 <p>Use the following format:<br> Question: the input question you must answer<br> Thought: you should always think about what to do<br> Action: the action to take, should be one of [<span class="text-primary">Search</span>]<br> Action Input: the input to the action<br> Observation: the result of the action<br> … (this Thought/Action/Action Input/Observation can repeat N times)<br> Thought: I now know the final answer<br> Final Answer: the final answer to the original input question<br></p>
 <p>Begin! <br> Question: <span class="text-primary">What is hiroko’s father’s ocupation?</span><br></p>
 </div>
+</section>
+<section id="最初のプランを建てる" class="level3">
+<h3 class="anchored" data-anchor-id="最初のプランを建てる">最初のプランを建てる</h3>
 <p>この<code>prompt</code>を<code>llm</code>に渡すと、<code>llm</code>は<code>prompt</code>を補完します。そのアウトプットは以下のようになります。</p>
 <div class="cell" data-execution_count="75">
 <div class="sourceCode cell-code" id="cb16"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1"></a>output <span class="op">=</span> llm(formatted_prompt)</span>
@@ -593,6 +600,9 @@ Hiroko's father's occupation
 </code></pre>
 </div>
 </div>
+</section>
+<section id="第一ステップを実行する" class="level3">
+<h3 class="anchored" data-anchor-id="第一ステップを実行する">第一ステップを実行する</h3>
 <p>これでつぎのステップがわかったので、<code>tool</code>を実行します。この例でいうと、DBに<code>Hiroko's father's occupation</code>を検索することです。その結果は<code>action</code>を実行した後の<code>observation</code>です。</p>
 <div class="cell" data-execution_count="104">
 <div class="sourceCode cell-code" id="cb21"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1"></a>tool <span class="op">=</span> tools[<span class="dv">0</span>]</span>
@@ -602,6 +612,9 @@ Hiroko's father's occupation
 <pre><code>hiroko's father is takuma</code></pre>
 </div>
 </div>
+</section>
+<section id="実行した結果を観察しつぎのステップを決める" class="level3">
+<h3 class="anchored" data-anchor-id="実行した結果を観察しつぎのステップを決める">実行した結果を観察し、つぎのステップを決める</h3>
 <p>この第一ステップにより、Hirokoさんのお父さんはTakumaさんということがわかります。この中間結果を<code>intermediate_steps</code>に追加して、再度<code>llm</code>に問い合わせする必要があります。</p>
 <p>また、<code>prompt</code>と<code>llm</code>とつないて、<code>Chain</code>を作ることができます。それで中間のステップが省くことができるのて、より便利になります。</p>
 <div class="cell" data-execution_count="107">
@@ -650,6 +663,9 @@ Observation: Takuma is a fisherman.
 Final Answer: Takuma is a fisherman.</code></pre>
 </div>
 </div>
+</section>
+<section id="終了条件" class="level3">
+<h3 class="anchored" data-anchor-id="終了条件">終了条件</h3>
 <p>これで1循環が終わりました。今までわかったこととしては、Hirokoさんのお父さんはTakumaさんということです。また、次にTakumaさんの職業を聞くことも決めました。 そのつぎのステップは今までと全く同じです。</p>
 <div class="cell" data-execution_count="112">
 <div class="sourceCode cell-code" id="cb27"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1"></a>truncated_output <span class="op">=</span> second_step_output.split(<span class="st">"Observation:"</span>)[<span class="dv">0</span>]</span>
