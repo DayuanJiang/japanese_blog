@@ -288,47 +288,47 @@ $0.12
 <p>GPT3のTokenizerは<a href="https://github.com/openai/tiktoken"><code>tiktoken</code></a>というライブラリを利用しているので、検証するためには<code>tiktoken</code>をインストールする必要があります。</p>
 <p>今回利用するデータは、<a href="https://www.rondhuit.com/download.html">livedoor ニュースコーパス</a>です。livedoor ニュースコーパスは、9つのカテゴリに分類された、記事のデータセットです。</p>
 <div class="cell" data-execution_count="1">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>pip install tiktoken</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>curl <span class="op">-</span>O https:<span class="op">//</span>www.rondhuit.com<span class="op">/</span>download<span class="op">/</span>ldcc<span class="op">-</span><span class="fl">20140209.</span><span class="er">tar</span>.gz</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>tar <span class="op">-</span>zxvf ldcc<span class="op">-</span><span class="fl">20140209.</span><span class="er">tar</span>.gz</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1"></a><span class="op">!</span>pip install tiktoken</span>
+<span id="cb1-2"><a href="#cb1-2"></a><span class="op">!</span>curl <span class="op">-</span>O https:<span class="op">//</span>www.rondhuit.com<span class="op">/</span>download<span class="op">/</span>ldcc<span class="op">-</span><span class="fl">20140209.</span><span class="er">tar</span>.gz</span>
+<span id="cb1-3"><a href="#cb1-3"></a><span class="op">!</span>tar <span class="op">-</span>zxvf ldcc<span class="op">-</span><span class="fl">20140209.</span><span class="er">tar</span>.gz</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>次に文字数とトークン数の関係を計算します。</p>
 <div class="cell" data-execution_count="1">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> glob</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> matplotlib <span class="im">import</span> pyplot <span class="im">as</span> plt</span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> tiktoken</span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="co"># load data</span></span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>path_list <span class="op">=</span> glob.glob(<span class="st">'./text/*/*.txt'</span>)</span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>txt_list <span class="op">=</span>[]</span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> path <span class="kw">in</span> path_list:</span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    category <span class="op">=</span> path.split(<span class="st">'/'</span>)[<span class="dv">2</span>]</span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">with</span> <span class="bu">open</span>(path) <span class="im">as</span> f:</span>
-<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>        <span class="co"># skip first 2 lines</span></span>
-<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">2</span>):</span>
-<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>            f.readline()</span>
-<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>        txt_list.append(( category, f.read()))</span>
-<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span>  pd.DataFrame( txt_list, columns<span class="op">=</span>[<span class="st">'category'</span>, <span class="st">'text'</span>])</span>
-<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>df[<span class="st">"word_count"</span>] <span class="op">=</span> df[<span class="st">"text"</span>].<span class="bu">apply</span>(<span class="kw">lambda</span> x: <span class="bu">len</span>(x))</span>
-<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a><span class="co"># cl100k_base is for gpt-4, gpt-3.5-turbo, text-embedding-ada-002</span></span>
-<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a><span class="co"># https://github.com/openai/openai-cookbook/blob/main/examples/How_to_count_tokens_with_tiktoken.ipynb</span></span>
-<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>encoder <span class="op">=</span> tiktoken.get_encoding(<span class="st">"cl100k_base"</span>)</span>
-<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>df[<span class="st">"token_ids"</span>] <span class="op">=</span> df[<span class="st">"text"</span>].<span class="bu">apply</span>(<span class="kw">lambda</span> x: encoder.encode(x))</span>
-<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>df[<span class="st">"token_count"</span>] <span class="op">=</span> df[<span class="st">"token_ids"</span>].<span class="bu">apply</span>(<span class="kw">lambda</span> x: <span class="bu">len</span>(x))</span>
-<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>df[<span class="st">"tokens"</span>]  <span class="op">=</span> df[<span class="st">"token_ids"</span>].<span class="bu">apply</span>(<span class="kw">lambda</span> x: encoder.decode_tokens_bytes(x))</span>
-<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>df[<span class="st">"word_token_ratio"</span>] <span class="op">=</span> df[<span class="st">"token_count"</span>] <span class="op">/</span> df[<span class="st">"word_count"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1"></a><span class="im">import</span> glob</span>
+<span id="cb2-2"><a href="#cb2-2"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb2-3"><a href="#cb2-3"></a><span class="im">from</span> matplotlib <span class="im">import</span> pyplot <span class="im">as</span> plt</span>
+<span id="cb2-4"><a href="#cb2-4"></a><span class="im">import</span> tiktoken</span>
+<span id="cb2-5"><a href="#cb2-5"></a></span>
+<span id="cb2-6"><a href="#cb2-6"></a><span class="co"># load data</span></span>
+<span id="cb2-7"><a href="#cb2-7"></a>path_list <span class="op">=</span> glob.glob(<span class="st">'./text/*/*.txt'</span>)</span>
+<span id="cb2-8"><a href="#cb2-8"></a>txt_list <span class="op">=</span>[]</span>
+<span id="cb2-9"><a href="#cb2-9"></a><span class="cf">for</span> path <span class="kw">in</span> path_list:</span>
+<span id="cb2-10"><a href="#cb2-10"></a>    category <span class="op">=</span> path.split(<span class="st">'/'</span>)[<span class="dv">2</span>]</span>
+<span id="cb2-11"><a href="#cb2-11"></a>    <span class="cf">with</span> <span class="bu">open</span>(path) <span class="im">as</span> f:</span>
+<span id="cb2-12"><a href="#cb2-12"></a>        <span class="co"># skip first 2 lines</span></span>
+<span id="cb2-13"><a href="#cb2-13"></a>        <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">2</span>):</span>
+<span id="cb2-14"><a href="#cb2-14"></a>            f.readline()</span>
+<span id="cb2-15"><a href="#cb2-15"></a>        txt_list.append(( category, f.read()))</span>
+<span id="cb2-16"><a href="#cb2-16"></a>df <span class="op">=</span>  pd.DataFrame( txt_list, columns<span class="op">=</span>[<span class="st">'category'</span>, <span class="st">'text'</span>])</span>
+<span id="cb2-17"><a href="#cb2-17"></a>df[<span class="st">"word_count"</span>] <span class="op">=</span> df[<span class="st">"text"</span>].<span class="bu">apply</span>(<span class="kw">lambda</span> x: <span class="bu">len</span>(x))</span>
+<span id="cb2-18"><a href="#cb2-18"></a></span>
+<span id="cb2-19"><a href="#cb2-19"></a><span class="co"># cl100k_base is for gpt-4, gpt-3.5-turbo, text-embedding-ada-002</span></span>
+<span id="cb2-20"><a href="#cb2-20"></a><span class="co"># https://github.com/openai/openai-cookbook/blob/main/examples/How_to_count_tokens_with_tiktoken.ipynb</span></span>
+<span id="cb2-21"><a href="#cb2-21"></a>encoder <span class="op">=</span> tiktoken.get_encoding(<span class="st">"cl100k_base"</span>)</span>
+<span id="cb2-22"><a href="#cb2-22"></a>df[<span class="st">"token_ids"</span>] <span class="op">=</span> df[<span class="st">"text"</span>].<span class="bu">apply</span>(<span class="kw">lambda</span> x: encoder.encode(x))</span>
+<span id="cb2-23"><a href="#cb2-23"></a>df[<span class="st">"token_count"</span>] <span class="op">=</span> df[<span class="st">"token_ids"</span>].<span class="bu">apply</span>(<span class="kw">lambda</span> x: <span class="bu">len</span>(x))</span>
+<span id="cb2-24"><a href="#cb2-24"></a>df[<span class="st">"tokens"</span>]  <span class="op">=</span> df[<span class="st">"token_ids"</span>].<span class="bu">apply</span>(<span class="kw">lambda</span> x: encoder.decode_tokens_bytes(x))</span>
+<span id="cb2-25"><a href="#cb2-25"></a>df[<span class="st">"word_token_ratio"</span>] <span class="op">=</span> df[<span class="st">"token_count"</span>] <span class="op">/</span> df[<span class="st">"word_count"</span>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="計算" class="level2">
 <h2 class="anchored" data-anchor-id="計算">計算</h2>
 <p>まず、処理するデータの様子を実際に見てみましょう。</p>
 <div class="cell" data-execution_count="2">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"ドキュメントのサンプル："</span>)</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> txt_list[<span class="dv">0</span>][<span class="dv">1</span>].split(<span class="st">'</span><span class="ch">\n</span><span class="st">'</span>)[:<span class="dv">10</span>]:</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(i)</span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"..."</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1"></a><span class="bu">print</span>(<span class="st">"ドキュメントのサンプル："</span>)</span>
+<span id="cb3-2"><a href="#cb3-2"></a><span class="cf">for</span> i <span class="kw">in</span> txt_list[<span class="dv">0</span>][<span class="dv">1</span>].split(<span class="st">'</span><span class="ch">\n</span><span class="st">'</span>)[:<span class="dv">10</span>]:</span>
+<span id="cb3-3"><a href="#cb3-3"></a>    <span class="bu">print</span>(i)</span>
+<span id="cb3-4"><a href="#cb3-4"></a><span class="bu">print</span>(<span class="st">"..."</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>ドキュメントのサンプル：
 【DVDエンター！】誘拐犯に育てられた女が目にした真実は、孤独か幸福か
@@ -346,7 +346,7 @@ $0.12
 </div>
 <p>合計7,376件のドキュメントがあり、平均文字数は1,200文字程度です。</p>
 <div class="cell" data-execution_count="3">
-<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>df.word_count.describe().astype(<span class="bu">int</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1"></a>df.word_count.describe().astype(<span class="bu">int</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="3">
 <pre><code>count     7376
 mean      1259
@@ -361,13 +361,13 @@ Name: word_count, dtype: int64</code></pre>
 </div>
 <p><span style="background-color: #FFFF00"> 文字数とトークン数の割合を見ると、以外に1文字が1トークンになっていることがわかります。 </span> また、この傾向が記事の種類によりますが、大きな違いはありません。</p>
 <div class="cell" data-execution_count="4">
-<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>df.word_token_ratio.mean()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1"></a>df.word_token_ratio.mean()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="4">
 <pre><code>1.008244127016698</code></pre>
 </div>
 </div>
 <div class="cell" data-execution_count="5">
-<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>df.groupby(<span class="st">"category"</span>).word_token_ratio.mean().sort_values().plot.barh(figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">5</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1"></a>df.groupby(<span class="st">"category"</span>).word_token_ratio.mean().sort_values().plot.barh(figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">5</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="5">
 <pre><code>&lt;Axes: ylabel='category'&gt;</code></pre>
 </div>
@@ -375,7 +375,7 @@ Name: word_count, dtype: int64</code></pre>
 <p><img src="index_files/figure-html/cell-7-output-2.png" class="img-fluid"></p>
 </div>
 </div>
-<p>これで文字数とトークン数の関係がわかることによって、ドキュメントを処理する課金を概算計算することができます。概算ロジックは以下と仮定です。</p>
+<p>これで文字数とトークン数の関係がわかることによって、ドキュメントを処理する課金を概算計算することができます。概算ロジックは以下と仮定します。</p>
 <ul>
 <li><p>インプットの長さは2000字とする。内訳は以下の通り。</p>
 <ul>
@@ -401,14 +401,14 @@ Name: word_count, dtype: int64</code></pre>
 <p>また、どの組み合わせをシンボルにするかはデータから学習することによって決められています。<code>gpt-3.5-turbo</code>と<code>gpt-4-32k</code>のモデルは以前のGPT3のモデルが違うので、Tokenizeした結果も違います。</p>
 <p>実際の例を見ましょう。</p>
 <div class="cell" data-execution_count="6">
-<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>gpt4_encoder <span class="op">=</span> tiktoken.encoding_for_model(<span class="st">"gpt-4-32k"</span>)</span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>gpt3_encoder <span class="op">=</span> tiktoken.encoding_for_model(<span class="st">"text-davinci-003"</span>)</span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"GPT3のトークン数："</span>)</span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"こんにちは: </span><span class="sc">{</span><span class="bu">len</span>(gpt3_encoder.encode(<span class="st">'こんにちは'</span>))<span class="sc">}</span><span class="ss">"</span>)</span>
-<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>()</span>
-<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"GPT4のトークン数："</span>)</span>
-<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"こんにちは: </span><span class="sc">{</span><span class="bu">len</span>(gpt4_encoder.encode(<span class="st">'こんにちは'</span>))<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1"></a>gpt4_encoder <span class="op">=</span> tiktoken.encoding_for_model(<span class="st">"gpt-4-32k"</span>)</span>
+<span id="cb11-2"><a href="#cb11-2"></a>gpt3_encoder <span class="op">=</span> tiktoken.encoding_for_model(<span class="st">"text-davinci-003"</span>)</span>
+<span id="cb11-3"><a href="#cb11-3"></a></span>
+<span id="cb11-4"><a href="#cb11-4"></a><span class="bu">print</span>(<span class="st">"GPT3のトークン数："</span>)</span>
+<span id="cb11-5"><a href="#cb11-5"></a><span class="bu">print</span>(<span class="ss">f"こんにちは: </span><span class="sc">{</span><span class="bu">len</span>(gpt3_encoder.encode(<span class="st">'こんにちは'</span>))<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb11-6"><a href="#cb11-6"></a><span class="bu">print</span>()</span>
+<span id="cb11-7"><a href="#cb11-7"></a><span class="bu">print</span>(<span class="st">"GPT4のトークン数："</span>)</span>
+<span id="cb11-8"><a href="#cb11-8"></a><span class="bu">print</span>(<span class="ss">f"こんにちは: </span><span class="sc">{</span><span class="bu">len</span>(gpt4_encoder.encode(<span class="st">'こんにちは'</span>))<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>GPT3のトークン数：
 こんにちは: 6
@@ -417,16 +417,16 @@ GPT4のトークン数：
 こんにちは: 1</code></pre>
 </div>
 </div>
+<p>GPT3のToken数がGPT4より多いことがわかります。例えば、「こんにちは」はGPT3で6Tokenになりますが、GPT4では1Tokenになります。</p>
 </section>
 <section id="gptのbpeモデルは日本語をバイト化してからトークン化している" class="level3">
 <h3 class="anchored" data-anchor-id="gptのbpeモデルは日本語をバイト化してからトークン化している">GPTのBPEモデルは日本語をバイト化してからトークン化している</h3>
-<p>GPT3のToken数がGPT4より多いことがわかります。例えば、「こんにちは」はGPT3で6Tokenになりますが、GPT4では1Tokenになります。</p>
 <p>「こんにちは」については5文字はしかないですが、なぜ6Tokenになっているかに疑問を思うかもしれません。それはGPT3が多言語に対応するために、直接テキストで切っていなくて、日本語をまずバイトに変換して切っているからです。バイト化することにより違う言語でも共通のTokenで表現することができます。</p>
 <div class="cell" data-execution_count="7">
-<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>tokeinzer_result_byte <span class="op">=</span> gpt3_encoder.decode_tokens_bytes(gpt3_encoder.encode(<span class="st">'こんにちは'</span>))</span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Tokenize結果:"</span>, tokeinzer_result_byte)</span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>tokeinzer_result <span class="op">=</span> [i.decode() <span class="cf">if</span> <span class="bu">len</span>(i) <span class="op">==</span> <span class="dv">3</span> <span class="cf">else</span> i <span class="cf">for</span> i <span class="kw">in</span> tokeinzer_result_byte ]</span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Decoding結果:"</span>, tokeinzer_result)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1"></a>tokeinzer_result_byte <span class="op">=</span> gpt3_encoder.decode_tokens_bytes(gpt3_encoder.encode(<span class="st">'こんにちは'</span>))</span>
+<span id="cb13-2"><a href="#cb13-2"></a><span class="bu">print</span>(<span class="st">"Tokenize結果:"</span>, tokeinzer_result_byte)</span>
+<span id="cb13-3"><a href="#cb13-3"></a>tokeinzer_result <span class="op">=</span> [i.decode() <span class="cf">if</span> <span class="bu">len</span>(i) <span class="op">==</span> <span class="dv">3</span> <span class="cf">else</span> i <span class="cf">for</span> i <span class="kw">in</span> tokeinzer_result_byte ]</span>
+<span id="cb13-4"><a href="#cb13-4"></a><span class="bu">print</span>(<span class="st">"Decoding結果:"</span>, tokeinzer_result)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Tokenize結果: [b'\xe3\x81\x93', b'\xe3\x82\x93', b'\xe3\x81\xab', b'\xe3\x81', b'\xa1', b'\xe3\x81\xaf']
 Decoding結果: ['こ', 'ん', 'に', b'\xe3\x81', b'\xa1', 'は']</code></pre>
@@ -438,10 +438,10 @@ Decoding結果: ['こ', 'ん', 'に', b'\xe3\x81', b'\xa1', 'は']</code></pre>
 <h3 class="anchored" data-anchor-id="実際の比較">実際の比較</h3>
 <p>つぎに、実際にデータでGPT3とGPT4のTokenizeの結果を比較してみましょう。</p>
 <div class="cell" data-execution_count="8">
-<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>df[<span class="st">"token_ids_gpt3"</span>] <span class="op">=</span> df[<span class="st">"text"</span>].<span class="bu">apply</span>(<span class="kw">lambda</span> x: gpt3_encoder.encode(x))</span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>df[<span class="st">"token_count_gpt3"</span>] <span class="op">=</span> df[<span class="st">"token_ids_gpt3"</span>].<span class="bu">apply</span>(<span class="kw">lambda</span> x: <span class="bu">len</span>(x))</span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>df[<span class="st">"word_token_ratio_gpt3"</span>] <span class="op">=</span> df[<span class="st">"token_count_gpt3"</span>] <span class="op">/</span> df[<span class="st">"word_count"</span>]</span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>df[<span class="st">"word_token_ratio_gpt3"</span>].mean()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1"></a>df[<span class="st">"token_ids_gpt3"</span>] <span class="op">=</span> df[<span class="st">"text"</span>].<span class="bu">apply</span>(<span class="kw">lambda</span> x: gpt3_encoder.encode(x))</span>
+<span id="cb15-2"><a href="#cb15-2"></a>df[<span class="st">"token_count_gpt3"</span>] <span class="op">=</span> df[<span class="st">"token_ids_gpt3"</span>].<span class="bu">apply</span>(<span class="kw">lambda</span> x: <span class="bu">len</span>(x))</span>
+<span id="cb15-3"><a href="#cb15-3"></a>df[<span class="st">"word_token_ratio_gpt3"</span>] <span class="op">=</span> df[<span class="st">"token_count_gpt3"</span>] <span class="op">/</span> df[<span class="st">"word_count"</span>]</span>
+<span id="cb15-4"><a href="#cb15-4"></a>df[<span class="st">"word_token_ratio_gpt3"</span>].mean()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="8">
 <pre><code>1.317645208825121</code></pre>
 </div>

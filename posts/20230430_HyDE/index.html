@@ -247,18 +247,18 @@ gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
 <section id="実装" class="level2">
 <h2 class="anchored" data-anchor-id="実装">実装</h2>
 <p>HyDEはすでに<a href="https://python.langchain.com/en/latest/modules/chains/index_examples/hyde.html">LangChain</a>で実装されている。</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> langchain.llms <span class="im">import</span> OpenAI</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> langchain.embeddings <span class="im">import</span> OpenAIEmbeddings</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> langchain.chains <span class="im">import</span> HypotheticalDocumentEmbedder</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>base_embeddings <span class="op">=</span> OpenAIEmbeddings()</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>llm <span class="op">=</span> OpenAI()</span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Load with `web_search` prompt</span></span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>embeddings <span class="op">=</span> HypotheticalDocumentEmbedder.from_llm(llm, base_embeddings, <span class="st">"web_search"</span>)</span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Now we can use it as any embedding class!</span></span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> embeddings.embed_query(<span class="st">"Where is the Taj Mahal?"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1"></a><span class="im">from</span> langchain.llms <span class="im">import</span> OpenAI</span>
+<span id="cb1-2"><a href="#cb1-2"></a><span class="im">from</span> langchain.embeddings <span class="im">import</span> OpenAIEmbeddings</span>
+<span id="cb1-3"><a href="#cb1-3"></a><span class="im">from</span> langchain.chains <span class="im">import</span> HypotheticalDocumentEmbedder</span>
+<span id="cb1-4"><a href="#cb1-4"></a></span>
+<span id="cb1-5"><a href="#cb1-5"></a>base_embeddings <span class="op">=</span> OpenAIEmbeddings()</span>
+<span id="cb1-6"><a href="#cb1-6"></a>llm <span class="op">=</span> OpenAI()</span>
+<span id="cb1-7"><a href="#cb1-7"></a></span>
+<span id="cb1-8"><a href="#cb1-8"></a><span class="co"># Load with `web_search` prompt</span></span>
+<span id="cb1-9"><a href="#cb1-9"></a>embeddings <span class="op">=</span> HypotheticalDocumentEmbedder.from_llm(llm, base_embeddings, <span class="st">"web_search"</span>)</span>
+<span id="cb1-10"><a href="#cb1-10"></a></span>
+<span id="cb1-11"><a href="#cb1-11"></a><span class="co"># Now we can use it as any embedding class!</span></span>
+<span id="cb1-12"><a href="#cb1-12"></a>result <span class="op">=</span> embeddings.embed_query(<span class="st">"Where is the Taj Mahal?"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 
 
 </section>

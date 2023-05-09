@@ -10,7 +10,1414 @@
 <atom:link href="https://jiang.jp/index.xml" rel="self" type="application/rss+xml"/>
 <description></description>
 <generator>quarto-1.3.340</generator>
-<lastBuildDate>Fri, 05 May 2023 15:00:00 GMT</lastBuildDate>
+<lastBuildDate>Mon, 08 May 2023 15:00:00 GMT</lastBuildDate>
+<item>
+  <title>LangChain Agentの全面解説</title>
+  <link>https://jiang.jp/posts/20230509_react/index.html</link>
+  <description><![CDATA[ 
+
+
+
+<p>LangChainの中に最もハイレベルな概念としてはAgentです。以前の投稿の中でも話ましたが、LangChainはまだ未熟なライブラリなので、Agentの実装は複雑なものになっていますし、中身の挙動を説明するドキュメントもなかったので、本文ではAgentの使い方から、インプットからアウトプットまでの流れを説明していきます。</p>
+<section id="reactを例にlangchainのagentを紹介する" class="level2">
+<h2 class="anchored" data-anchor-id="reactを例にlangchainのagentを紹介する">ReActを例にLangChainのAgentを紹介する</h2>
+<p>LangChainのAgentとは、簡単に言うとツールを利用できるLLMです。</p>
+<p>典型の例としては「ReAct」が挙げられます。去年出されている「ReAct: Synergizing Reasoning and Acting in Language Models」の論文の中で、思考だけではなく、思考に基づいて行動を起こし、さらに行動の結果から思考を行うLLMsの利用方法を提案した。そのやり方はReasoningとActingの結合なので、「ReAct」と名付けられました。</p>
+<p>実際の例で見ましょう。下記のコードはLangChainで定義したReActのAgentです。このAgentは検索と照応の2つのツールを持っています。人間と同じように、質問が投げられた後、Wikipediaで検査し、検索した結果からコピペー(照応)しながら答案を作ることができます。</p>
+<div class="cell" data-execution_count="26">
+<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb1-1"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> OpenAI, Wikipedia</span>
+<span id="cb1-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.agents <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> initialize_agent, Tool</span>
+<span id="cb1-3"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.agents <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> AgentType</span>
+<span id="cb1-4"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.agents.react.base <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> DocstoreExplorer</span>
+<span id="cb1-5"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> dotenv <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> load_dotenv</span>
+<span id="cb1-6"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># set the environment variables</span></span>
+<span id="cb1-7">load_dotenv()</span>
+<span id="cb1-8"></span>
+<span id="cb1-9">docstore<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>DocstoreExplorer(Wikipedia())</span>
+<span id="cb1-10">tools <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [</span>
+<span id="cb1-11">    Tool(</span>
+<span id="cb1-12">        name<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Search"</span>,</span>
+<span id="cb1-13">        func<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>docstore.search,</span>
+<span id="cb1-14">        description<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"useful for when you need to ask with search"</span></span>
+<span id="cb1-15">    ),</span>
+<span id="cb1-16">    Tool(</span>
+<span id="cb1-17">        name<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Lookup"</span>,</span>
+<span id="cb1-18">        func<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>docstore.lookup,</span>
+<span id="cb1-19">        description<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"useful for when you need to ask with lookup"</span></span>
+<span id="cb1-20">    )</span>
+<span id="cb1-21">]</span>
+<span id="cb1-22"></span>
+<span id="cb1-23">llm <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> OpenAI(temperature<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>, model_name<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"text-davinci-003"</span>)</span>
+<span id="cb1-24">react <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> initialize_agent(tools, llm, agent<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>AgentType.REACT_DOCSTORE, verbose<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span></code></pre></div>
+</div>
+<p>クリントンの奥さんが何をしているかを聞いてみましょう。</p>
+<div class="cell" data-execution_count="23">
+<div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb2-1">react.run(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"What do Bill Clinton's wife do for a living?"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+
+&gt; Entering new AgentExecutor chain...
+Thought: I need to search Bill Clinton and find his wife, then find what she does for a living.
+Action: Search[Bill Clinton]
+Observation: William Jefferson Clinton (né Blythe III; born August 19, 1946) is an American politician  who served as the 42nd president of the United States from 1993 to 2001. He previously served as governor of Arkansas from 1979 to 1981 and again from 1983 to 1992, and as attorney general of Arkansas from 1977 to 1979. A member of the Democratic Party, Clinton became known as a New Democrat, as many of his policies reflected a centrist "Third Way" political philosophy. He is the husband of Hillary Clinton, who was a U.S. senator from New York from 2001 to 2009, secretary of state from 2009 to 2013 and the Democratic nominee for president in the 2016 presidential election.
+Clinton was born and raised in Arkansas and attended Georgetown University. He received a Rhodes Scholarship to study at University College, Oxford, and later graduated from Yale Law School. He met Hillary Rodham at Yale; they married in 1975. After graduating from law school, Clinton returned to Arkansas and won election as state attorney general, followed by two non-consecutive tenures as Arkansas governor. As governor, he overhauled the state's education system and served as chairman of the National Governors Association. Clinton was elected president in the 1992 presidential election, defeating incumbent Republican president George H. W. Bush and independent businessman Ross Perot. At 46 years old, he became the third-youngest president of the United States and the first president to be born in the Baby Boomer generation.
+Clinton presided over the longest period of peacetime economic expansion in American history. He signed into law the North American Free Trade Agreement (NAFTA) and the Violent Crime Control and Law Enforcement Act, but failed to pass his plan for national health care reform. The Republican Party won unified control of Congress for the first time in 40 years in the 1994 elections, but Clinton was still comfortably re-elected in 1996, becoming the first Democrat since Franklin D. Roosevelt to win a second full term. Starting in the mid-1990s, he began an ideological evolution as he became much more conservative in his domestic policy, advocating for and signing the Personal Responsibility and Work Opportunity Act, the State Children's Health Insurance Program and financial deregulation measures. He appointed Ruth Bader Ginsburg and Stephen Breyer to the U.S. Supreme Court. During the last three years of Clinton's presidency, the Congressional Budget Office reported a budget surplus—the first such surplus since 1969. In foreign policy, Clinton ordered U.S. military intervention in the Bosnian and Kosovo wars, eventually signing the Dayton Peace agreement. He also called for the expansion of NATO in Eastern Europe and many former Warsaw Pact members joined NATO during his presidency. Clinton's foreign policy in the Middle East saw him sign the Iraq Liberation Act which gave aid to groups against Saddam Hussein. He also participated in the Oslo I Accord and Camp David Summit to advance the Israeli–Palestinian peace process, and assisted the Northern Ireland peace process.
+Clinton's second term was dominated by the Monica Lewinsky scandal, which began in 1996, when he had a sexual relationship with 22-year-old Monica Lewinsky, an intern at the White House. In January 1998, news of the affair made tabloid headlines. This scandal escalated throughout the year, culminating on December 19 when Clinton was impeached by the House of Representatives, becoming the second U.S. president—the first since Andrew Johnson—to be impeached. The two impeachment articles that the House passed were centered around him using the powers of the presidency to obstruct the investigation and lying under oath. In 1999, Clinton's impeachment trial began in the Senate. He was acquitted on both charges as the Senate failed to cast 67 votes against him, which was necessary to meet the two-thirds conviction threshold prescribed by Article I, section 3, clause 6 of the U.S. Constitution.
+Clinton left office in 2001 with the joint-highest approval rating of any U.S. president in the modern era, alongside Franklin D. Roosevelt and Ronald Reagan. His presidency has been ranked among the upper tier in historical rankings of U.S. presidents. However, his personal conduct and allegations of sexual assault have made him the subject of substantial scrutiny. Since leaving office, Clinton has been involved in public speaking and humanitarian work. He created the Clinton Foundation to address international causes such as the prevention of HIV/AIDS and global warming. In 2009, he was named the United Nations Special Envoy to Haiti. After the 2010 Haiti earthquake, Clinton and George W. Bush formed the Clinton Bush Haiti Fund. He has remained active in Democratic Party politics, campaigning for his wife's 2008 and 2016 presidential campaigns.
+Thought: Bill Clinton's wife is Hillary Clinton. I need to search Hillary Clinton and find what she does for a living.
+Action: Search[Hillary Clinton]
+Observation: Hillary Diane Rodham Clinton (born October 26, 1947) is an American politician and diplomat who served as the 67th United States secretary of state under president Barack Obama from 2009 to 2013, as a United States senator representing New York from 2001 to 2009, and as the first lady of the United States as the wife of President Bill Clinton from 1993 to 2001. A member of the Democratic Party, she was the party's nominee for president in the 2016 presidential election, becoming the first woman to win a presidential nomination by a major U.S. political party. Clinton won the popular vote, but lost the Electoral College vote, thereby losing the election to Donald Trump.
+Raised in the Chicago suburb of Park Ridge, Rodham graduated from Wellesley College in 1969 and earned a Juris Doctor degree from Yale Law School in 1973. After serving as a congressional legal counsel, she moved to Arkansas and married future president Bill Clinton in 1975; the two had met at Yale. In 1977, Clinton co-founded Arkansas Advocates for Children and Families. She was appointed the first female chair of the Legal Services Corporation in 1978 and became the first female partner at Little Rock's Rose Law Firm the following year. The National Law Journal twice listed her as one of the hundred most influential lawyers in America. Clinton was the  First Lady of Arkansas from 1979 to 1981 and again from 1983 to 1992. As the first lady of the United States, Clinton advocated for healthcare reform. In 1994, her major initiative—the Clinton health care plan—failed to gain approval from Congress. In 1997 and 1999, Clinton played a leading role in advocating the creation of the State Children's Health Insurance Program, the Adoption and Safe Families Act, and the Foster Care Independence Act. Clinton advocated for gender equality at the 1995 UN conference on women. Her marital relationship came under public scrutiny during the Lewinsky scandal, which led her to issue a statement that reaffirmed her commitment to the marriage.
+In 2000, Clinton was elected as the first female senator from New York and became the first First lady to simultaneously hold elected office, and then the first former First lady to serve in the Senate. She was re-elected in 2006 and chaired the Senate Democratic Steering and Outreach Committee from 2003 to 2007. During her Senate tenure, Clinton advocated for medical benefits for September 11 first responders. She supported the resolution authorizing the Iraq War in 2002, but opposed the surge of U.S. troops in 2007. In 2008, Clinton ran for president but was defeated by eventual winner Barack Obama in the Democratic primaries. Clinton was U.S. Secretary of State in the first term of the Obama administration from 2009 to 2013. During her tenure, Clinton established the Quadrennial Diplomacy and Development Review. She responded to the Arab Spring by advocating military intervention in Libya but was harshly criticized by Republicans for the failure to prevent or adequately respond to the 2012 Benghazi attack. Clinton helped to organize a diplomatic isolation and a regime of international sanctions against Iran in an effort to force it to curtail its nuclear program; this effort eventually led to the multinational JCPOA nuclear agreement in 2015. Her use of a private email server when she was Secretary of State was the subject of intense scrutiny; while no charges were filed against Clinton, the email controversy was the single most covered topic during the 2016 presidential election.
+Clinton made a second presidential run in 2016, winning the Democratic nomination, and ran in the general election with Virginia senator Tim Kaine as her running mate. Clinton lost the presidential election to Republican opponent Donald Trump in the Electoral College, despite winning the popular vote by close to 3 million votes. Following her loss, she wrote her third memoir, What Happened, and launched Onward Together, a political action organization dedicated to fundraising for progressive political groups. Since February 2023, she has served on the faculty of the School of International and Public Affairs at Columbia University.
+Thought: Hillary Clinton is a politician, diplomat, and lawyer. So the answer is politician, diplomat, and lawyer.
+Action: Finish[politician, diplomat, lawyer]
+
+&gt; Finished chain.</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="23">
+<pre><code>'politician, diplomat, lawyer'</code></pre>
+</div>
+</div>
+<p>ご覧の通り、Agentが質問を受けた後、まず「先にクリントンの奥さんの名前を調べて、それから彼女の仕事を調べる」というプランを立てました。そして、そのプランに基づいて、Wikipediaでまずクリントンを検索し、その結果からヒラリーを特定し、さらにヒラリーの仕事を調べて、答案を作りました。</p>
+<p>これで、LangChainのAgentの基本がわかりました。しかし、上記のことはLangChainが実装されているReActをCALLして利用しているだけです。自分でカスタマイズのAgentを作るにはどうすればよいかを、これから説明します。</p>
+</section>
+<section id="カスタマイズのagentを作る" class="level2">
+<h2 class="anchored" data-anchor-id="カスタマイズのagentを作る">カスタマイズのAgentを作る</h2>
+<p>Agentは3つの要素から構成されています。</p>
+<ul>
+<li><code>PromptTemplate</code>: Agentの中の一番コアな部分です。このテンプレートでAgentの挙動を定義します。</li>
+<li><code>llm</code>: Agentが利用するLLMです。</li>
+<li><code>OutptParser</code>: LLMのアウトプットを解析し、AgentActionもしくはAgentFinishを生成するモジュールです。</li>
+</ul>
+<p>作られたAgentは<code>AgentExecutor</code>を通じで、以下のステップで実行します。</p>
+<ol type="1">
+<li>ユーザー入力とそれまでのステップをエージェントに渡す。</li>
+<li>エージェントが<code>AgentFinish</code>を返す場合、それを直接結果に返す。</li>
+<li>Agentが<code>AgentAction</code>を返した場合、それを使ってツールを呼び出し、Observationを取得します。</li>
+<li><code>AgentFinish</code>が返されるまで、<code>AgentAction</code>と<code>Observation</code>をAgentに戻すことを繰り返します。</li>
+</ol>
+<p>これから実際にカスタマイズ的なAgentを作りましょう。</p>
+<p>このAgentは「Search」のツールでDBから情報を取得し、質問に答えることができます。 DBの中で「Hiroko」さんの家族に関する情報が入っています。</p>
+<div class="sourceCode" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb5-1">corpus <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [</span>
+<span id="cb5-2">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"takuma is a teacher"</span>,</span>
+<span id="cb5-3">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"hiroko's father is takuma"</span>,</span>
+<span id="cb5-4">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"hiroko's mather is ayako"</span>,</span>
+<span id="cb5-5">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"ayako is a doctor"</span>,</span>
+<span id="cb5-6">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"hiroko is 10 years old"</span>,</span>
+<span id="cb5-7">]</span></code></pre></div>
+<p>コードが100行ぐらいあります。こからステップ・バイ・ステップで説明するのでなので、一旦折りたたみます。下の矢印をクリックすると、コードが表示されます。</p>
+<div class="cell" data-execution_count="69">
+<details>
+<summary>Click here to show the agent definition code</summary>
+<div class="sourceCode cell-code" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb6-1"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> OpenAI, LLMChain</span>
+<span id="cb6-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.agents <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> Tool, AgentExecutor, LLMSingleActionAgent, AgentOutputParser</span>
+<span id="cb6-3"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.schema <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> AgentAction, AgentFinish</span>
+<span id="cb6-4"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.prompts <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> StringPromptTemplate</span>
+<span id="cb6-5"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> typing <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> List, Union</span>
+<span id="cb6-6"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> re</span>
+<span id="cb6-7"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> dotenv <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> load_dotenv</span>
+<span id="cb6-8"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># set the environment variables</span></span>
+<span id="cb6-9">load_dotenv()</span>
+<span id="cb6-10"></span>
+<span id="cb6-11"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.embeddings.openai <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> OpenAIEmbeddings</span>
+<span id="cb6-12"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.vectorstores <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> FAISS</span>
+<span id="cb6-13"></span>
+<span id="cb6-14">corpus <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [</span>
+<span id="cb6-15">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"takuma is a teacher"</span>,</span>
+<span id="cb6-16">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"hiroko's father is takuma"</span>,</span>
+<span id="cb6-17">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"hiroko's mather is ayako"</span>,</span>
+<span id="cb6-18">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"ayako is a doctor"</span>,</span>
+<span id="cb6-19">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"hiroko is 10 years old"</span>,</span>
+<span id="cb6-20">]</span>
+<span id="cb6-21">        </span>
+<span id="cb6-22">embedding <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> OpenAIEmbeddings()</span>
+<span id="cb6-23">vectorstore <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> FAISS.from_texts(corpus, embedding)</span>
+<span id="cb6-24"></span>
+<span id="cb6-25">tools <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [</span>
+<span id="cb6-26">    Tool(</span>
+<span id="cb6-27">        name<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Search"</span>,</span>
+<span id="cb6-28">        func<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">lambda</span> query: vectorstore.similarity_search(query, top_k<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>)[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>].page_content,</span>
+<span id="cb6-29">        description<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"useful for when you need to ask with search"</span></span>
+<span id="cb6-30">    ),</span>
+<span id="cb6-31">]</span>
+<span id="cb6-32"></span>
+<span id="cb6-33">tool_names <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [tool.name <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> tool <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> tools]</span>
+<span id="cb6-34">template <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"""Answer the following questions as best you can, You have access to the following tools:</span></span>
+<span id="cb6-35"><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{tools}</span></span>
+<span id="cb6-36"></span>
+<span id="cb6-37"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">Use the following format:</span></span>
+<span id="cb6-38"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">Question: the input question you must answer</span></span>
+<span id="cb6-39"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">Thought: you should always think about what to do</span></span>
+<span id="cb6-40"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">Action: the action to take, should be one of [</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{tool_names}</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">]</span></span>
+<span id="cb6-41"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">Action Input: the input to the action</span></span>
+<span id="cb6-42"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">Observation: the result of the action</span></span>
+<span id="cb6-43"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">... (this Thought/Action/Action Input/Observation can repeat N times)</span></span>
+<span id="cb6-44"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">Thought: I now know the final answer</span></span>
+<span id="cb6-45"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">Final Answer: the final answer to the original input question</span></span>
+<span id="cb6-46"></span>
+<span id="cb6-47"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">Begin! </span></span>
+<span id="cb6-48"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">Question: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{input}</span></span>
+<span id="cb6-49"><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{agent_scratchpad}</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"""</span></span>
+<span id="cb6-50"></span>
+<span id="cb6-51"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">class</span> CustomPromptTemplate(StringPromptTemplate):</span>
+<span id="cb6-52">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># The template to use</span></span>
+<span id="cb6-53">    template: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">str</span></span>
+<span id="cb6-54">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># The list of tools available</span></span>
+<span id="cb6-55">    tools: List[Tool]</span>
+<span id="cb6-56">    </span>
+<span id="cb6-57">    <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">def</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">format</span>(<span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">self</span>, <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">**</span>kwargs) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-&gt;</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">str</span>:</span>
+<span id="cb6-58">        <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Get the intermediate steps (AgentAction, Observation tuples)</span></span>
+<span id="cb6-59">        <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Format them in a particular way</span></span>
+<span id="cb6-60">        intermediate_steps <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> kwargs.pop(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"intermediate_steps"</span>)</span>
+<span id="cb6-61">        thoughts <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">""</span></span>
+<span id="cb6-62">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> action, observation <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> intermediate_steps:</span>
+<span id="cb6-63">            thoughts <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+=</span> action.log</span>
+<span id="cb6-64">            thoughts <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+=</span> <span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"</span><span class="ch" style="color: #20794D;
+background-color: null;
+font-style: inherit;">\n</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">Observation: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>observation<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ch" style="color: #20794D;
+background-color: null;
+font-style: inherit;">\n</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">Thought: "</span></span>
+<span id="cb6-65">        <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Set the agent_scratchpad variable to that value</span></span>
+<span id="cb6-66">        kwargs[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"agent_scratchpad"</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> thoughts</span>
+<span id="cb6-67">        <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Create a tools variable from the list of tools provided</span></span>
+<span id="cb6-68">        kwargs[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"tools"</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span><span class="ch" style="color: #20794D;
+background-color: null;
+font-style: inherit;">\n</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>.join([<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>tool<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>name<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>tool<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>description<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> tool <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">self</span>.tools])</span>
+<span id="cb6-69">        <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Create a list of tool names for the tools provided</span></span>
+<span id="cb6-70">        kwargs[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"tool_names"</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">", "</span>.join([tool.name <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> tool <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">self</span>.tools])</span>
+<span id="cb6-71">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">return</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">self</span>.template.<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">format</span>(<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">**</span>kwargs)</span>
+<span id="cb6-72">    </span>
+<span id="cb6-73"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">class</span> CustomOutputParser(AgentOutputParser):</span>
+<span id="cb6-74">    </span>
+<span id="cb6-75">    <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">def</span> parse(<span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">self</span>, llm_output: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">str</span>) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-&gt;</span> Union[AgentAction, AgentFinish]:</span>
+<span id="cb6-76">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">if</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Final Answer:"</span> <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> llm_output:</span>
+<span id="cb6-77">            <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">return</span> AgentFinish(</span>
+<span id="cb6-78">                <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Return values is generally always a dictionary with a single `output` key</span></span>
+<span id="cb6-79">                <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># It is not recommended to try anything else at the moment :)</span></span>
+<span id="cb6-80">                return_values<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>{<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"output"</span>: llm_output.split(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Final Answer:"</span>)[<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>].strip()},</span>
+<span id="cb6-81">                log<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>llm_output,</span>
+<span id="cb6-82">            )</span>
+<span id="cb6-83">        <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Parse out the action and action input</span></span>
+<span id="cb6-84">        regex <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="vs" style="color: #20794D;
+background-color: null;
+font-style: inherit;">r"Action\s*\d*\s*:(.*?)\nAction\s*\d*\s*Input\s*\d*\s*:[\s]*(.*)"</span></span>
+<span id="cb6-85">        match <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> re.search(regex, llm_output, re.DOTALL)</span>
+<span id="cb6-86">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">if</span> <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">not</span> match:</span>
+<span id="cb6-87">            <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">raise</span> <span class="pp" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">ValueError</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"Could not parse LLM output: `</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>llm_output<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`"</span>)</span>
+<span id="cb6-88">        action <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> match.group(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>).strip()</span>
+<span id="cb6-89">        action_input <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> match.group(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>)</span>
+<span id="cb6-90">        <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Return the action and action input</span></span>
+<span id="cb6-91">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">return</span> AgentAction(tool<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>action, tool_input<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>action_input.strip(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">" "</span>).strip(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'"'</span>), log<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>llm_output)</span>
+<span id="cb6-92"></span>
+<span id="cb6-93"></span>
+<span id="cb6-94">llm <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> OpenAI(temperature<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>, model_name<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"text-davinci-003"</span>)</span>
+<span id="cb6-95">prompt <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> CustomPromptTemplate(</span>
+<span id="cb6-96">    template<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>template,</span>
+<span id="cb6-97">    tools<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>tools,</span>
+<span id="cb6-98">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># This omits the `agent_scratchpad`, `tools`, and `tool_names` variables because those are generated dynamically</span></span>
+<span id="cb6-99">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># This includes the `intermediate_steps` variable because that is needed</span></span>
+<span id="cb6-100">    input_variables<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"input"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"intermediate_steps"</span>]</span>
+<span id="cb6-101">)</span>
+<span id="cb6-102"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># LLM chain consisting of the LLM and a prompt</span></span>
+<span id="cb6-103">llm_chain <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> LLMChain(llm<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>llm, prompt<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>prompt)</span>
+<span id="cb6-104"></span>
+<span id="cb6-105">output_parser <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> CustomOutputParser()</span>
+<span id="cb6-106"></span>
+<span id="cb6-107">agent <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> LLMSingleActionAgent(</span>
+<span id="cb6-108">    llm_chain<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>llm_chain, </span>
+<span id="cb6-109">    output_parser<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>output_parser,</span>
+<span id="cb6-110">    stop<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span><span class="ch" style="color: #20794D;
+background-color: null;
+font-style: inherit;">\n</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">Observation:"</span>], </span>
+<span id="cb6-111">    allowed_tools<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>tool_names</span>
+<span id="cb6-112">)</span></code></pre></div>
+</details>
+</div>
+<p>定義した後実行して見ましょう。</p>
+<div class="cell" data-execution_count="70">
+<div class="sourceCode cell-code" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb7-1">agent_executor <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> AgentExecutor.from_agent_and_tools(agent<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>agent, tools<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>tools, verbose<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb7-2">agent_executor.run(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"What is hiroko's father's ocupation?"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+
+&gt; Entering new AgentExecutor chain...
+Thought: I need to find out what hiroko's father does for a living.
+Action: Search
+Action Input: "Hiroko's father's occupation"
+
+Observation:hiroko's father is takuma
+ I need to find out what Takuma does for a living.
+Action: Search
+Action Input: "Takuma's occupation"
+
+Observation:takuma is a teacher
+ I now know the final answer.
+Final Answer: Takuma is a teacher.
+
+&gt; Finished chain.</code></pre>
+</div>
+<div class="cell-output cell-output-display" data-execution_count="70">
+<pre><code>'Takuma is a teacher.'</code></pre>
+</div>
+</div>
+<p>カスタマイズ的なが「ReAct」と同じように2回の検索によって結果を得ました。これは<code>AgentExecutor</code>を経由して得た結果です。その中でどのように動作しているかがこれからStep-by-stepで説明します。</p>
+</section>
+<section id="agentの動作を説明する" class="level2">
+<h2 class="anchored" data-anchor-id="agentの動作を説明する">Agentの動作を説明する</h2>
+<section id="ツールを定義する" class="level3">
+<h3 class="anchored" data-anchor-id="ツールを定義する">ツールを定義する</h3>
+<div class="sourceCode" id="cb10" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb10-1">corpus <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [</span>
+<span id="cb10-2">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"takuma is a teacher"</span>,</span>
+<span id="cb10-3">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"hiroko's father is takuma"</span>,</span>
+<span id="cb10-4">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"hiroko's mather is ayako"</span>,</span>
+<span id="cb10-5">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"ayako is a doctor"</span>,</span>
+<span id="cb10-6">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"hiroko is 10 years old"</span>,</span>
+<span id="cb10-7">]</span>
+<span id="cb10-8">        </span>
+<span id="cb10-9">embedding <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> OpenAIEmbeddings()</span>
+<span id="cb10-10">vectorstore <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> FAISS.from_texts(corpus, embedding)</span>
+<span id="cb10-11"></span>
+<span id="cb10-12">tools <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [</span>
+<span id="cb10-13">    Tool(</span>
+<span id="cb10-14">        name<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Search"</span>,</span>
+<span id="cb10-15">        func<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">lambda</span> query: vectorstore.similarity_search(query, top_k<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>)[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>].page_content,</span>
+<span id="cb10-16">        description<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"useful for when you need to ask with search"</span></span>
+<span id="cb10-17">    ),</span>
+<span id="cb10-18">]</span></code></pre></div>
+<p>今回使うツールはDBからテキストを検索するツールです。ツールが使わる時、ツールの<code>func</code>が<code>AgentAction</code>よりコールされ、<code>Observation</code>が返されます。例えば、下記で<code>tool</code>にHirokoさんの年齢を入れたら、<code>tool</code>はDBにあるドキュメントを検索し、それに関連するテキストを返します。</p>
+<div class="cell" data-execution_count="71">
+<div class="sourceCode cell-code" id="cb11" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb11-1">tool <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> tools[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>]</span>
+<span id="cb11-2">query <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"hiroko's age"</span></span>
+<span id="cb11-3">observation <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> tool(query)</span>
+<span id="cb11-4"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(observation)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>hiroko is 10 years old</code></pre>
+</div>
+</div>
+</section>
+<section id="promptを定義する" class="level3">
+<h3 class="anchored" data-anchor-id="promptを定義する"><code>prompt</code>を定義する</h3>
+<p>つぎに、<code>prompt</code>を定義します。そのために、まず最初のテンプレートを定義する必要があります。</p>
+<div class="sourceCode" id="cb13" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb13-1">tool_names <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [tool.name <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> tool <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> tools]</span>
+<span id="cb13-2">template <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"""Answer the following questions as best you can, You have access to the following tools:</span></span>
+<span id="cb13-3"><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{tools}</span></span>
+<span id="cb13-4"></span>
+<span id="cb13-5"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">Use the following format:</span></span>
+<span id="cb13-6"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">Question: the input question you must answer</span></span>
+<span id="cb13-7"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">Thought: you should always think about what to do</span></span>
+<span id="cb13-8"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">Action: the action to take, should be one of [</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{tool_names}</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">]</span></span>
+<span id="cb13-9"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">Action Input: the input to the action</span></span>
+<span id="cb13-10"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">Observation: the result of the action</span></span>
+<span id="cb13-11"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">... (this Thought/Action/Action Input/Observation can repeat N times)</span></span>
+<span id="cb13-12"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">Thought: I now know the final answer</span></span>
+<span id="cb13-13"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">Final Answer: the final answer to the original input question</span></span>
+<span id="cb13-14"></span>
+<span id="cb13-15"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">Begin! </span></span>
+<span id="cb13-16"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">Question: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{input}</span></span>
+<span id="cb13-17"><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{agent_scratchpad}</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"""</span></span></code></pre></div>
+<p>テンプレートには4つの変数があります。</p>
+<ul>
+<li><code>tools</code>: Agentが利用できるツールの詳細情報</li>
+<li><code>tool_names</code>: ツールの名前のリスト</li>
+<li><code>input</code>: Agentに渡された質問</li>
+<li><code>agent_scratchpad</code>: Agentの内部のメモ(次に説明)</li>
+</ul>
+<p>つぎに、実際にそれをベースとしてLangChainの<code>PromptTemplate</code>を定義し、初期化を行います。</p>
+<div class="sourceCode" id="cb14" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb14-1"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">class</span> CustomPromptTemplate(StringPromptTemplate):</span>
+<span id="cb14-2">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># The template to use</span></span>
+<span id="cb14-3">    template: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">str</span></span>
+<span id="cb14-4">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># The list of tools available</span></span>
+<span id="cb14-5">    tools: List[Tool]</span>
+<span id="cb14-6">    </span>
+<span id="cb14-7">    <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">def</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">format</span>(<span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">self</span>, <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">**</span>kwargs) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-&gt;</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">str</span>:</span>
+<span id="cb14-8">        <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Get the intermediate steps (AgentAction, Observation tuples)</span></span>
+<span id="cb14-9">        <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Format them in a particular way</span></span>
+<span id="cb14-10">        intermediate_steps <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> kwargs.pop(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"intermediate_steps"</span>)</span>
+<span id="cb14-11">        thoughts <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">""</span></span>
+<span id="cb14-12">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> action, observation <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> intermediate_steps:</span>
+<span id="cb14-13">            thoughts <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+=</span> action.log</span>
+<span id="cb14-14">            thoughts <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+=</span> <span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"</span><span class="ch" style="color: #20794D;
+background-color: null;
+font-style: inherit;">\n</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">Observation: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>observation<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ch" style="color: #20794D;
+background-color: null;
+font-style: inherit;">\n</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">Thought: "</span></span>
+<span id="cb14-15">        <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Set the agent_scratchpad variable to that value</span></span>
+<span id="cb14-16">        kwargs[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"agent_scratchpad"</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> thoughts</span>
+<span id="cb14-17">        <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Create a tools variable from the list of tools provided</span></span>
+<span id="cb14-18">        kwargs[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"tools"</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span><span class="ch" style="color: #20794D;
+background-color: null;
+font-style: inherit;">\n</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>.join([<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>tool<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>name<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>tool<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>description<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> tool <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">self</span>.tools])</span>
+<span id="cb14-19">        <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Create a list of tool names for the tools provided</span></span>
+<span id="cb14-20">        kwargs[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"tool_names"</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">", "</span>.join([tool.name <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> tool <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">self</span>.tools])</span>
+<span id="cb14-21">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">return</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">self</span>.template.<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">format</span>(<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">**</span>kwargs)</span>
+<span id="cb14-22"></span>
+<span id="cb14-23">prompt <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> CustomPromptTemplate(</span>
+<span id="cb14-24">    template<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>template,</span>
+<span id="cb14-25">    tools<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>tools,</span>
+<span id="cb14-26">    input_variables<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"input"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"intermediate_steps"</span>]</span>
+<span id="cb14-27">)</span></code></pre></div>
+<p><code>prompt</code>を初期化する際に<code>tools</code>を渡したため、テンプレートに埋める時に<code>["input", "intermediate_steps"]</code>があれば良いです。<code>intermediate_steps</code>には途中の結果が全部は入っていて、それを使って<code>prompt</code>にある<code>agent_scratchpad</code>を埋めます。</p>
+<p>Hirokoさんのお父さんの職業を聞く場合、最初の<code>prompt</code>はどんなものかを実際に見てみましょう。</p>
+<div class="cell" data-execution_count="72">
+<div class="sourceCode cell-code" id="cb15" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb15-1">query <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"What is hiroko's father's ocupation?"</span></span>
+<span id="cb15-2">formatted_prompt <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> prompt.<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">format</span>(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">input</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>query,  intermediate_steps<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>[])</span></code></pre></div>
+</div>
+アウトプットは以下<span class="text-primary">青字</span>はインプットした情報です。
+<div class="cell-output cell-output-stdout" style="background-color:rgb(249, 249, 249); padding:1em;  ">
+Answer the following questions as best you can, You have access to the following tools:<br>
+<p class="text-primary">
+Search: useful for when you need to ask with search
+</p>
+<p>Use the following format:<br> Question: the input question you must answer<br> Thought: you should always think about what to do<br> Action: the action to take, should be one of [<span class="text-primary">Search</span>]<br> Action Input: the input to the action<br> Observation: the result of the action<br> … (this Thought/Action/Action Input/Observation can repeat N times)<br> Thought: I now know the final answer<br> Final Answer: the final answer to the original input question<br></p>
+<p>Begin! <br> Question: <span class="text-primary">What is hiroko’s father’s ocupation?</span><br></p>
+</div>
+<p>この<code>prompt</code>を<code>llm</code>に渡すと、<code>llm</code>は<code>prompt</code>を補完します。そのアウトプットは以下のようになります。</p>
+<div class="cell" data-execution_count="75">
+<div class="sourceCode cell-code" id="cb16" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb16-1">output <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> llm(formatted_prompt)</span>
+<span id="cb16-2"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(output)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Thought: I need to find out what hiroko's father does for a living.
+Action: Search
+Action Input: "Hiroko's father's occupation"
+Observation: I found a website that lists Hiroko's father as a doctor.
+Thought: I now know the final answer.
+Final Answer: Hiroko's father is a doctor.</code></pre>
+</div>
+</div>
+<p>ここで、<code>llm</code>は<code>prompt</code>が決めたパターンに沿ってアウトプットを出しました。この中で、<code>Observation:</code>以降のものは全部捏造したものです。なぜかというと、ここまではまだDBに検索することをやっていなくて、<code>llm</code>はまだ何も知らないからです。ここで<code>llm</code>をやってもらいたいことはつぎのステップを決めてもらうだけです。 なので、<code>output</code>の<code>Observation:</code>以降のものを全部切って、それを<code>OutputParser</code>に渡して、つぎのアクションを抽出してもらいます。</p>
+<div class="cell" data-execution_count="102">
+<div class="sourceCode cell-code" id="cb18" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb18-1"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">class</span> CustomOutputParser(AgentOutputParser):</span>
+<span id="cb18-2">    </span>
+<span id="cb18-3">    <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">def</span> parse(<span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">self</span>, llm_output: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">str</span>) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-&gt;</span> Union[AgentAction, AgentFinish]:</span>
+<span id="cb18-4">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">if</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Final Answer:"</span> <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> llm_output:</span>
+<span id="cb18-5">            <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">return</span> AgentFinish(</span>
+<span id="cb18-6">                <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Return values is generally always a dictionary with a single `output` key</span></span>
+<span id="cb18-7">                <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># It is not recommended to try anything else at the moment :)</span></span>
+<span id="cb18-8">                return_values<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>{<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"output"</span>: llm_output.split(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Final Answer:"</span>)[<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>].strip()},</span>
+<span id="cb18-9">                log<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>llm_output,</span>
+<span id="cb18-10">            )</span>
+<span id="cb18-11">        <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Parse out the action and action input</span></span>
+<span id="cb18-12">        regex <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="vs" style="color: #20794D;
+background-color: null;
+font-style: inherit;">r"Action\s*\d*\s*:(.*?)\nAction\s*\d*\s*Input\s*\d*\s*:[\s]*(.*)"</span></span>
+<span id="cb18-13">        match <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> re.search(regex, llm_output, re.DOTALL)</span>
+<span id="cb18-14">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">if</span> <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">not</span> match:</span>
+<span id="cb18-15">            <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">raise</span> <span class="pp" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">ValueError</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"Could not parse LLM output: `</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>llm_output<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`"</span>)</span>
+<span id="cb18-16">        action <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> match.group(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>).strip()</span>
+<span id="cb18-17">        action_input <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> match.group(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>).strip()</span>
+<span id="cb18-18">        <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Return the action and action input</span></span>
+<span id="cb18-19">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">return</span> AgentAction(tool<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>action, tool_input<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>action_input.strip(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">" "</span>).strip(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'"'</span>), log<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>llm_output)</span>
+<span id="cb18-20"></span>
+<span id="cb18-21">parser <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> CustomOutputParser()</span>
+<span id="cb18-22">truncated_output <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> output.split(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Observation:"</span>)[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>]</span>
+<span id="cb18-23">action <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> parser.parse(truncated_output)</span></code></pre></div>
+</div>
+<p><code>action</code>には3つのフィールドがあります。</p>
+<ol type="1">
+<li><code>log</code>: <code>parser</code>にインプットされたもの</li>
+<li><code>tool</code>: <code>parser</code>が抽出したツールの名前</li>
+<li><code>tool_input</code>: <code>parser</code>が抽出したツールにインプットするもの</li>
+</ol>
+<div class="cell" data-execution_count="103">
+<div class="sourceCode cell-code" id="cb19" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb19-1"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> variable <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> [<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"log"</span>,<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"tool"</span>,<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"tool_input"</span>]:</span>
+<span id="cb19-2">    <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(variable, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">":"</span>)</span>
+<span id="cb19-3">    <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">getattr</span>(action, variable).strip())</span>
+<span id="cb19-4">    <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>()</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>log :
+Thought: I need to find out what hiroko's father does for a living.
+Action: Search
+Action Input: "Hiroko's father's occupation"
+
+tool :
+Search
+
+tool_input :
+Hiroko's father's occupation
+</code></pre>
+</div>
+</div>
+<p>これでつぎのステップがわかったので、<code>tool</code>を実行します。この例でいうと、DBに<code>Hiroko's father's occupation</code>を検索することです。その結果は<code>action</code>を実行した後の<code>observation</code>です。</p>
+<div class="cell" data-execution_count="104">
+<div class="sourceCode cell-code" id="cb21" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb21-1">tool <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> tools[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>]</span>
+<span id="cb21-2">observation <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> tool.run(action.tool_input)</span>
+<span id="cb21-3"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(observation)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>hiroko's father is takuma</code></pre>
+</div>
+</div>
+<p>この第一ステップにより、Hirokoさんのお父さんはTakumaさんということがわかります。この中間結果を<code>intermediate_steps</code>に追加して、再度<code>llm</code>に問い合わせする必要があります。</p>
+<p>また、<code>prompt</code>と<code>llm</code>とつないて、<code>Chain</code>を作ることができます。それで中間のステップが省くことができるのて、より便利になります。</p>
+<div class="cell" data-execution_count="107">
+<div class="sourceCode cell-code" id="cb23" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb23-1">llm_chain <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> LLMChain(llm<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>llm, prompt<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>prompt, verbose<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb23-2"></span>
+<span id="cb23-3">intermediate_steps <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [(action, observation)]</span>
+<span id="cb23-4">second_step_output <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> llm_chain.run(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">input</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>query, intermediate_steps<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>intermediate_steps)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+
+&gt; Entering new LLMChain chain...
+Prompt after formatting:
+Answer the following questions as best you can, You have access to the following tools:
+Search: useful for when you need to ask with search
+
+Use the following format:
+Question: the input question you must answer
+Thought: you should always think about what to do
+Action: the action to take, should be one of [Search]
+Action Input: the input to the action
+Observation: the result of the action
+... (this Thought/Action/Action Input/Observation can repeat N times)
+Thought: I now know the final answer
+Final Answer: the final answer to the original input question
+
+Begin! 
+Question: What is hiroko's father's ocupation?
+Thought: I need to find out what hiroko's father does for a living.
+Action: Search
+Action Input: "Hiroko's father's occupation"
+
+Observation: hiroko's father is takuma
+Thought: 
+
+&gt; Finished chain.</code></pre>
+</div>
+</div>
+<div class="cell" data-execution_count="108">
+<div class="sourceCode cell-code" id="cb25" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb25-1"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(second_step_output)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> I need to find out what Takuma does for a living.
+Action: Search
+Action Input: "Takuma's occupation"
+
+Observation: Takuma is a fisherman.
+Final Answer: Takuma is a fisherman.</code></pre>
+</div>
+</div>
+<p>これで1循環が終わりました。今までわかったこととしては、Hirokoさんのお父さんはTakumaさんということです。また、次にTakumaさんの職業を聞くことも決めました。 そのつぎのステップは今までと全く同じです。</p>
+<div class="cell" data-execution_count="112">
+<div class="sourceCode cell-code" id="cb27" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb27-1">truncated_output <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> second_step_output.split(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Observation:"</span>)[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>]</span>
+<span id="cb27-2">action <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> parser.parse(truncated_output)</span>
+<span id="cb27-3">observation <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> tool.run(action.tool_input)</span>
+<span id="cb27-4">intermediate_steps <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+=</span> [(action, observation)]</span>
+<span id="cb27-5">third_step_output <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> llm_chain.run(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">input</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>query, intermediate_steps<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>intermediate_steps)</span>
+<span id="cb27-6"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(third_step_output)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+
+&gt; Entering new LLMChain chain...
+Prompt after formatting:
+Answer the following questions as best you can, You have access to the following tools:
+Search: useful for when you need to ask with search
+
+Use the following format:
+Question: the input question you must answer
+Thought: you should always think about what to do
+Action: the action to take, should be one of [Search]
+Action Input: the input to the action
+Observation: the result of the action
+... (this Thought/Action/Action Input/Observation can repeat N times)
+Thought: I now know the final answer
+Final Answer: the final answer to the original input question
+
+Begin! 
+Question: What is hiroko's father's ocupation?
+Thought: I need to find out what hiroko's father does for a living.
+Action: Search
+Action Input: "Hiroko's father's occupation"
+
+Observation: hiroko's father is takuma
+Thought:  I need to find out what Takuma does for a living.
+Action: Search
+Action Input: "Takuma's occupation"
+
+
+Observation: takuma is a teacher
+Thought: 
+
+&gt; Finished chain.
+ I now know the final answer.
+Final Answer: Takuma is a teacher.</code></pre>
+</div>
+</div>
+<p>今回のアウトプットはつぎのアクションがなくて、直接<code>Observation</code>から<code>Final Answer</code>が出たので、これを<code>OutputParser</code>に渡せば<code>AgentFinish</code>を抽出できます。<code>AgentFinish</code>が抽出した時点で、全体の処理が終わります。</p>
+<div class="cell" data-execution_count="121">
+<div class="sourceCode cell-code" id="cb29" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb29-1">action <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> parser.parse(third_step_output)</span>
+<span id="cb29-2"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(action)</span>
+<span id="cb29-3"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>()</span>
+<span id="cb29-4"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Final Answer:"</span>, action.return_values[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"output"</span>])</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>AgentFinish(return_values={'output': 'Takuma is a teacher.'}, log=' I now know the final answer.\nFinal Answer: Takuma is a teacher.')
+
+Final Answer: Takuma is a teacher.</code></pre>
+</div>
+</div>
+<p>これで、Agentの最初から最後までの流れをひと通り解説を行いました。</p>
+
+
+</section>
+</section>
+
+ ]]></description>
+  <category>NLP</category>
+  <category>LLMs</category>
+  <category>LangChain</category>
+  <guid>https://jiang.jp/posts/20230509_react/index.html</guid>
+  <pubDate>Mon, 08 May 2023 15:00:00 GMT</pubDate>
+</item>
 <item>
   <title>LangChainのベーシックを全面解説する</title>
   <link>https://jiang.jp/posts/20230505_LangChain_basic/index.html</link>
@@ -31,11 +1438,11 @@
 <section id="環境設定" class="level2">
 <h2 class="anchored" data-anchor-id="環境設定">環境設定</h2>
 <p>まずは定番の<code>pip</code>からインストールすることです。</p>
-<div class="sourceCode" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><span class="ex" style="color: null;
+<div class="sourceCode" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode numberSource bash number-lines code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><span class="ex" style="color: null;
 background-color: null;
 font-style: inherit;">pip</span> install langchain, openai</span></code></pre></div>
 <p>そのつぎに、OpenAIのAPIキーを取得して、環境変数に設定します。 APIは<a href="https://platform.openai.com/account/api-keys">ここ</a>から取得できます。</p>
-<div class="sourceCode" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><span class="im" style="color: #00769E;
+<div class="sourceCode" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb2-1"><span class="im" style="color: #00769E;
 background-color: null;
 font-style: inherit;">import</span> os</span>
 <span id="cb2-2">os.environ[<span class="st" style="color: #20794D;
@@ -47,7 +1454,7 @@ background-color: null;
 font-style: inherit;">"..."</span></span></code></pre></div>
 <p>直接にAPIキーを書くのはセキュリティ上の問題があるので、スクリプトを共有する場合は(例えば本文)、APIキーを別ファイルに保存し、ファイルから読み込んだほうがよいです。</p>
 <div class="cell" data-execution_count="34">
-<div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><span class="im" style="color: #00769E;
+<div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb3-1"><span class="im" style="color: #00769E;
 background-color: null;
 font-style: inherit;">import</span> os </span>
 <span id="cb3-2"><span class="cf" style="color: #003B4F;
@@ -76,7 +1483,7 @@ font-style: inherit;">in</span> f.readlines()]))</span></code></pre></div>
 <h2 class="anchored" data-anchor-id="openaiのgptモデル">OpenAIのGPTモデル</h2>
 <p>LangChainの中にOpenAIのGPTモデルを使うラッパーがあります。現在使えるモデルはテキスト補完モデルとChatモデルの2種類あります。生成モデルの場合は以下のように使います。</p>
 <div class="cell" data-execution_count="17">
-<div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><span class="im" style="color: #00769E;
+<div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb4-1"><span class="im" style="color: #00769E;
 background-color: null;
 font-style: inherit;">from</span> langchain.llms <span class="im" style="color: #00769E;
 background-color: null;
@@ -102,7 +1509,7 @@ font-style: inherit;">print</span>(output.strip())</span></code></pre></div>
 </div>
 <p>また、Chatモデルを利用して対話を行うこともできます。</p>
 <div class="cell" data-execution_count="19">
-<div class="sourceCode cell-code" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><span class="im" style="color: #00769E;
+<div class="sourceCode cell-code" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb6-1"><span class="im" style="color: #00769E;
 background-color: null;
 font-style: inherit;">from</span> langchain.chat_models <span class="im" style="color: #00769E;
 background-color: null;
@@ -318,7 +1725,7 @@ Note
 <p>LangChainのPrompt TemplateはPromptを簡単に作成するためのモジュールです。Example selector付きのPromptを作るにはとても役に立ちます。でもそれはよりアドバンス的なやり方なので、入門の段階では単純にPythonのf-stringとして使えれば良いです。</p>
 <p>Promptのテンプレートを書いた後、それを<code>PromptTemplate</code>のインスタンスに渡して、<code>PromptTemplate</code>の<code>format</code>メソッドを呼び出すと、Promptが生成されます。</p>
 <div class="cell" data-execution_count="1">
-<div class="sourceCode cell-code" id="cb8" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><span class="im" style="color: #00769E;
+<div class="sourceCode cell-code" id="cb8" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb8-1"><span class="im" style="color: #00769E;
 background-color: null;
 font-style: inherit;">from</span> langchain <span class="im" style="color: #00769E;
 background-color: null;
@@ -377,7 +1784,7 @@ FAISSについて
 </div>
 </div>
 <div class="cell" data-execution_count="24">
-<div class="sourceCode cell-code" id="cb10" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><span class="im" style="color: #00769E;
+<div class="sourceCode cell-code" id="cb10" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb10-1"><span class="im" style="color: #00769E;
 background-color: null;
 font-style: inherit;">from</span> langchain.document_loaders <span class="im" style="color: #00769E;
 background-color: null;
@@ -491,7 +1898,7 @@ font-style: inherit;">"りんご"</span>)</span></code></pre></div>
 </div>
 </div>
 <div class="cell" data-execution_count="29">
-<div class="sourceCode cell-code" id="cb12" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><span class="im" style="color: #00769E;
+<div class="sourceCode cell-code" id="cb12" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb12-1"><span class="im" style="color: #00769E;
 background-color: null;
 font-style: inherit;">from</span> langchain.prompts <span class="im" style="color: #00769E;
 background-color: null;
@@ -532,7 +1939,7 @@ font-style: inherit;">=</span>prompt)</span></code></pre></div>
 </div>
 <p>これで各国の首都は簡単に検索できるようになりました。</p>
 <div class="cell" data-execution_count="30">
-<div class="sourceCode cell-code" id="cb13" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><span class="bu" style="color: null;
+<div class="sourceCode cell-code" id="cb13" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb13-1"><span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">print</span>(chain.run({<span class="st" style="color: #20794D;
 background-color: null;
@@ -558,7 +1965,7 @@ font-style: inherit;">"アメリカ"</span>}).strip())</span></code></pre></div>
 <p>一番シンプルの例としてはBingChatがあげられます。ユーザーのクエリーを受けた後、BingChatはインタネットから情報を検索し、それをサマリーして、ユーザーのクエリに答えます。</p>
 <p>Agentの中身は複雑でドキュメントに書いていないので、今回は挙動だけ見せます。ここでBingChatに似ている機能を実現するAgentを作ります。このAgentはユーザーのクエリーを受け取って、それをインタネットで検索し、その答えを返すことができます。また、外部の電卓ツールを利用して計算もできます。</p>
 <div class="cell" data-execution_count="32">
-<div class="sourceCode cell-code" id="cb15" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><span class="im" style="color: #00769E;
+<div class="sourceCode cell-code" id="cb15" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb15-1"><span class="im" style="color: #00769E;
 background-color: null;
 font-style: inherit;">from</span> langchain.agents <span class="im" style="color: #00769E;
 background-color: null;
@@ -606,7 +2013,7 @@ background-color: null;
 font-style: inherit;">True</span>)</span></code></pre></div>
 </div>
 <div class="cell" data-execution_count="38">
-<div class="sourceCode cell-code" id="cb16" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1">agent.run(<span class="st" style="color: #20794D;
+<div class="sourceCode cell-code" id="cb16" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb16-1">agent.run(<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"今日の気温は何度ですか？その2乗は何ですか？"</span>)</span></code></pre></div>
 <div class="cell-output cell-output-stdout">
@@ -750,7 +2157,7 @@ $0.12
 <p>GPT3のTokenizerは<a href="https://github.com/openai/tiktoken"><code>tiktoken</code></a>というライブラリを利用しているので、検証するためには<code>tiktoken</code>をインストールする必要があります。</p>
 <p>今回利用するデータは、<a href="https://www.rondhuit.com/download.html">livedoor ニュースコーパス</a>です。livedoor ニュースコーパスは、9つのカテゴリに分類された、記事のデータセットです。</p>
 <div class="cell" data-execution_count="1">
-<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><span class="op" style="color: #5E5E5E;
+<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb1-1"><span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">!</span>pip install tiktoken</span>
 <span id="cb1-2"><span class="op" style="color: #5E5E5E;
@@ -784,7 +2191,7 @@ font-style: inherit;">tar</span>.gz</span></code></pre></div>
 </div>
 <p>次に文字数とトークン数の関係を計算します。</p>
 <div class="cell" data-execution_count="1">
-<div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><span class="im" style="color: #00769E;
+<div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb2-1"><span class="im" style="color: #00769E;
 background-color: null;
 font-style: inherit;">import</span> glob</span>
 <span id="cb2-2"><span class="im" style="color: #00769E;
@@ -933,7 +2340,7 @@ font-style: inherit;">"word_count"</span>]</span></code></pre></div>
 <h2 class="anchored" data-anchor-id="計算">計算</h2>
 <p>まず、処理するデータの様子を実際に見てみましょう。</p>
 <div class="cell" data-execution_count="2">
-<div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><span class="bu" style="color: null;
+<div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb3-1"><span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
 background-color: null;
@@ -980,7 +2387,7 @@ font-style: inherit;">"..."</span>)</span></code></pre></div>
 </div>
 <p>合計7,376件のドキュメントがあり、平均文字数は1,200文字程度です。</p>
 <div class="cell" data-execution_count="3">
-<div class="sourceCode cell-code" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1">df.word_count.describe().astype(<span class="bu" style="color: null;
+<div class="sourceCode cell-code" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb5-1">df.word_count.describe().astype(<span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">int</span>)</span></code></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="3">
@@ -997,13 +2404,13 @@ Name: word_count, dtype: int64</code></pre>
 </div>
 <p><span style="background-color: #FFFF00"> 文字数とトークン数の割合を見ると、以外に1文字が1トークンになっていることがわかります。 </span> また、この傾向が記事の種類によりますが、大きな違いはありません。</p>
 <div class="cell" data-execution_count="4">
-<div class="sourceCode cell-code" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1">df.word_token_ratio.mean()</span></code></pre></div>
+<div class="sourceCode cell-code" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb7-1">df.word_token_ratio.mean()</span></code></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="4">
 <pre><code>1.008244127016698</code></pre>
 </div>
 </div>
 <div class="cell" data-execution_count="5">
-<div class="sourceCode cell-code" id="cb9" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1">df.groupby(<span class="st" style="color: #20794D;
+<div class="sourceCode cell-code" id="cb9" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb9-1">df.groupby(<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"category"</span>).word_token_ratio.mean().sort_values().plot.barh(figsize<span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -1019,7 +2426,7 @@ font-style: inherit;">5</span>))</span></code></pre></div>
 <p><img src="https://jiang.jp/posts/20230505_tiktoken/index_files/figure-html/cell-7-output-2.png" class="img-fluid"></p>
 </div>
 </div>
-<p>これで文字数とトークン数の関係がわかることによって、ドキュメントを処理する課金を概算計算することができます。概算ロジックは以下と仮定です。</p>
+<p>これで文字数とトークン数の関係がわかることによって、ドキュメントを処理する課金を概算計算することができます。概算ロジックは以下と仮定します。</p>
 <ul>
 <li><p>インプットの長さは2000字とする。内訳は以下の通り。</p>
 <ul>
@@ -1045,7 +2452,7 @@ font-style: inherit;">5</span>))</span></code></pre></div>
 <p>また、どの組み合わせをシンボルにするかはデータから学習することによって決められています。<code>gpt-3.5-turbo</code>と<code>gpt-4-32k</code>のモデルは以前のGPT3のモデルが違うので、Tokenizeした結果も違います。</p>
 <p>実際の例を見ましょう。</p>
 <div class="cell" data-execution_count="6">
-<div class="sourceCode cell-code" id="cb11" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1">gpt4_encoder <span class="op" style="color: #5E5E5E;
+<div class="sourceCode cell-code" id="cb11" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb11-1">gpt4_encoder <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> tiktoken.encoding_for_model(<span class="st" style="color: #20794D;
 background-color: null;
@@ -1107,13 +2514,13 @@ GPT4のトークン数：
 こんにちは: 1</code></pre>
 </div>
 </div>
+<p>GPT3のToken数がGPT4より多いことがわかります。例えば、「こんにちは」はGPT3で6Tokenになりますが、GPT4では1Tokenになります。</p>
 </section>
 <section id="gptのbpeモデルは日本語をバイト化してからトークン化している" class="level3">
 <h3 class="anchored" data-anchor-id="gptのbpeモデルは日本語をバイト化してからトークン化している">GPTのBPEモデルは日本語をバイト化してからトークン化している</h3>
-<p>GPT3のToken数がGPT4より多いことがわかります。例えば、「こんにちは」はGPT3で6Tokenになりますが、GPT4では1Tokenになります。</p>
 <p>「こんにちは」については5文字はしかないですが、なぜ6Tokenになっているかに疑問を思うかもしれません。それはGPT3が多言語に対応するために、直接テキストで切っていなくて、日本語をまずバイトに変換して切っているからです。バイト化することにより違う言語でも共通のTokenで表現することができます。</p>
 <div class="cell" data-execution_count="7">
-<div class="sourceCode cell-code" id="cb13" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1">tokeinzer_result_byte <span class="op" style="color: #5E5E5E;
+<div class="sourceCode cell-code" id="cb13" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb13-1">tokeinzer_result_byte <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> gpt3_encoder.decode_tokens_bytes(gpt3_encoder.encode(<span class="st" style="color: #20794D;
 background-color: null;
@@ -1156,7 +2563,7 @@ Decoding結果: ['こ', 'ん', 'に', b'\xe3\x81', b'\xa1', 'は']</code></pre>
 <h3 class="anchored" data-anchor-id="実際の比較">実際の比較</h3>
 <p>つぎに、実際にデータでGPT3とGPT4のTokenizeの結果を比較してみましょう。</p>
 <div class="cell" data-execution_count="8">
-<div class="sourceCode cell-code" id="cb15" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1">df[<span class="st" style="color: #20794D;
+<div class="sourceCode cell-code" id="cb15" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb15-1">df[<span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"token_ids_gpt3"</span>] <span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -1444,7 +2851,7 @@ font-style: inherit;">"word_token_ratio_gpt3"</span>].mean()</span></code></pre>
 <section id="実装" class="level2">
 <h2 class="anchored" data-anchor-id="実装">実装</h2>
 <p>HyDEはすでに<a href="https://python.langchain.com/en/latest/modules/chains/index_examples/hyde.html">LangChain</a>で実装されている。</p>
-<div class="sourceCode" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><span class="im" style="color: #00769E;
+<div class="sourceCode" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb1-1"><span class="im" style="color: #00769E;
 background-color: null;
 font-style: inherit;">from</span> langchain.llms <span class="im" style="color: #00769E;
 background-color: null;
@@ -1538,12 +2945,12 @@ font-style: inherit;">"Where is the Taj Mahal?"</span>)</span></code></pre></div
 <section id="prompt-base-query-generation" class="level2">
 <h2 class="anchored" data-anchor-id="prompt-base-query-generation">3.1 Prompt-base query generation</h2>
 <p>LLMはFLANを利用した。Promptの形式としては、HotpotQAを例として説明すると以下になる。</p>
-<pre class="raw text"><code>Evidence: passage 1 
-Vexed question: query 1
-...
-Evidence: passage k
-Vexed question: query k
-Evidence: target passage</code></pre>
+<div class="sourceCode" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode numberSource raw text number-lines code-with-copy"><code class="sourceCode"><span id="cb1-1">Evidence: passage 1 </span>
+<span id="cb1-2">Vexed question: query 1</span>
+<span id="cb1-3">...</span>
+<span id="cb1-4">Evidence: passage k</span>
+<span id="cb1-5">Vexed question: query k</span>
+<span id="cb1-6">Evidence: target passage</span></code></pre></div>
 <p>下表のようにタスクごとに違うPromptを設定した。（Promptの中の0と 1の意味が不明）</p>
 <p><img src="https://jiang.jp/posts/20230429_promptagator/images/paste-8.png" class="img-fluid" alt="Prompt template for each dataset"><br>
 Promptで使用した例は最大8個にし、例の長さによって調整している。文書が長い場合は、必要に応じて切断している。</p>
@@ -1563,7 +2970,7 @@ Promptで使用した例は最大8個にし、例の長さによって調整し�
 <section id="zero-shot-promptagator-retriever" class="level2">
 <h2 class="anchored" data-anchor-id="zero-shot-promptagator-retriever">3.4 Zero-shot promptagator retriever</h2>
 <p>Zero-shotでQueryを生成する場合は以下の形式でPromptを書いた：</p>
-<div class="sourceCode" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><span class="ss" style="color: #20794D;
+<div class="sourceCode" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb2-1"><span class="ss" style="color: #20794D;
 background-color: null;
 font-style: inherit;">f'</span><span class="sc" style="color: #5E5E5E;
 background-color: null;

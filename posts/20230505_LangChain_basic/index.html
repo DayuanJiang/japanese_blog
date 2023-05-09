@@ -214,41 +214,41 @@ gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
 <section id="環境設定" class="level2">
 <h2 class="anchored" data-anchor-id="環境設定">環境設定</h2>
 <p>まずは定番の<code>pip</code>からインストールすることです。</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install langchain, openai</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb1"><pre class="sourceCode numberSource bash number-lines code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1"></a><span class="ex">pip</span> install langchain, openai</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>そのつぎに、OpenAIのAPIキーを取得して、環境変数に設定します。 APIは<a href="https://platform.openai.com/account/api-keys">ここ</a>から取得できます。</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>os.environ[<span class="st">"OPENAI_API_KEY"</span>] <span class="op">=</span> <span class="st">"..."</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1"></a><span class="im">import</span> os</span>
+<span id="cb2-2"><a href="#cb2-2"></a>os.environ[<span class="st">"OPENAI_API_KEY"</span>] <span class="op">=</span> <span class="st">"..."</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>直接にAPIキーを書くのはセキュリティ上の問題があるので、スクリプトを共有する場合は(例えば本文)、APIキーを別ファイルに保存し、ファイルから読み込んだほうがよいです。</p>
 <div class="cell" data-execution_count="34">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os </span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> <span class="bu">open</span>(<span class="st">"../../.env"</span>, <span class="st">"r"</span>) <span class="im">as</span> f: </span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    os.environ.update(<span class="bu">dict</span>([line.strip().split(<span class="st">"="</span>) <span class="cf">for</span> line <span class="kw">in</span> f.readlines()]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1"></a><span class="im">import</span> os </span>
+<span id="cb3-2"><a href="#cb3-2"></a><span class="cf">with</span> <span class="bu">open</span>(<span class="st">"../../.env"</span>, <span class="st">"r"</span>) <span class="im">as</span> f: </span>
+<span id="cb3-3"><a href="#cb3-3"></a>    os.environ.update(<span class="bu">dict</span>([line.strip().split(<span class="st">"="</span>) <span class="cf">for</span> line <span class="kw">in</span> f.readlines()]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="openaiのgptモデル" class="level2">
 <h2 class="anchored" data-anchor-id="openaiのgptモデル">OpenAIのGPTモデル</h2>
 <p>LangChainの中にOpenAIのGPTモデルを使うラッパーがあります。現在使えるモデルはテキスト補完モデルとChatモデルの2種類あります。生成モデルの場合は以下のように使います。</p>
 <div class="cell" data-execution_count="17">
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> langchain.llms <span class="im">import</span> OpenAI</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>llm <span class="op">=</span> OpenAI(temperature<span class="op">=</span><span class="dv">0</span>)</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>output <span class="op">=</span> llm(<span class="st">"日本の首都は?"</span>)</span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(output.strip())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1"></a><span class="im">from</span> langchain.llms <span class="im">import</span> OpenAI</span>
+<span id="cb4-2"><a href="#cb4-2"></a>llm <span class="op">=</span> OpenAI(temperature<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb4-3"><a href="#cb4-3"></a>output <span class="op">=</span> llm(<span class="st">"日本の首都は?"</span>)</span>
+<span id="cb4-4"><a href="#cb4-4"></a><span class="bu">print</span>(output.strip())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>東京です。</code></pre>
 </div>
 </div>
 <p>また、Chatモデルを利用して対話を行うこともできます。</p>
 <div class="cell" data-execution_count="19">
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> langchain.chat_models <span class="im">import</span> ChatOpenAI</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> langchain.schema <span class="im">import</span> (</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    AIMessage,</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    HumanMessage,</span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    SystemMessage</span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>chat <span class="op">=</span> ChatOpenAI(temperature<span class="op">=</span><span class="dv">0</span>)</span>
-<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>output <span class="op">=</span> chat([HumanMessage(content<span class="op">=</span><span class="st">"文法を修正してください:I loves programming."</span>)])</span>
-<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(output.content)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1"></a><span class="im">from</span> langchain.chat_models <span class="im">import</span> ChatOpenAI</span>
+<span id="cb6-2"><a href="#cb6-2"></a><span class="im">from</span> langchain.schema <span class="im">import</span> (</span>
+<span id="cb6-3"><a href="#cb6-3"></a>    AIMessage,</span>
+<span id="cb6-4"><a href="#cb6-4"></a>    HumanMessage,</span>
+<span id="cb6-5"><a href="#cb6-5"></a>    SystemMessage</span>
+<span id="cb6-6"><a href="#cb6-6"></a>)</span>
+<span id="cb6-7"><a href="#cb6-7"></a></span>
+<span id="cb6-8"><a href="#cb6-8"></a>chat <span class="op">=</span> ChatOpenAI(temperature<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb6-9"><a href="#cb6-9"></a>output <span class="op">=</span> chat([HumanMessage(content<span class="op">=</span><span class="st">"文法を修正してください:I loves programming."</span>)])</span>
+<span id="cb6-10"><a href="#cb6-10"></a><span class="bu">print</span>(output.content)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>I love programming.</code></pre>
 </div>
@@ -433,12 +433,12 @@ Note
 <p>LangChainのPrompt TemplateはPromptを簡単に作成するためのモジュールです。Example selector付きのPromptを作るにはとても役に立ちます。でもそれはよりアドバンス的なやり方なので、入門の段階では単純にPythonのf-stringとして使えれば良いです。</p>
 <p>Promptのテンプレートを書いた後、それを<code>PromptTemplate</code>のインスタンスに渡して、<code>PromptTemplate</code>の<code>format</code>メソッドを呼び出すと、Promptが生成されます。</p>
 <div class="cell" data-execution_count="1">
-<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> langchain <span class="im">import</span> PromptTemplate</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>template <span class="op">=</span> <span class="st">"私は</span><span class="sc">{fruit}</span><span class="st">が好きです。"</span></span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>prompt_template <span class="op">=</span> PromptTemplate.from_template(template)</span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(prompt_template.<span class="bu">format</span>(fruit<span class="op">=</span><span class="st">"りんご"</span>))</span>
-<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(prompt_template.<span class="bu">format</span>(fruit<span class="op">=</span><span class="st">"みかん"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1"></a><span class="im">from</span> langchain <span class="im">import</span> PromptTemplate</span>
+<span id="cb8-2"><a href="#cb8-2"></a></span>
+<span id="cb8-3"><a href="#cb8-3"></a>template <span class="op">=</span> <span class="st">"私は</span><span class="sc">{fruit}</span><span class="st">が好きです。"</span></span>
+<span id="cb8-4"><a href="#cb8-4"></a>prompt_template <span class="op">=</span> PromptTemplate.from_template(template)</span>
+<span id="cb8-5"><a href="#cb8-5"></a><span class="bu">print</span>(prompt_template.<span class="bu">format</span>(fruit<span class="op">=</span><span class="st">"りんご"</span>))</span>
+<span id="cb8-6"><a href="#cb8-6"></a><span class="bu">print</span>(prompt_template.<span class="bu">format</span>(fruit<span class="op">=</span><span class="st">"みかん"</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>私はりんごが好きです。
 私はみかんが好きです。</code></pre>
@@ -462,21 +462,21 @@ FAISSについて
 </div>
 </div>
 <div class="cell" data-execution_count="24">
-<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> langchain.document_loaders <span class="im">import</span> TextLoader</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> langchain.indexes <span class="im">import</span> VectorstoreIndexCreator</span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> langchain.vectorstores <span class="im">import</span> FAISS</span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="co"># create test data</span></span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> <span class="bu">open</span>(<span class="st">"./test_data.txt"</span>, <span class="st">"w"</span>) <span class="im">as</span> f:</span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    fruits <span class="op">=</span> [<span class="st">"りんご"</span>, <span class="st">"みかん"</span>, <span class="st">"バナナ"</span>, <span class="st">"パイナップル"</span>, <span class="st">"ぶどう"</span>]</span>
-<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> fruit <span class="kw">in</span> fruits:</span>
-<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>        f.write(<span class="ss">f"私は</span><span class="sc">{</span>fruit<span class="sc">}</span><span class="ss">が好きです。</span><span class="ch">\n</span><span class="ss">"</span>)</span>
-<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>        </span>
-<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="co"># load test data</span></span>
-<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>loader <span class="op">=</span> TextLoader(<span class="st">'./test_data.txt'</span>, encoding<span class="op">=</span><span class="st">'utf8'</span>)</span>
-<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a><span class="co"># query test data</span></span>
-<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>index <span class="op">=</span> VectorstoreIndexCreator(vectorstore_cls<span class="op">=</span>FAISS).from_loaders([loader])</span>
-<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>index.query(<span class="st">"りんご"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1"></a><span class="im">from</span> langchain.document_loaders <span class="im">import</span> TextLoader</span>
+<span id="cb10-2"><a href="#cb10-2"></a><span class="im">from</span> langchain.indexes <span class="im">import</span> VectorstoreIndexCreator</span>
+<span id="cb10-3"><a href="#cb10-3"></a><span class="im">from</span> langchain.vectorstores <span class="im">import</span> FAISS</span>
+<span id="cb10-4"><a href="#cb10-4"></a><span class="co"># create test data</span></span>
+<span id="cb10-5"><a href="#cb10-5"></a><span class="cf">with</span> <span class="bu">open</span>(<span class="st">"./test_data.txt"</span>, <span class="st">"w"</span>) <span class="im">as</span> f:</span>
+<span id="cb10-6"><a href="#cb10-6"></a>    fruits <span class="op">=</span> [<span class="st">"りんご"</span>, <span class="st">"みかん"</span>, <span class="st">"バナナ"</span>, <span class="st">"パイナップル"</span>, <span class="st">"ぶどう"</span>]</span>
+<span id="cb10-7"><a href="#cb10-7"></a>    <span class="cf">for</span> fruit <span class="kw">in</span> fruits:</span>
+<span id="cb10-8"><a href="#cb10-8"></a>        f.write(<span class="ss">f"私は</span><span class="sc">{</span>fruit<span class="sc">}</span><span class="ss">が好きです。</span><span class="ch">\n</span><span class="ss">"</span>)</span>
+<span id="cb10-9"><a href="#cb10-9"></a>        </span>
+<span id="cb10-10"><a href="#cb10-10"></a><span class="co"># load test data</span></span>
+<span id="cb10-11"><a href="#cb10-11"></a>loader <span class="op">=</span> TextLoader(<span class="st">'./test_data.txt'</span>, encoding<span class="op">=</span><span class="st">'utf8'</span>)</span>
+<span id="cb10-12"><a href="#cb10-12"></a></span>
+<span id="cb10-13"><a href="#cb10-13"></a><span class="co"># query test data</span></span>
+<span id="cb10-14"><a href="#cb10-14"></a>index <span class="op">=</span> VectorstoreIndexCreator(vectorstore_cls<span class="op">=</span>FAISS).from_loaders([loader])</span>
+<span id="cb10-15"><a href="#cb10-15"></a>index.query(<span class="st">"りんご"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="24">
 <pre><code>' 私はりんごが好きです。'</code></pre>
 </div>
@@ -506,17 +506,17 @@ FAISSについて
 </div>
 </div>
 <div class="cell" data-execution_count="29">
-<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> langchain.prompts <span class="im">import</span> PromptTemplate</span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> langchain.llms <span class="im">import</span> OpenAI</span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> langchain.chains <span class="im">import</span> LLMChain</span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>llm <span class="op">=</span> OpenAI(temperature<span class="op">=</span><span class="fl">0.9</span>)</span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>prompt <span class="op">=</span> PromptTemplate.from_template(<span class="st">"</span><span class="sc">{country}</span><span class="st">の首都は何ですか？"</span>)</span>
-<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>chain <span class="op">=</span> LLMChain(llm<span class="op">=</span>llm, prompt<span class="op">=</span>prompt)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1"></a><span class="im">from</span> langchain.prompts <span class="im">import</span> PromptTemplate</span>
+<span id="cb12-2"><a href="#cb12-2"></a><span class="im">from</span> langchain.llms <span class="im">import</span> OpenAI</span>
+<span id="cb12-3"><a href="#cb12-3"></a><span class="im">from</span> langchain.chains <span class="im">import</span> LLMChain</span>
+<span id="cb12-4"><a href="#cb12-4"></a>llm <span class="op">=</span> OpenAI(temperature<span class="op">=</span><span class="fl">0.9</span>)</span>
+<span id="cb12-5"><a href="#cb12-5"></a>prompt <span class="op">=</span> PromptTemplate.from_template(<span class="st">"</span><span class="sc">{country}</span><span class="st">の首都は何ですか？"</span>)</span>
+<span id="cb12-6"><a href="#cb12-6"></a>chain <span class="op">=</span> LLMChain(llm<span class="op">=</span>llm, prompt<span class="op">=</span>prompt)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>これで各国の首都は簡単に検索できるようになりました。</p>
 <div class="cell" data-execution_count="30">
-<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(chain.run({<span class="st">"country"</span>: <span class="st">"日本"</span>}).strip())</span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(chain.run({<span class="st">"country"</span>: <span class="st">"アメリカ"</span>}).strip())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1"></a><span class="bu">print</span>(chain.run({<span class="st">"country"</span>: <span class="st">"日本"</span>}).strip())</span>
+<span id="cb13-2"><a href="#cb13-2"></a><span class="bu">print</span>(chain.run({<span class="st">"country"</span>: <span class="st">"アメリカ"</span>}).strip())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>東京です。
 ワシントンD.C.</code></pre>
@@ -529,17 +529,17 @@ FAISSについて
 <p>一番シンプルの例としてはBingChatがあげられます。ユーザーのクエリーを受けた後、BingChatはインタネットから情報を検索し、それをサマリーして、ユーザーのクエリに答えます。</p>
 <p>Agentの中身は複雑でドキュメントに書いていないので、今回は挙動だけ見せます。ここでBingChatに似ている機能を実現するAgentを作ります。このAgentはユーザーのクエリーを受け取って、それをインタネットで検索し、その答えを返すことができます。また、外部の電卓ツールを利用して計算もできます。</p>
 <div class="cell" data-execution_count="32">
-<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> langchain.agents <span class="im">import</span> load_tools</span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> langchain.agents <span class="im">import</span> initialize_agent</span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> langchain.agents <span class="im">import</span> AgentType</span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> langchain.llms <span class="im">import</span> OpenAI</span>
-<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>llm <span class="op">=</span> OpenAI(temperature<span class="op">=</span><span class="dv">0</span>)</span>
-<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>tools <span class="op">=</span> load_tools([<span class="st">"serpapi"</span>, <span class="st">"llm-math"</span>], llm<span class="op">=</span>llm)</span>
-<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>agent <span class="op">=</span> initialize_agent(tools, llm, agent<span class="op">=</span>AgentType.ZERO_SHOT_REACT_DESCRIPTION, verbose<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1"></a><span class="im">from</span> langchain.agents <span class="im">import</span> load_tools</span>
+<span id="cb15-2"><a href="#cb15-2"></a><span class="im">from</span> langchain.agents <span class="im">import</span> initialize_agent</span>
+<span id="cb15-3"><a href="#cb15-3"></a><span class="im">from</span> langchain.agents <span class="im">import</span> AgentType</span>
+<span id="cb15-4"><a href="#cb15-4"></a><span class="im">from</span> langchain.llms <span class="im">import</span> OpenAI</span>
+<span id="cb15-5"><a href="#cb15-5"></a></span>
+<span id="cb15-6"><a href="#cb15-6"></a>llm <span class="op">=</span> OpenAI(temperature<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb15-7"><a href="#cb15-7"></a>tools <span class="op">=</span> load_tools([<span class="st">"serpapi"</span>, <span class="st">"llm-math"</span>], llm<span class="op">=</span>llm)</span>
+<span id="cb15-8"><a href="#cb15-8"></a>agent <span class="op">=</span> initialize_agent(tools, llm, agent<span class="op">=</span>AgentType.ZERO_SHOT_REACT_DESCRIPTION, verbose<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell" data-execution_count="38">
-<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>agent.run(<span class="st">"今日の気温は何度ですか？その2乗は何ですか？"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1"></a>agent.run(<span class="st">"今日の気温は何度ですか？その2乗は何ですか？"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>
 
