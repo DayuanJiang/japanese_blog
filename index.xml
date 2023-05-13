@@ -10,7 +10,113 @@
 <atom:link href="https://jiang.jp/index.xml" rel="self" type="application/rss+xml"/>
 <description></description>
 <generator>quarto-1.3.340</generator>
-<lastBuildDate>Mon, 08 May 2023 15:00:00 GMT</lastBuildDate>
+<lastBuildDate>Tue, 09 May 2023 15:00:00 GMT</lastBuildDate>
+<item>
+  <title>Azure OpenAI Serviceの利用について</title>
+  <link>https://jiang.jp/posts/20230513_azure_openai/index.html</link>
+  <description><![CDATA[ 
+
+
+
+<p>最近、GPTを用いた提案を行う際のマナーについていくつかの問い合わせを受けています。実は、筆者もGPTを利用したプロジェクトを担当し、いくつかの問題でコケた経験があります。その経験をまとめてみたいと思います。</p>
+<section id="azure-openai-serviceを使う必要がある" class="level2">
+<h2 class="anchored" data-anchor-id="azure-openai-serviceを使う必要がある">Azure OpenAI Serviceを使う必要がある</h2>
+<p><a href="https://azure.microsoft.com/ja-jp/products/cognitive-services/openai-service">Azure OpenAI Service</a> は、マイクロソフトがOpenAIを買収した後、Azureを基盤として提供しているOpenAIのAPIサービスです。Azure OpenAI Serviceは、OpenAI APIとAzureエンタープライズレベルのセキュリティ、コンプライアンス、リージョンの可用性を組み合わせています。</p>
+<p><strong>つまり、Azure OpenAI Serviceを使うことで、セキュリティー等の面倒なものを全部Azureに委ね、こちらはOpenAIのAPIの利用に専念することができます。</strong></p>
+<p>Azure OpenAI Serviceを使うために、いくつかの事前準備が必要です。</p>
+<p>その流れは以下です。階層構造は先決条件を意味しています。</p>
+<pre><code>→Azureアカウント申請(即日)
+    → Azure OpenAI Service申請 (1〜2日)
+        → Opt-out申請 (2〜4日)
+        → GPT4申請(？日 後日補足)</code></pre>
+<div class="callout callout-style-default callout-caution callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+許可時間
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><code>()</code>の中にあるのは時間の目安です。あくまでも目安なので、そうはならない可能性も十分あることをご理解ください。</p>
+</div>
+</div>
+<p>各申請フォームは以下です。</p>
+<ul>
+<li><p><a href="https://customervoice.microsoft.com/Pages/ResponsePage.aspx?id=v4j5cvGGr0GRqy180BHbR7en2Ais5pxKtso_Pz4b1_xUOFA5Qk1UWDRBMjg0WFhPMkIzTzhKQ1dWNyQlQCN0PWcu">Azure OpenAI Service申請フォーム</a></p></li>
+<li><p><a href="https://customervoice.microsoft.com/Pages/ResponsePage.aspx?id=v4j5cvGGr0GRqy180BHbR7en2Ais5pxKtso_Pz4b1_xURE01NDY1OUhBRzQ3MkQxMUhZSE1ZUlJKTiQlQCN0PW">Opt-out申請フォーム</a></p></li>
+<li><p><a href="https://customervoice.microsoft.com/Pages/ResponsePage.aspx?id=v4j5cvGGr0GRqy180BHbR7en2Ais5pxKtso_Pz4b1_xURjE4QlhVUERGQ1NXOTlNT0w1NldTWjJCMSQlQCN0PWcu">GPT4申請フォーム</a></p></li>
+</ul>
+</section>
+<section id="opt-outとは" class="level2">
+<h2 class="anchored" data-anchor-id="opt-outとは">Opt-outとは</h2>
+<p>一般的に、下図のように、GPTモデルへのすべての入力と出力はAzure側で30日間保存されます。これは、Azureが倫理違反等の不適切な行為の有無を審査するための措置です。そのデータの保存を禁止することはOpt-out申請の目的です。 詳細は<a href="https://learn.microsoft.com/en-us/legal/cognitive-services/openai/data-privacy#can-a-customer-opt-out-of-the-logging-and-human-review-process">ここ</a>で確認できます。</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://jiang.jp/posts/20230513_azure_openai/images/paste-1.png" class="img-fluid figure-img" alt="data flow" width="1000"></p>
+<figcaption class="figure-caption">data flow</figcaption>
+</figure>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>このデータの保存はあくまでも審査目的なので、Azure OpenAI Serviceは顧客データを一切モデルの学習等に利用しない約束を<a href="https://learn.microsoft.com/en-us/legal/cognitive-services/openai/data-privacy#is-customer-data-used-to-train-the-openai-models">ホームページ</a>で明記しています。</p>
+</div>
+</div>
+</section>
+<section id="個人情報を扱う場合" class="level2">
+<h2 class="anchored" data-anchor-id="個人情報を扱う場合">個人情報を扱う場合</h2>
+<div class="callout callout-style-default callout-caution callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Caution
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>(筆者も法律のことは詳しくないので、以下の話は経験に過ぎなくて、もっと良いやり方があるかもしれません。)</p>
+</div>
+</div>
+<p>Azure OpenAI Service申請する際に、リージョンを選ぶ必要があります。個人情報を含むデータを処理する場合はWest Europeを選択したほうが無難です。</p>
+<p>なぜかどいうと、EUのGDPRは日本の個人情報保護法と互換性があるため、契約上の法務上の手続きがしやすいためです。国の機関である個人情報保護委員会は<a href="https://www.ppc.go.jp/enforcement/cooperation/cooperation/sougoninshou/index.html">『日EU間・日英間のデータ越境移転について』</a>で、日EU間のデータ越境移転について以下のように述べています。</p>
+<blockquote class="blockquote">
+<p>日EU間では、相互の円滑な個人データの移転を図る相互認証の枠組みが成立しており、互いのデータ保護制度を同等とみなし、両者間での自由な個人データ流通が可能となっています。</p>
+</blockquote>
+<p>しかし、West Europeをリージョンとして選択することにはデメリットもあります。それは最新のモデルがすぐに利用できないことです。例えば、現時点ではGPT4はまだWest Europeで利用できません。これから新しいモデルが出ても、それがWest Europeで適用されるまでに時間がかかる可能性があります。</p>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Note
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Azureの担当者にリージョン問題について問い合わせたところ、「どのリージョンでデプロイしても、Azure OpenAI ServiceはGDPRに準拠しています」との回答を得ました。 <a href="https://learn.microsoft.com/en-us/answers/questions/1254112/has-microsoft-concluded-azure-open-ai-with-gdpr">このページ</a>で同じ回答を確認することができます。したがって、リージョンをアメリカに設定することも可能かもしれません。ただし、アメリカを選ぶ場合には、さらなる調査が必要です。</p>
+</div>
+</div>
+
+
+</section>
+
+ ]]></description>
+  <category>NLP</category>
+  <category>LLMs</category>
+  <category>LangChain</category>
+  <guid>https://jiang.jp/posts/20230513_azure_openai/index.html</guid>
+  <pubDate>Tue, 09 May 2023 15:00:00 GMT</pubDate>
+</item>
 <item>
   <title>LangChain Agentの全面解説</title>
   <link>https://jiang.jp/posts/20230509_react/index.html</link>
