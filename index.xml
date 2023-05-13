@@ -18,7 +18,7 @@
 
 
 
-<p>最近、GPTを用いた提案を行う際のマナーについていくつかの問い合わせを受けています。実は、筆者もGPTを利用したプロジェクトを担当し、いくつかの問題でコケた経験があります。その経験をまとめてみたいと思います。</p>
+<p>最近、GPTを用いた提案を行う際のお作法についていくつかの問い合わせを受けています。実は、筆者もGPTを利用したプロジェクトを担当し、いくつかの問題でコケた経験があります。その経験をまとめてみたいと思います。</p>
 <section id="azure-openai-serviceを使う必要がある" class="level2">
 <h2 class="anchored" data-anchor-id="azure-openai-serviceを使う必要がある">Azure OpenAI Serviceを使う必要がある</h2>
 <p><a href="https://azure.microsoft.com/ja-jp/products/cognitive-services/openai-service">Azure OpenAI Service</a> は、マイクロソフトがOpenAIを買収した後、Azureを基盤として提供しているOpenAIのAPIサービスです。Azure OpenAI Serviceは、OpenAI APIとAzureエンタープライズレベルのセキュリティ、コンプライアンス、リージョンの可用性を組み合わせています。</p>
@@ -35,7 +35,7 @@
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-許可時間
+Caution
 </div>
 </div>
 <div class="callout-body-container callout-body">

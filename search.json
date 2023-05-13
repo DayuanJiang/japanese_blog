@@ -39,14 +39,14 @@
     "href": "posts/20230513_azure_openai/index.html",
     "title": "Azure OpenAI Serviceの利用について",
     "section": "",
-    "text": "最近、GPTを用いた提案を行う際のマナーについていくつかの問い合わせを受けています。実は、筆者もGPTを利用したプロジェクトを担当し、いくつかの問題でコケた経験があります。その経験をまとめてみたいと思います。"
+    "text": "最近、GPTを用いた提案を行う際のお作法についていくつかの問い合わせを受けています。実は、筆者もGPTを利用したプロジェクトを担当し、いくつかの問題でコケた経験があります。その経験をまとめてみたいと思います。"
   },
   {
     "objectID": "posts/20230513_azure_openai/index.html#azure-openai-serviceを使う必要がある",
     "href": "posts/20230513_azure_openai/index.html#azure-openai-serviceを使う必要がある",
     "title": "Azure OpenAI Serviceの利用について",
     "section": "Azure OpenAI Serviceを使う必要がある",
-    "text": "Azure OpenAI Serviceを使う必要がある\nAzure OpenAI Service は、マイクロソフトがOpenAIを買収した後、Azureを基盤として提供しているOpenAIのAPIサービスです。Azure OpenAI Serviceは、OpenAI APIとAzureエンタープライズレベルのセキュリティ、コンプライアンス、リージョンの可用性を組み合わせています。\nつまり、Azure OpenAI Serviceを使うことで、セキュリティー等の面倒なものを全部Azureに委ね、こちらはOpenAIのAPIの利用に専念することができます。\nAzure OpenAI Serviceを使うために、いくつかの事前準備が必要です。\nその流れは以下です。階層構造は先決条件を意味しています。\n→Azureアカウント申請(即日)\n    → Azure OpenAI Service申請 (1〜2日)\n        → Opt-out申請 (2〜4日)\n        → GPT4申請(？日 後日補足)\n\n\n\n\n\n\n許可時間\n\n\n\n()の中にあるのは時間の目安です。あくまでも目安なので、そうはならない可能性も十分あることをご理解ください。\n\n\n各申請フォームは以下です。\n\nAzure OpenAI Service申請フォーム\nOpt-out申請フォーム\nGPT4申請フォーム"
+    "text": "Azure OpenAI Serviceを使う必要がある\nAzure OpenAI Service は、マイクロソフトがOpenAIを買収した後、Azureを基盤として提供しているOpenAIのAPIサービスです。Azure OpenAI Serviceは、OpenAI APIとAzureエンタープライズレベルのセキュリティ、コンプライアンス、リージョンの可用性を組み合わせています。\nつまり、Azure OpenAI Serviceを使うことで、セキュリティー等の面倒なものを全部Azureに委ね、こちらはOpenAIのAPIの利用に専念することができます。\nAzure OpenAI Serviceを使うために、いくつかの事前準備が必要です。\nその流れは以下です。階層構造は先決条件を意味しています。\n→Azureアカウント申請(即日)\n    → Azure OpenAI Service申請 (1〜2日)\n        → Opt-out申請 (2〜4日)\n        → GPT4申請(？日 後日補足)\n\n\n\n\n\n\nCaution\n\n\n\n()の中にあるのは時間の目安です。あくまでも目安なので、そうはならない可能性も十分あることをご理解ください。\n\n\n各申請フォームは以下です。\n\nAzure OpenAI Service申請フォーム\nOpt-out申請フォーム\nGPT4申請フォーム"
   },
   {
     "objectID": "posts/20230513_azure_openai/index.html#opt-outとは",
