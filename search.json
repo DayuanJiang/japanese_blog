@@ -53,7 +53,7 @@
     "href": "posts/20230513_azure_openai/index.html#opt-outとは",
     "title": "Azure OpenAI Serviceの利用について",
     "section": "Opt-outとは",
-    "text": "Opt-outとは\n一般的に、下図のように、GPTモデルへのすべての入力と出力はAzure側で30日間保存されます。これは、Azureが倫理違反等の不適切な行為の有無を審査するための措置です。そのデータの保存を禁止することはOpt-out申請の目的です。 詳細はここで確認できます。\n\n\n\ndata flow\n\n\n\n\n\n\n\n\nNote\n\n\n\nこのデータの保存はあくまでも審査目的なので、Azure OpenAI Serviceは顧客データを一切モデルの学習等に利用しない約束をホームページで明記しています。"
+    "text": "Opt-outとは\n一般的に、下図のように、GPTモデルへのすべての入力と出力はAzure側で30日間保存されます。これは、Azureが倫理違反等の不適切な行為の有無を審査するための措置です。そのデータの保存を禁止することはOpt-out申請の目的です。 詳細はここで確認できます。\n\n\n\ndata flow\n\n\n\n\n\n\n\n\nNote\n\n\n\nこのデータの保存はあくまでも審査目的なので、Azure OpenAI Serviceは顧客データを一切モデルの学習等に利用しない約束をホームページで明記されています。"
   },
   {
     "objectID": "posts/20230513_azure_openai/index.html#個人情報を扱う場合",

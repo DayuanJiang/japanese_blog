@@ -68,7 +68,7 @@ Note
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>このデータの保存はあくまでも審査目的なので、Azure OpenAI Serviceは顧客データを一切モデルの学習等に利用しない約束を<a href="https://learn.microsoft.com/en-us/legal/cognitive-services/openai/data-privacy#is-customer-data-used-to-train-the-openai-models">ホームページ</a>で明記しています。</p>
+<p>このデータの保存はあくまでも審査目的なので、Azure OpenAI Serviceは顧客データを一切モデルの学習等に利用しない約束を<a href="https://learn.microsoft.com/en-us/legal/cognitive-services/openai/data-privacy#is-customer-data-used-to-train-the-openai-models">ホームページ</a>で明記されています。</p>
 </div>
 </div>
 </section>
