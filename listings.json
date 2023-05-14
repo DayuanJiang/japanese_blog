@@ -2,6 +2,7 @@
   {
     "listing": "/index.html",
     "items": [
+      "/posts/20230510_hyde_detailed/index.html",
       "/posts/20230513_azure_openai/index.html",
       "/posts/20230509_react/index.html",
       "/posts/20230505_LangChain_basic/index.html",

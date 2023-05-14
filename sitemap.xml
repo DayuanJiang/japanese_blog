@@ -1,51 +1,51 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://jiang.jp/draft/20230510_hyde/index.html</loc>
-    <lastmod>2023-05-13T06:25:10.672Z</lastmod>
-  </url>
-  <url>
     <loc>https://jiang.jp/posts/20230509_react/index.html</loc>
-    <lastmod>2023-05-13T06:25:11.226Z</lastmod>
+    <lastmod>2023-05-14T15:13:42.154Z</lastmod>
   </url>
   <url>
     <loc>https://jiang.jp/posts/20230513_azure_openai/index.html</loc>
-    <lastmod>2023-05-13T06:25:11.662Z</lastmod>
+    <lastmod>2023-05-14T15:13:42.672Z</lastmod>
   </url>
   <url>
     <loc>https://jiang.jp/posts/20230505_LangChain_basic/index.html</loc>
-    <lastmod>2023-05-13T06:25:12.264Z</lastmod>
+    <lastmod>2023-05-14T15:13:43.301Z</lastmod>
+  </url>
+  <url>
+    <loc>https://jiang.jp/posts/20230510_hyde_detailed/index.html</loc>
+    <lastmod>2023-05-14T15:13:43.872Z</lastmod>
   </url>
   <url>
     <loc>https://jiang.jp/posts/20230430_HyDE/index.html</loc>
-    <lastmod>2023-05-13T06:25:12.629Z</lastmod>
+    <lastmod>2023-05-14T15:13:44.250Z</lastmod>
   </url>
   <url>
     <loc>https://jiang.jp/posts/20230429_promptagator/index.html</loc>
-    <lastmod>2023-05-13T06:25:13.304Z</lastmod>
+    <lastmod>2023-05-14T15:13:44.936Z</lastmod>
   </url>
   <url>
     <loc>https://jiang.jp/posts/20230428_inpars/index.html</loc>
-    <lastmod>2023-05-13T06:25:13.682Z</lastmod>
+    <lastmod>2023-05-14T15:13:45.324Z</lastmod>
   </url>
   <url>
     <loc>https://jiang.jp/posts/20230502_inpars_light/index.html</loc>
-    <lastmod>2023-05-13T06:25:14.072Z</lastmod>
+    <lastmod>2023-05-14T15:13:45.715Z</lastmod>
   </url>
   <url>
     <loc>https://jiang.jp/posts/20230505_tiktoken/index.html</loc>
-    <lastmod>2023-05-13T06:25:14.573Z</lastmod>
+    <lastmod>2023-05-14T15:13:46.210Z</lastmod>
   </url>
   <url>
     <loc>https://jiang.jp/posts/20230501_inpars_v2/index.html</loc>
-    <lastmod>2023-05-13T06:25:14.995Z</lastmod>
+    <lastmod>2023-05-14T15:13:46.605Z</lastmod>
   </url>
   <url>
     <loc>https://jiang.jp/index.html</loc>
-    <lastmod>2023-05-13T06:25:15.884Z</lastmod>
+    <lastmod>2023-05-14T15:13:47.592Z</lastmod>
   </url>
   <url>
     <loc>https://jiang.jp/about.html</loc>
-    <lastmod>2023-05-13T06:25:16.194Z</lastmod>
+    <lastmod>2023-05-14T15:13:47.949Z</lastmod>
   </url>
 </urlset>

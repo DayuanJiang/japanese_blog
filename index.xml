@@ -10,7 +10,924 @@
 <atom:link href="https://jiang.jp/index.xml" rel="self" type="application/rss+xml"/>
 <description></description>
 <generator>quarto-1.3.340</generator>
-<lastBuildDate>Tue, 09 May 2023 15:00:00 GMT</lastBuildDate>
+<lastBuildDate>Sun, 14 May 2023 15:00:00 GMT</lastBuildDate>
+<item>
+  <title>LangChain Hypothetical Document Embeddings (HyDE) 全面解説</title>
+  <link>https://jiang.jp/posts/20230510_hyde_detailed/index.html</link>
+  <description><![CDATA[ 
+
+
+
+<section id="本文の概要" class="level2">
+<h2 class="anchored" data-anchor-id="本文の概要">本文の概要</h2>
+<p><a href="https://arxiv.org/abs/2204.07496">Hypothetical Document Embeddings (HyDE)</a>は去年提出した情報検索の精度を向上させるための手法です。</p>
+<p>本文はHyDEの概念とLangchainでのその使い方を紹介しました。また、普通のEmbedding手法、HyDE、そして本文で提案したHyDE改善案、この三者の性能を比較しました。以下はテスト結果です。</p>
+<table class="table">
+<thead>
+<tr class="header">
+<th>手法</th>
+<th>正解数(50件の中)</th>
+<th>MRR</th>
+<th>スピード</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>普通のEmbedding</td>
+<td>37</td>
+<td>0.855</td>
+<td>17秒</td>
+</tr>
+<tr class="even">
+<td>HyDE</td>
+<td>37</td>
+<td>0.813</td>
+<td>4分15秒</td>
+</tr>
+<tr class="odd">
+<td>HyDE with title</td>
+<td>40</td>
+<td>0.897</td>
+<td>5分2秒</td>
+</tr>
+</tbody>
+</table>
+<p><span style="background-color: yellow">結論としてはHyDEはそれほど有効ではないことです。</span>少し改善すれば性能は良くなりますが、検索スピードは非常に遅いですし、コストも大幅増加するので、ほぼ実用ではない手法といえます。</p>
+</section>
+<section id="hypothetical-document-embeddings-hydeの詳細" class="level2">
+<h2 class="anchored" data-anchor-id="hypothetical-document-embeddings-hydeの詳細">Hypothetical Document Embeddings (HyDE)の詳細</h2>
+<p>一般的なDense Information Retrievalの手順は以下のステップで行われます。</p>
+<ol type="1">
+<li>QueryとDocument両方ともEmbedding(ベクトル)に変換する</li>
+<li>QueryとDocumentのコサイン類似度を計算する</li>
+<li>コサイン類似度が一番高いDocumentを返す</li>
+</ol>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<div>
+<pre class="mermaid mermaid-js">flowchart LR
+    Input[query]--&gt;Embedding[query embedding]
+    Embedding--&gt;DocumentEmbedding1[document embedding 1]
+    Embedding--&gt;DocumentEmbedding2[document embedding 2]
+    Embedding--&gt;DocumentEmbedding3[document embedding 3]
+
+    subgraph CosineSimilarity[cosine similarity]
+    DocumentEmbedding1--&gt;CosineSimilarity1[0.1]
+    DocumentEmbedding2--&gt;CosineSimilarity2[0.8]
+    DocumentEmbedding3--&gt;CosineSimilarity3[0.3]
+    end
+    CosineSimilarity2--&gt;FinalResult1[final result]
+</pre>
+</div>
+</div>
+</div>
+</div>
+<p>HyDEだと、<code>query embedding</code>のところに工夫しました。直接QueryをEmbeddingに変換するのではなく、まずQueryに答えるドキュメントをLLMに生成させて、生成した仮想な答案をEmbeddingに変換します。</p>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<div>
+<pre class="mermaid mermaid-js">flowchart LR
+    Input[query]--&gt;LLM
+    subgraph HyDE
+    LLM--&gt;FakeAnser[fake answer]
+    end
+        FakeAnser--&gt;QueryEmbedding[query embedding]
+    QueryEmbedding--&gt;DocumentEmbedding1[document embedding 1]
+    QueryEmbedding--&gt;DocumentEmbedding2[document embedding 2]
+    QueryEmbedding--&gt;DocumentEmbedding3[document embedding 3]
+    
+    subgraph CosineSimilarity[cosine similarity]
+    DocumentEmbedding1--&gt;CosineSimilarity1[0.1]
+    DocumentEmbedding2--&gt;CosineSimilarity2[0.8]
+    DocumentEmbedding3--&gt;CosineSimilarity3[0.3]
+    end
+    CosineSimilarity2--&gt;FinalResult1[final result]
+    style HyDE  stroke:#333,stroke-width:4px
+</pre>
+</div>
+</div>
+</div>
+</div>
+<p>実際にLangChainで使いましょう。</p>
+<div class="cell" data-execution_count="235">
+<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb1-1"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.embeddings <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> OpenAIEmbeddings</span>
+<span id="cb1-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.chains <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> LLMChain, HypotheticalDocumentEmbedder</span>
+<span id="cb1-3"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.prompts <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> PromptTemplate</span>
+<span id="cb1-4"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.chat_models <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> ChatOpenAI</span>
+<span id="cb1-5"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> dotenv <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> load_dotenv</span>
+<span id="cb1-6"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># set the environment variables</span></span>
+<span id="cb1-7">load_dotenv()</span>
+<span id="cb1-8"></span>
+<span id="cb1-9"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># prepare the prompt template for document generation</span></span>
+<span id="cb1-10">prompt_template <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"""質問を回答しなさい。</span></span>
+<span id="cb1-11"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">質問：</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{question}</span></span>
+<span id="cb1-12"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">回答："""</span></span>
+<span id="cb1-13">llm <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> ChatOpenAI()</span>
+<span id="cb1-14"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># multi_llm = ChatOpenAI(n=4)</span></span>
+<span id="cb1-15">prompt <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> PromptTemplate(input_variables<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"question"</span>], template<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>prompt_template)</span>
+<span id="cb1-16">llm_chain <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> LLMChain(llm<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>llm, prompt<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>prompt, verbose<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb1-17"></span>
+<span id="cb1-18"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># initialize the hypothetical document embedder</span></span>
+<span id="cb1-19">base_embeddings <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> OpenAIEmbeddings()</span>
+<span id="cb1-20">embeddings <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> HypotheticalDocumentEmbedder(llm_chain<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>llm_chain, base_embeddings<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>base_embeddings)</span>
+<span id="cb1-21"></span>
+<span id="cb1-22">result <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> embeddings.embed_query(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"ゼルダの伝説の主人公は誰ですか？"</span>)</span>
+<span id="cb1-23"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">len</span>(result)</span></code></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="235">
+<pre><code>1536</code></pre>
+</div>
+</div>
+<p>LangchainでHyDEを使うには、まずは<code>HypotheticalDocumentEmbedder</code>を初期化する必要があります。初期化する際に必要なのは、仮想な答案を生成する<code>llm_chain</code>と生成したテキストをEmbeddingに変換する<code>base_embeddings</code>です。</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><code>llm</code>を定義する時、一度生成するドキュメントの数を指定できます。例えば<code>n</code>を<code>4</code>に指定すると、一度4つのドキュメントを生成します。</p>
+</div>
+</div>
+<p>使用する際には、<code>embedding.embed_query</code>を使ってQueryをEmbeddingに変換します。これで最終的に1536次元のベクトルが得られます。</p>
+</section>
+<section id="hypotheticaldocumentembedderの内部処理" class="level2">
+<h2 class="anchored" data-anchor-id="hypotheticaldocumentembedderの内部処理"><code>HypotheticalDocumentEmbedder</code>の内部処理</h2>
+<p>次に<code>HypotheticalDocumentEmbedder</code>の内部は同様な処理になっているかを見ましょう。コアの関数は以下の2つです。</p>
+<div class="sourceCode" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb3-1">    <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">def</span> combine_embeddings(<span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">self</span>, embeddings: List[List[<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span>]]) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-&gt;</span> List[<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span>]:</span>
+<span id="cb3-2">        <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""Combine embeddings into final embeddings."""</span></span>
+<span id="cb3-3">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">return</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">list</span>(np.array(embeddings).mean(axis<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>))</span>
+<span id="cb3-4"></span>
+<span id="cb3-5">    <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">def</span> embed_query(<span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">self</span>, text: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">str</span>) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-&gt;</span> List[<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span>]:</span>
+<span id="cb3-6">        <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""Generate a hypothetical document and embedded it."""</span></span>
+<span id="cb3-7">        <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># generate n hypothetical documents</span></span>
+<span id="cb3-8">        var_name <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">self</span>.llm_chain.input_keys[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>]</span>
+<span id="cb3-9">        result <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">self</span>.llm_chain.generate([{var_name: text}])</span>
+<span id="cb3-10">        <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># get all the hypothetical documents from result</span></span>
+<span id="cb3-11">        documents <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [generation.text <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> generation <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> result.generations[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>]]</span>
+<span id="cb3-12">        <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># embed the hypothetical documents</span></span>
+<span id="cb3-13">        embeddings <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">self</span>.embed_documents(documents)</span>
+<span id="cb3-14">        <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># combine the embeddings by averaging</span></span>
+<span id="cb3-15">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">return</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">self</span>.combine_embeddings(embeddings)</span></code></pre></div>
+<p>毎回2つ仮想な答案を生成する場合のフロー図にすると以下のようになります。</p>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<div>
+<pre class="mermaid mermaid-js">flowchart LR
+    Input([query])--&gt;llm_chain
+    subgraph HypotheticalDocumentEmbedder
+    llm_chain--&gt;ga1([generated answer 1])
+    llm_chain--&gt;ga2([generated answer 2])
+    ga1--&gt;OpenAIEmbeddings
+    ga2--&gt;OpenAIEmbeddings
+    OpenAIEmbeddings --&gt;embed1([embedding 1])
+    OpenAIEmbeddings --&gt;embed2([embedding 2])
+    end
+    embed1--&gt;combine([averaged embedding])
+    embed2--&gt;combine
+    style llm_chain  stroke:#333,stroke-width:4px
+    style OpenAIEmbeddings stroke:#333,stroke-width:4px
+
+</pre>
+</div>
+<p>HypotheticalDocumentEmbedderの処理の流れ</p>
+</div>
+</div>
+</div>
+</section>
+<section id="実際のパフォーマンステスト" class="level2">
+<h2 class="anchored" data-anchor-id="実際のパフォーマンステスト">実際のパフォーマンステスト</h2>
+<p>HyDEは普通のEmbedding手法と比べてどのぐらい優れているかを実際に確認しましょう。</p>
+<p>使うデータは多言語質問応答データセットである「Mr.TyDi」にある日本語データです。各Queryに対して、Positive DocumentとNegative Documentが与えられています。また、Queryの内容は基本的にWikiで検索できる一般的な知識です。なので、今回のHyDEには非常に適していると思います。</p>
+<p>データはHuggingFaceのdatasetsからダウンロードします。データセットは7千件ありますが、コストを考慮して今回は100件のデータのみを使用します。また、テストする使うQueryの数は50件のみにします。つまり、50件のQueryに対して、合計200件(Pos + Neg)のドキュメントのランキングを行います。</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb4-1"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> datasets <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> load_dataset</span>
+<span id="cb4-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> pandas <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> pd</span>
+<span id="cb4-3"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># to load all train, dev and test sets</span></span>
+<span id="cb4-4">dataset <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> load_dataset(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'castorini/mr-tydi'</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"japanese"</span>, split<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"train"</span>)</span>
+<span id="cb4-5">tydi_df <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> pd.DataFrame(dataset).sample(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">100</span>, random_state<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">42</span>)</span>
+<span id="cb4-6"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> col <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> [<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"positive_passages"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"negative_passages"</span>]:</span>
+<span id="cb4-7">    tydi_df[col] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> tydi_df[col].<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">apply</span>(<span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">lambda</span> x: x[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>][<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"text"</span>])</span>
+<span id="cb4-8">tydi_df_sample <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> tydi_df.iloc[:<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">50</span>,:].copy()</span></code></pre></div>
+</div>
+<div class="cell" data-execution_count="288">
+<div class="sourceCode cell-code" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb5-1">tydi_df_sample.head(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>)</span></code></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="288">
+<div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">query_id</th>
+<th data-quarto-table-cell-role="th">query</th>
+<th data-quarto-table-cell-role="th">positive_passages</th>
+<th data-quarto-table-cell-role="th">negative_passages</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">1041</td>
+<td>1320</td>
+<td>有価証券とはなんですか？</td>
+<td>有価証券（ゆうかしょうけん）とは、伝統的には財産的価値のある私権を表章する証券で、その権利の...</td>
+<td>有価証券届出書の提出日以降、当該有価証券届出書の効力が発生する以前において、有価証券届出書に...</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">670</td>
+<td>862</td>
+<td>浅草寺はいつ建設された</td>
+<td>推古天皇36年（628年）、宮戸川（現・隅田川）で漁をしていた檜前浜成・竹成（ひのくまのはま...</td>
+<td>1907年（明治40年）、昆虫学者名和靖は日露戦争の勝利記念に昆虫館を建設したいと考え、東京...</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<p>確認する内容としては以下の3つとします。</p>
+<ol type="1">
+<li>MRR: <a href="https://en.wikipedia.org/wiki/Mean_reciprocal_rank">Mean Reciprocal Rank</a>、平均逆順位です。総合的にパフォーマンスを確認することができます。</li>
+<li>正解数：上位1位は正解の数です。直感的にわかりやすいです。</li>
+<li>検索にかかる時間：HyDEはLLMでテキスト生成を行なうため、検索時間が大幅に増える予想です。</li>
+</ol>
+<p>まずは、普通のEmbedding手法を使って場合のパフォーマンスをテストしてみましょう。</p>
+<div class="cell" data-execution_count="301">
+<div class="sourceCode cell-code" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb6-1"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.embeddings.openai <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> OpenAIEmbeddings</span>
+<span id="cb6-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.vectorstores <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> FAISS</span>
+<span id="cb6-3"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> tqdm.auto <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> tqdm</span>
+<span id="cb6-4"></span>
+<span id="cb6-5"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">def</span> get_rank(query, docs):</span>
+<span id="cb6-6">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> i, doc <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">enumerate</span>(docs, start<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>):</span>
+<span id="cb6-7">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">if</span> query <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> doc.metadata[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"query"</span>]:</span>
+<span id="cb6-8">            <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">return</span> i</span>
+<span id="cb6-9"></span>
+<span id="cb6-10"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">def</span> test(test_query_list, vectorstore):</span>
+<span id="cb6-11">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># fetch the documents</span></span>
+<span id="cb6-12">    rank_list <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> []</span>
+<span id="cb6-13">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> title <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> tqdm(test_query_list):</span>
+<span id="cb6-14">        docs <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> vectorstore.similarity_search(title, k<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">200</span>)</span>
+<span id="cb6-15">        rank_list.append(get_rank(title, docs))</span>
+<span id="cb6-16"></span>
+<span id="cb6-17">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># summarize the results</span></span>
+<span id="cb6-18">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">return</span> rank_list</span>
+<span id="cb6-19"></span>
+<span id="cb6-20"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">def</span> get_mrr(rank_list):</span>
+<span id="cb6-21">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">return</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">sum</span>([<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span>rank <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> rank <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> rank_list])<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">len</span>(rank_list)</span>
+<span id="cb6-22"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">def</span> get_correct_num(rank_list):</span>
+<span id="cb6-23">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">return</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">len</span>([rank <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> rank <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> rank_list <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">if</span> rank <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>])</span>
+<span id="cb6-24"></span>
+<span id="cb6-25"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># prepare the vectorstore</span></span>
+<span id="cb6-26">docs <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> tydi_df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"positive_passages"</span>].tolist() <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> tydi_df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"negative_passages"</span>].tolist()</span>
+<span id="cb6-27">meta_datas <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [{<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"query"</span>: q} <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> q <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> tydi_df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"query"</span>].tolist()] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> [{<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"query"</span>: <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">""</span>} <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> q <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> tydi_df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"query"</span>].tolist()]</span>
+<span id="cb6-28">base_embeddings <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> OpenAIEmbeddings()</span>
+<span id="cb6-29">vectorstore <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> FAISS.from_texts(</span>
+<span id="cb6-30">    texts<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>docs,</span>
+<span id="cb6-31">    embedding<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>base_embeddings,</span>
+<span id="cb6-32">    metadatas<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>meta_datas,</span>
+<span id="cb6-33">)</span></code></pre></div>
+</div>
+<div class="cell" data-execution_count="302">
+<div class="sourceCode cell-code" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb7-1">rank_list <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> test(tydi_df_sample[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"query"</span>].tolist(), vectorstore)</span></code></pre></div>
+<div class="cell-output cell-output-display">
+<script type="application/vnd.jupyter.widget-view+json">
+{"model_id":"16b703a5ba7d438a8c0cf142d81c6992","version_major":2,"version_minor":0,"quarto_mimetype":"application/vnd.jupyter.widget-view+json"}
+</script>
+</div>
+</div>
+<div class="cell" data-execution_count="308">
+<div class="sourceCode cell-code" id="cb8" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb8-1"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"mrr: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>get_mrr(rank_list)<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.3f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb8-2"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"correct num: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>get_correct_num(rank_list)<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>mrr: 0.855
+correct num: 37</code></pre>
+</div>
+</div>
+<p>普通のEmbedding手法だと、50件のQueryの中、37件のドキュメントを正しく返せました。MRRは0.855、また、処理時間は17秒でした。</p>
+<p>次にHyDEを使ってテストします。</p>
+<div class="cell" data-execution_count="309">
+<div class="sourceCode cell-code" id="cb10" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb10-1"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.chat_models <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> ChatOpenAI</span>
+<span id="cb10-2">prompt_template <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"""質問に答えてください。</span></span>
+<span id="cb10-3"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">質問：</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{question}</span></span>
+<span id="cb10-4"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">答案："""</span></span>
+<span id="cb10-5">llm <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> ChatOpenAI(verbose<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb10-6">prompt <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> PromptTemplate(input_variables<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"question"</span>], template<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>prompt_template)</span>
+<span id="cb10-7">llm_chain <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> LLMChain(llm<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>llm, prompt<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>prompt, verbose<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb10-8">embeddings <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> HypotheticalDocumentEmbedder(llm_chain<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>llm_chain, base_embeddings<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>base_embeddings)</span>
+<span id="cb10-9">vectorstore.embedding_function <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> embeddings.embed_query</span></code></pre></div>
+</div>
+<div class="cell" data-execution_count="310">
+<div class="sourceCode cell-code" id="cb11" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb11-1">hyde_rank_list <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> test(tydi_df_sample[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"query"</span>].tolist(), vectorstore)</span></code></pre></div>
+<div class="cell-output cell-output-display">
+<script type="application/vnd.jupyter.widget-view+json">
+{"model_id":"622d58a347414a179630883cb6a6777a","version_major":2,"version_minor":0,"quarto_mimetype":"application/vnd.jupyter.widget-view+json"}
+</script>
+</div>
+</div>
+<div class="cell" data-execution_count="312">
+<div class="sourceCode cell-code" id="cb12" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb12-1"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"mrr: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>get_mrr(hyde_rank_list)<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.3f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb12-2"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"correct num: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>get_correct_num(hyde_rank_list)<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>mrr: 0.813
+correct num: 35</code></pre>
+</div>
+</div>
+<p>意外ですが、HyDEを使うと逆に正解数が減りました。正解数は35件、MRRは0.813、処理時間は4分15秒でした。</p>
+</section>
+<section id="hydeの改善" class="level2">
+<h2 class="anchored" data-anchor-id="hydeの改善">HyDEの改善</h2>
+<p>HyDEは生成した仮想な答案をEmbeddingにしていますが、逆に重要なQueryの情報を捨てています。なので、仮想な答案をEmbeddingする前にQueryの情報を仮想な答案に加えることができれば、もっとパフォーマンスを改善できると考えられます。</p>
+<p>その改善をしてみましょう。そのためには、まず<code>HypotheticalDocumentEmbedder</code>を継承したクラスを作り、<code>embed_query</code>を再定義する必要があります。</p>
+<div class="cell" data-execution_count="314">
+<div class="sourceCode cell-code" id="cb14" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb14-1"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">class</span> HyDEWithTitle(HypotheticalDocumentEmbedder):</span>
+<span id="cb14-2"></span>
+<span id="cb14-3">    <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">def</span> embed_query(<span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">self</span>, text: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">str</span>):</span>
+<span id="cb14-4">        <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""Generate a hypothetical document and embedded it."""</span></span>
+<span id="cb14-5">        var_name <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">self</span>.llm_chain.input_keys[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>]</span>
+<span id="cb14-6">        result <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">self</span>.llm_chain.generate([{var_name: text}])</span>
+<span id="cb14-7">        documents <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [generation.text <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> generation <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> result.generations[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>]]</span>
+<span id="cb14-8">        <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># add query to the beginning of the document</span></span>
+<span id="cb14-9">        documents <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>text<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ch" style="color: #20794D;
+background-color: null;
+font-style: inherit;">\n</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>document<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> document <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> documents]</span>
+<span id="cb14-10">        embeddings <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">self</span>.embed_documents(documents)</span>
+<span id="cb14-11">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">return</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">self</span>.combine_embeddings(embeddings)</span>
+<span id="cb14-12"></span>
+<span id="cb14-13">embeddings <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> HyDEWithTitle(llm_chain<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>llm_chain, base_embeddings<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>base_embeddings)</span>
+<span id="cb14-14">vectorstore.embedding_function <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> embeddings.embed_query</span></code></pre></div>
+</div>
+<div class="cell" data-execution_count="316">
+<div class="sourceCode cell-code" id="cb15" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb15-1">hyde_with_title_rank_list <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> test(tydi_df_sample[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"query"</span>].tolist(), vectorstore)</span></code></pre></div>
+<div class="cell-output cell-output-display">
+<script type="application/vnd.jupyter.widget-view+json">
+{"model_id":"c4b1d066e40b4a55805e3acbc74b3bf4","version_major":2,"version_minor":0,"quarto_mimetype":"application/vnd.jupyter.widget-view+json"}
+</script>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Retrying langchain.chat_models.openai.ChatOpenAI.completion_with_retry.&lt;locals&gt;._completion_with_retry in 1.0 seconds as it raised RateLimitError: That model is currently overloaded with other requests. You can retry your request, or contact us through our help center at help.openai.com if the error persists. (Please include the request ID 0d85be599b6abc67a7a59f467a5101cd in your message.).</code></pre>
+</div>
+</div>
+<div class="cell" data-execution_count="317">
+<div class="sourceCode cell-code" id="cb17" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb17-1"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"mrr: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>get_mrr(hyde_with_title_rank_list)<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.3f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb17-2"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"correct num: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>get_correct_num(hyde_with_title_rank_list)<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>mrr: 0.897
+correct num: 40</code></pre>
+</div>
+</div>
+<p>検索するQueryを仮想な答案に追加することにより、正解数がお送りましたし、全体のランクも上がりました。</p>
+</section>
+<section id="まとめ" class="level2">
+<h2 class="anchored" data-anchor-id="まとめ">まとめ</h2>
+<p>HyDEは予想より精度の改善が得られなかったです。Queryを仮想な答案に追加することにより、精度は普通のEmbedding手法より上がりました。しかし、処理時間が大幅に増えてしまいました。また、今回は測っていないですが、1件あたりのコストも何倍になると思うので、実際に使う場合は、精度と処理時間、コストを総合的に考えて使う必要があります。</p>
+<table class="table">
+<thead>
+<tr class="header">
+<th>手法</th>
+<th>正解数(50件の中)</th>
+<th>MRR</th>
+<th>スピード</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>普通のEmbedding</td>
+<td>37</td>
+<td>0.855</td>
+<td>17秒</td>
+</tr>
+<tr class="even">
+<td>HyDE</td>
+<td>37</td>
+<td>0.813</td>
+<td>4分15秒</td>
+</tr>
+<tr class="odd">
+<td>HyDE with title</td>
+<td>40</td>
+<td>0.897</td>
+<td>5分2秒</td>
+</tr>
+</tbody>
+</table>
+
+
+</section>
+
+ ]]></description>
+  <category>NLP</category>
+  <category>LLMs</category>
+  <category>LangChain</category>
+  <guid>https://jiang.jp/posts/20230510_hyde_detailed/index.html</guid>
+  <pubDate>Sun, 14 May 2023 15:00:00 GMT</pubDate>
+</item>
 <item>
   <title>Azure OpenAI Serviceの利用について</title>
   <link>https://jiang.jp/posts/20230513_azure_openai/index.html</link>
