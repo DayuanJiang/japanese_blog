@@ -296,14 +296,14 @@
   {
     "objectID": "posts/20230518_grammar_checker/index.html",
     "href": "posts/20230518_grammar_checker/index.html",
-    "title": "GPT日本語校正ツール",
+    "title": "GPT文書校正アシスタント",
     "section": "",
     "text": "ChatGPTが登場する前、書いたものが正しいかをチェックするために、いつも「Back Translation」の手法を使っていました。つまり、DeepLでまず書いた日本語を中国語に訳し、正しい意味を伝えたかを確認します。修正したものを日本語に訳し、それに基づいて元の文書を修正します。\nChatGPTができた後は、全部ChatGPTに任せています。でも、ChatGPTで校正を行う時に、使いにくい点は2つあります。\nまず、毎回校正のプロンプトを書かなければならないため、面倒です。\nまた、校正してくれた文書をそのままコピー＆ペーストではなく、元の文書と比較して、どこが変わったかを確認する必要があります。しかし、ChatGPTにはGitのDiffの機能がないため、一文ずつ自分で確認しなければなりません。\nその問題を解決するために、自分でOpenAIのAPIを利用して、日本語文書校正アシスタントを作りました。"
   },
   {
     "objectID": "posts/20230518_grammar_checker/index.html#特徴",
     "href": "posts/20230518_grammar_checker/index.html#特徴",
-    "title": "GPT日本語校正ツール",
+    "title": "GPT文書校正アシスタント",
     "section": "特徴",
     "text": "特徴\n\n日本語と英語の文法や誤字脱字を自動的に修正します。\n入力されたテキストの言語を自動的に判定します。\n校正結果を元のテキストと比較して表示します\nユーザーが毎回校正のプロンプトを書く手間を省きます。\n\nプロジェクトのメインの流れは以下です。\n\n\n\n\ngraph TB\nA[ユーザーが文書を入力] --&gt; B[言語を検出]\nB --&gt;|日本語| C[日本語のプロンプトを選択]\nB --&gt;|英語| D[英語のプロンプトを選択]\nC --&gt; E[OpenAI APIによる校正]\nD --&gt; E\nE --&gt; F[校正後のテキストを表示]\nE --&gt; G[原文と校正後のテキストの差分を計算]\nG --&gt; H[差分を表示]\n\n\n\n\n\n実際のスクリーンショットは以下の通りです。\n\nツールをデプロイし、以下に埋め込みました。試してみてください。また、こちらで直接デプロイしたページをご覧いただくこともできます。\n\n\nコードはこちらです。 https://github.com/DayuanJiang/gpt_grammar_checker"
   },
@@ -480,7 +480,7 @@
     "href": "index.html",
     "title": "自然言語処理技術ブログ",
     "section": "",
-    "text": "Order By\n       Default\n         \n          Title\n        \n         \n          Date - Oldest\n        \n         \n          Date - Newest\n        \n     \n  \n    \n      \n      \n    \n\n\n\n\n  \n\n\n\n\nGPT日本語校正ツール\n\n\n\n\n\n\n\nNLP\n\n\nLLMs\n\n\n\n\n\n\n\n\n\n\n\nMay 19, 2023\n\n\n\n\n\n\n  \n\n\n\n\nLangChain Hypothetical Document Embeddings (HyDE) 全面解説\n\n\n\n\n\n\n\nNLP\n\n\nLLMs\n\n\nLangChain\n\n\n\n\n\n\n\n\n\n\n\nMay 15, 2023\n\n\n\n\n\n\n  \n\n\n\n\nAzure OpenAI Serviceの利用について\n\n\n\n\n\n\n\nNLP\n\n\nLLMs\n\n\n\n\n\n\n\n\n\n\n\nMay 10, 2023\n\n\n\n\n\n\n  \n\n\n\n\nLangChain Agentの全面解説\n\n\n\n\n\n\n\nNLP\n\n\nLLMs\n\n\nLangChain\n\n\n\n\n\n\n\n\n\n\n\nMay 9, 2023\n\n\n\n\n\n\n  \n\n\n\n\nLangChainのベーシックを全面解説する\n\n\n\n\n\n\n\nNLP\n\n\nLLMs\n\n\nLangChain\n\n\n\n\n\n\n\n\n\n\n\nMay 6, 2023\n\n\n\n\n\n\n  \n\n\n\n\nOpenAIのGPTのAPIのToken数に関する調査\n\n\n\n\n\n\n\nNLP\n\n\nLLMs\n\n\nLangChain\n\n\n\n\n\n\n\n\n\n\n\nMay 5, 2023\n\n\n\n\n\n\n  \n\n\n\n\nInPars light 論文解読\n\n\n\n\n\n\n\nNLP\n\n\nInformation_retrieval\n\n\npaper\n\n\n\n\n\n\n\n\n\n\n\nMay 2, 2023\n\n\n\n\n\n\n  \n\n\n\n\nInPars V2 論文解読\n\n\n\n\n\n\n\nNLP\n\n\nInformation_retrieval\n\n\npaper\n\n\n\n\n\n\n\n\n\n\n\nMay 1, 2023\n\n\n\n\n\n\n  \n\n\n\n\nHyDE 論文解読\n\n\n\n\n\n\n\nNLP\n\n\nInformation_retrieval\n\n\npaper\n\n\n\n\n\n\n\n\n\n\n\nApr 30, 2023\n\n\n\n\n\n\n  \n\n\n\n\nPromptagator 論文解読\n\n\n\n\n\n\n\nNLP\n\n\nInformation_retrieval\n\n\npaper\n\n\n\n\n\n\n\n\n\n\n\nApr 29, 2023\n\n\n\n\n\n\n  \n\n\n\n\nInPars 論文解読\n\n\n\n\n\n\n\nNLP\n\n\nInformation_retrieval\n\n\npaper\n\n\n\n\n\n\n\n\n\n\n\nApr 29, 2023\n\n\n\n\n\n\nNo matching items"
+    "text": "Order By\n       Default\n         \n          Title\n        \n         \n          Date - Oldest\n        \n         \n          Date - Newest\n        \n     \n  \n    \n      \n      \n    \n\n\n\n\n  \n\n\n\n\nGPT文書校正アシスタント\n\n\n\n\n\n\n\nNLP\n\n\nLLMs\n\n\n\n\n\n\n\n\n\n\n\nMay 19, 2023\n\n\n\n\n\n\n  \n\n\n\n\nLangChain Hypothetical Document Embeddings (HyDE) 全面解説\n\n\n\n\n\n\n\nNLP\n\n\nLLMs\n\n\nLangChain\n\n\n\n\n\n\n\n\n\n\n\nMay 15, 2023\n\n\n\n\n\n\n  \n\n\n\n\nAzure OpenAI Serviceの利用について\n\n\n\n\n\n\n\nNLP\n\n\nLLMs\n\n\n\n\n\n\n\n\n\n\n\nMay 10, 2023\n\n\n\n\n\n\n  \n\n\n\n\nLangChain Agentの全面解説\n\n\n\n\n\n\n\nNLP\n\n\nLLMs\n\n\nLangChain\n\n\n\n\n\n\n\n\n\n\n\nMay 9, 2023\n\n\n\n\n\n\n  \n\n\n\n\nLangChainのベーシックを全面解説する\n\n\n\n\n\n\n\nNLP\n\n\nLLMs\n\n\nLangChain\n\n\n\n\n\n\n\n\n\n\n\nMay 6, 2023\n\n\n\n\n\n\n  \n\n\n\n\nOpenAIのGPTのAPIのToken数に関する調査\n\n\n\n\n\n\n\nNLP\n\n\nLLMs\n\n\nLangChain\n\n\n\n\n\n\n\n\n\n\n\nMay 5, 2023\n\n\n\n\n\n\n  \n\n\n\n\nInPars light 論文解読\n\n\n\n\n\n\n\nNLP\n\n\nInformation_retrieval\n\n\npaper\n\n\n\n\n\n\n\n\n\n\n\nMay 2, 2023\n\n\n\n\n\n\n  \n\n\n\n\nInPars V2 論文解読\n\n\n\n\n\n\n\nNLP\n\n\nInformation_retrieval\n\n\npaper\n\n\n\n\n\n\n\n\n\n\n\nMay 1, 2023\n\n\n\n\n\n\n  \n\n\n\n\nHyDE 論文解読\n\n\n\n\n\n\n\nNLP\n\n\nInformation_retrieval\n\n\npaper\n\n\n\n\n\n\n\n\n\n\n\nApr 30, 2023\n\n\n\n\n\n\n  \n\n\n\n\nPromptagator 論文解読\n\n\n\n\n\n\n\nNLP\n\n\nInformation_retrieval\n\n\npaper\n\n\n\n\n\n\n\n\n\n\n\nApr 29, 2023\n\n\n\n\n\n\n  \n\n\n\n\nInPars 論文解読\n\n\n\n\n\n\n\nNLP\n\n\nInformation_retrieval\n\n\npaper\n\n\n\n\n\n\n\n\n\n\n\nApr 29, 2023\n\n\n\n\n\n\nNo matching items"
   },
   {
     "objectID": "about.html",
