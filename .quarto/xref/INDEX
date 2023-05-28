@@ -58,5 +58,29 @@
   },
   "posts/20230509_react/index.ipynb": {
     "index.html": "d60ac988"
+  },
+  "draft/20230513_azure_openai/index.qmd": {
+    "index.html": "07bd5394"
+  },
+  "draft/20230510_hyde/index.ipynb": {
+    "index.html": "df13968a"
+  },
+  "posts/20230513_azure_openai/index.qmd": {
+    "index.html": "2c714d33"
+  },
+  "posts/20230510_hyde_detailed/index.ipynb": {
+    "index.html": "dc5e72c6"
+  },
+  "posts/20230518_grammar_checker/index.qmd": {
+    "index.html": "11f96bd9"
+  },
+  "posts/20230523_speech_foundation_models/index.qmd": {
+    "index.html": "bd941ef1"
+  },
+  "posts/20230523_speech_foundation_models_part2/index.qmd": {
+    "index.html": "3697cd34"
+  },
+  "posts/20230523_speech_foundation_models_part1/index.qmd": {
+    "index.html": "ccd3d229"
   }
 }
