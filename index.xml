@@ -10,7 +10,906 @@
 <atom:link href="https://jiang.jp/index.xml" rel="self" type="application/rss+xml"/>
 <description></description>
 <generator>quarto-1.3.340</generator>
-<lastBuildDate>Sat, 27 May 2023 15:00:00 GMT</lastBuildDate>
+<lastBuildDate>Wed, 31 May 2023 15:00:00 GMT</lastBuildDate>
+<item>
+  <title>日本語Embeddingモデルのベンチマーク比較: OpenAIが圧倒的な精度でリード</title>
+  <link>https://jiang.jp/posts/20230601_embedding_benchmark/index.html</link>
+  <description><![CDATA[ 
+
+
+
+<p>質問応答システムを作成する際、最初のステップは関連するドキュメントをデータベースから取得することです。これは通常、クエリをOpenAIのAPIを使用して埋め込みに変換し、データベース内の埋め込みとの距離を計算して近い順に並べることで行われます。</p>
+<p>しかし、<a href="https://medium.com/@nils_reimers/openai-gpt-3-text-embeddings-really-a-new-state-of-the-art-in-dense-text-embeddings-6571fe3ec9d9">あるブログポスト</a>では、「OpenAIの埋め込みサービスはコストが高く精度も低い」と主張されています。このポストでは、OpenAIの埋め込みモデルをGoogleの埋め込みモデルやSentence-Transformersモデルと比較し、精度が低くコストが高いことが示されています。ただし、この評価は英語に基づいており、2年前のものなので、現在の日本語の状況がどうなっているかが気になります。</p>
+<p>それで今回は、日本語のEmbeddingモデルを比較するベンチマークを作りました。ベンチマークの結果は、下図のようになります。</p>
+<p>OpenAIの精度が最も高く、他のモデルより各指標で10%高いです。また、ほかのEmbeddingの中で一番精度が高いのはTensforFlowのUniversal Sentence Encoderです。</p>
+<p>そこで、今回は日本語の埋め込みモデルを比較するベンチマークを作成しました。結果は下図の通りで、OpenAIの精度が最も高く、他のモデルに比べて各指標で10%高いです。また、他の埋め込みモデルの中で最も精度が高いのは、TensorFlowのUniversal Sentence Encoderです。</p>
+<p><img src="https://jiang.jp/images/b5dee33d69d5266ceac2cb94e9d33d1ed6bf86820349f32b3991e1024d086fda.png" class="img-fluid"></p>
+<section id="使用したデータセット" class="level2">
+<h2 class="anchored" data-anchor-id="使用したデータセット">使用したデータセット</h2>
+<p>今回使用するデータは東京都立大学のeラーニングシステムのQ&amp;Aデータです。このデータは、東京都立大学で導入されたeラーニングシステムのユーザーから2015年4月から2018年7月までに報告された問題点としてのQ&amp;Aデータを収集したものです。427の質問と79の回答が含まれています。質問にどの回答に紐づくかのラベルがあります。</p>
+<p>データの様子は下記の通りです。</p>
+<div class="cell" data-outputid="49073d5e-5654-40ba-f7c4-a7dfa1270b46" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb1-1"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> pandas <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> pd</span>
+<span id="cb1-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># https://zenodo.org/record/2783642</span></span>
+<span id="cb1-3">q_df <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> pd.read_csv(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"https://zenodo.org/record/2783642/files/Questions.csv"</span>)</span>
+<span id="cb1-4">a_df <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> pd.read_csv(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"https://zenodo.org/record/2783642/files/Answers.csv"</span>)</span>
+<span id="cb1-5"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"q_df.shape:"</span>, q_df.shape)</span>
+<span id="cb1-6"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"a_df.shape:"</span>, a_df.shape)</span>
+<span id="cb1-7">q_df.columns <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [c.strip() <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> c <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> q_df.columns]</span>
+<span id="cb1-8">a_df.columns <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [c.strip() <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> c <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> a_df.columns]</span>
+<span id="cb1-9">df <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> q_df.merge(a_df, on<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"AID"</span>)</span>
+<span id="cb1-10">df.columns <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"query"</span>,<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"AID"</span>,<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"document"</span>]</span>
+<span id="cb1-11"></span>
+<span id="cb1-12">metadata <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> a_df[[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"AID"</span>]].to_dict(orient<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"records"</span>)</span>
+<span id="cb1-13">documents <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> a_df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Text"</span>].tolist()</span>
+<span id="cb1-14">query_list <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">list</span>(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">zip</span>(q_df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Text"</span>], q_df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"AID"</span>]))</span>
+<span id="cb1-15">display(q_df.head(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>))</span>
+<span id="cb1-16">display(a_df.head(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>))</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>q_df.shape: (427, 2)
+a_df.shape: (79, 2)</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">Text</th>
+<th data-quarto-table-cell-role="th">AID</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>履修している授業で先生が資料をアップロードしているはずだが、コース上に資料が見当たらない。</td>
+<td>A001</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>資料をマイページに置いたが、学生からは見えなかった。</td>
+<td>A001</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>前期の科目の「資料」を学生から見られないようにするにはどうしたら良いか？</td>
+<td>A001</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">AID</th>
+<th data-quarto-table-cell-role="th">Text</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>A001</td>
+<td>資料が見つからない場合は、以下の点を確認してください。&lt;br&gt;&lt;br&gt;&lt;br&gt;【受講生編】&lt;...</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>A002</td>
+<td>資料のアップロードやお知らせ作成時の電子メールでの通知の有無は、各授業の担当教員が設定できま...</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>A003</td>
+<td>kibacoにはファイルへパスワードを設定する機能はありません。資料は受講生全員に開示されま...</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+</section>
+<section id="評価対象と評価方法評価指標" class="level2">
+<h2 class="anchored" data-anchor-id="評価対象と評価方法評価指標">評価対象と評価方法、評価指標</h2>
+<p>今回評価対象は4つがあります。</p>
+<ol type="1">
+<li>Huggingface hubの「Feature extraction」カテゴリで「Japanese」対応する全てのモデル</li>
+<li>Sentence-Transformsersのモデル</li>
+<li>TensorFlowのUniversal Sentence Encoderモデル</li>
+<li>OpenAIのEmbeddingモデル</li>
+</ol>
+<p>評価方法は以下の3つのステップです。</p>
+<ol type="1">
+<li>79のドキュメントをEmbeddingに変換し、FAISSのVectorstoreとして保存する。</li>
+<li>427の質問をEmbeddingに変換し、FAISSのVectorstoreを使用して、79のドキュメントを近い順に並べる。</li>
+<li>並んだ順番でEmbeddingの性能を評価する</li>
+</ol>
+<p>評価指標は以下の3つです。</p>
+<ol type="1">
+<li>Mean Reciprocal Rank（MRR）: 正解ドキュメントの順位の平均の逆数で、ランク全体を評価する指標。</li>
+<li>Recall@1: 正解ドキュメントが1番目に並んでいるかどうかを評価する指標。</li>
+<li>Recall@5: 正解ドキュメントが上位5位以内に入っているかどうかを評価する指標。</li>
+</ol>
+<p>評価に使用したコードは約100行です。興味があれば、展開してご覧ください。</p>
+<div class="cell" data-execution_count="6">
+<details>
+<summary>Show the code</summary>
+<div class="sourceCode cell-code" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb3-1"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.vectorstores <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> FAISS</span>
+<span id="cb3-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.embeddings.openai <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> OpenAIEmbeddings</span>
+<span id="cb3-3"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> tqdm.auto <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> tqdm</span>
+<span id="cb3-4"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> dataclasses <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> dataclass</span>
+<span id="cb3-5"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> huggingface_hub <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> HfApi, ModelFilter</span>
+<span id="cb3-6"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.embeddings <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> HuggingFaceEmbeddings</span>
+<span id="cb3-7"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.embeddings <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> TensorflowHubEmbeddings</span>
+<span id="cb3-8"></span>
+<span id="cb3-9">DOC_NUM <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">len</span>(a_df)</span>
+<span id="cb3-10"></span>
+<span id="cb3-11"><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">@dataclass</span></span>
+<span id="cb3-12"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">class</span> EvaluationResult:</span>
+<span id="cb3-13">    result_df: pd.DataFrame</span>
+<span id="cb3-14">    mrr: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span></span>
+<span id="cb3-15">    recall_at_1: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span></span>
+<span id="cb3-16">    recall_at_5: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span></span>
+<span id="cb3-17"></span>
+<span id="cb3-18"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">class</span> RankEvaluator:</span>
+<span id="cb3-19">    <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">def</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">__init__</span>(<span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">self</span>, vectorstore):</span>
+<span id="cb3-20">        <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">self</span>.vectorstore <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> vectorstore</span>
+<span id="cb3-21"></span>
+<span id="cb3-22">    <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">def</span> get_query_result_rank(<span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">self</span>, txt):</span>
+<span id="cb3-23">        search_result <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">self</span>.vectorstore.similarity_search(txt, k<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>DOC_NUM)</span>
+<span id="cb3-24">        rank_result <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [r.metadata[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"AID"</span>] <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> r <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> search_result]</span>
+<span id="cb3-25">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">return</span> rank_result</span>
+<span id="cb3-26"></span>
+<span id="cb3-27">    <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">def</span> evaluate(<span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">self</span>, query_list, get_rank_func<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span>):</span>
+<span id="cb3-28">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">if</span> <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">not</span> get_rank_func:</span>
+<span id="cb3-29">            get_rank_func <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">self</span>.get_query_result_rank</span>
+<span id="cb3-30"></span>
+<span id="cb3-31">        result_list <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> []</span>
+<span id="cb3-32">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> query, aid <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> tqdm(query_list):</span>
+<span id="cb3-33">            rank_result <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> get_rank_func(query)</span>
+<span id="cb3-34">            rank <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> rank_result.index(aid) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span></span>
+<span id="cb3-35">            result_list.append((query, rank, rank_result))</span>
+<span id="cb3-36"></span>
+<span id="cb3-37">        result_df <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> pd.DataFrame(result_list, columns<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"query"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"rank"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"rank_result"</span>])</span>
+<span id="cb3-38">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">return</span> EvaluationResult(result_df, mrr(result_df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"rank"</span>]), recall_at_k(result_df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"rank"</span>], <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>), recall_at_k(result_df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"rank"</span>], <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>))</span>
+<span id="cb3-39"></span>
+<span id="cb3-40"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">def</span> mrr(rank_array):</span>
+<span id="cb3-41">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">return</span> (<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> rank_array).mean()</span>
+<span id="cb3-42"></span>
+<span id="cb3-43"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">def</span> recall_at_k(rank_array, k):</span>
+<span id="cb3-44">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">return</span> (rank_array <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;=</span> k).mean()</span>
+<span id="cb3-45"></span>
+<span id="cb3-46"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">def</span> evaluate_embedding(embedding, get_rank_func<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span>, texts<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>documents, metadata<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>metadata):</span>
+<span id="cb3-47">    faiss_vectorstore <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> FAISS.from_texts(</span>
+<span id="cb3-48">        texts<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>texts,</span>
+<span id="cb3-49">        embedding<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>embedding,</span>
+<span id="cb3-50">        metadatas<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>metadata,</span>
+<span id="cb3-51">    )</span>
+<span id="cb3-52">    evaluator <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> RankEvaluator(faiss_vectorstore)</span>
+<span id="cb3-53">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">return</span> evaluator.evaluate(query_list, get_rank_func<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>get_rank_func)</span>
+<span id="cb3-54"></span>
+<span id="cb3-55"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># fetch feature extraction model ids that support Japanese form HuggingFace Hub</span></span>
+<span id="cb3-56">api <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> HfApi()</span>
+<span id="cb3-57">models <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> api.list_models(</span>
+<span id="cb3-58">    <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">filter</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>ModelFilter(</span>
+<span id="cb3-59">        task<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"feature-extraction"</span>,</span>
+<span id="cb3-60">        library<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"pytorch"</span>,</span>
+<span id="cb3-61">        language<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"ja"</span></span>
+<span id="cb3-62">    )</span>
+<span id="cb3-63">)</span>
+<span id="cb3-64">model_id_list <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [m.<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">id</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> m <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> models]</span>
+<span id="cb3-65"></span>
+<span id="cb3-66"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># add sentence-transformers models</span></span>
+<span id="cb3-67">model_id_list <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+=</span> [</span>
+<span id="cb3-68">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"distiluse-base-multilingual-cased-v2"</span>,</span>
+<span id="cb3-69">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"paraphrase-multilingual-MiniLM-L12-v2"</span>,</span>
+<span id="cb3-70">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"paraphrase-multilingual-mpnet-base-v2"</span>,</span>
+<span id="cb3-71">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"sentence-transformers/stsb-xlm-r-multilingual"</span></span>
+<span id="cb3-72">]</span>
+<span id="cb3-73"></span>
+<span id="cb3-74"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># evaluate models</span></span>
+<span id="cb3-75"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># if evaluation fails, set result to None</span></span>
+<span id="cb3-76">result_dict <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> {}</span>
+<span id="cb3-77"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> model_id <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> model_id_list:</span>
+<span id="cb3-78">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">try</span>:</span>
+<span id="cb3-79">        embedding <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> HuggingFaceEmbeddings(model_name<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>model_id)</span>
+<span id="cb3-80">        result <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> evaluate_embedding(embedding)</span>
+<span id="cb3-81">        result_dict[model_id] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> result</span>
+<span id="cb3-82">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">except</span>:</span>
+<span id="cb3-83">        result_dict[model_id] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span></span>
+<span id="cb3-84"></span>
+<span id="cb3-85"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># evaluate Tensorflow Hub models</span></span>
+<span id="cb3-86">embeddings_tfhub <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> TensorflowHubEmbeddings()</span>
+<span id="cb3-87">result <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> evaluate_embedding(embeddings_tfhub)</span>
+<span id="cb3-88">result_dict[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"TensorflowHubEmbeddings"</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> result</span>
+<span id="cb3-89"></span>
+<span id="cb3-90"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># evaluate OpenAIEmbeddings</span></span>
+<span id="cb3-91">embedding_openai <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> OpenAIEmbeddings()</span>
+<span id="cb3-92">reuslt_openai <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> evaluate_embedding(embedding_openai)</span>
+<span id="cb3-93">result_dict[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"OpenAIEmbeddings"</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> reuslt_openai</span>
+<span id="cb3-94"></span>
+<span id="cb3-95"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># summary the result to DataFrame</span></span>
+<span id="cb3-96">result_list <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> []</span>
+<span id="cb3-97"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> model <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> result_dict.keys():</span>
+<span id="cb3-98">    result <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> result_dict[model]</span>
+<span id="cb3-99">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">if</span> result:</span>
+<span id="cb3-100">        result_list.append([model,result.mrr, result.recall_at_1, result.recall_at_5] )</span>
+<span id="cb3-101">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">else</span>:</span>
+<span id="cb3-102">        result_list.append([model,<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>,<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>] )</span>
+<span id="cb3-103">        </span>
+<span id="cb3-104">result_df <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> pd.DataFrame(</span>
+<span id="cb3-105">    result_list, </span>
+<span id="cb3-106">    columns <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"model_id"</span>,<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"mrr"</span>,<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"recall_at_1"</span>,<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"recall_at_5"</span>]</span>
+<span id="cb3-107">    ).sort_values(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"mrr"</span>, ascending<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">False</span>)</span>
+<span id="cb3-108"></span>
+<span id="cb3-109">result_df.reset_index(drop<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>, inplace<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span></code></pre></div>
+</details>
+</div>
+</section>
+<section id="テスト結果" class="level2">
+<h2 class="anchored" data-anchor-id="テスト結果">テスト結果</h2>
+<p>全体の結果を見ると、OpenAIEmbeddingが圧倒的に優れており、54%のQueryで正解のドキュメントが1番目に、そして86%のQueryで正解のドキュメントが5番目にランクインしています。</p>
+<p>これに対して2位のTensorFlowのUniversal Sentence Encoderは、各指標で10%以上低いパフォーマンスを示しています。そのため、精度にこのような大きな差があることから、OpenAIEmbedding以外のモデルを使用する意義はほとんどなくなります。</p>
+<p>(結果が0になったモデルは実験中にエラーが発生したものです。)</p>
+<div class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb4-1">result_df</span></code></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="10">
+<div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">model_id</th>
+<th data-quarto-table-cell-role="th">mrr</th>
+<th data-quarto-table-cell-role="th">recall_at_1</th>
+<th data-quarto-table-cell-role="th">recall_at_5</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>OpenAIEmbeddings</td>
+<td>0.684147</td>
+<td>0.548009</td>
+<td>0.868852</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>TensorflowHubEmbeddings</td>
+<td>0.560619</td>
+<td>0.407494</td>
+<td>0.761124</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>paraphrase-multilingual-mpnet-base-v2</td>
+<td>0.525899</td>
+<td>0.398126</td>
+<td>0.676815</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>oshizo/sbert-jsnli-luke-japanese-base-lite</td>
+<td>0.520106</td>
+<td>0.405152</td>
+<td>0.655738</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>paraphrase-multilingual-MiniLM-L12-v2</td>
+<td>0.497027</td>
+<td>0.370023</td>
+<td>0.639344</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">5</td>
+<td>intfloat/multilingual-e5-base</td>
+<td>0.481144</td>
+<td>0.337237</td>
+<td>0.632319</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">6</td>
+<td>sonoisa/sentence-bert-base-ja-mean-tokens-v2</td>
+<td>0.465294</td>
+<td>0.327869</td>
+<td>0.622951</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">7</td>
+<td>setu4993/smaller-LaBSE</td>
+<td>0.450434</td>
+<td>0.290398</td>
+<td>0.632319</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">8</td>
+<td>sonoisa/sentence-bert-base-ja-en-mean-tokens</td>
+<td>0.438923</td>
+<td>0.304450</td>
+<td>0.599532</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">9</td>
+<td>setu4993/LaBSE</td>
+<td>0.434725</td>
+<td>0.274005</td>
+<td>0.625293</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">10</td>
+<td>Blaxzter/LaBSE-sentence-embeddings</td>
+<td>0.434725</td>
+<td>0.274005</td>
+<td>0.625293</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">11</td>
+<td>distiluse-base-multilingual-cased-v2</td>
+<td>0.428484</td>
+<td>0.264637</td>
+<td>0.620609</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">12</td>
+<td>ZurichNLP/unsup-simcse-xlm-roberta-base</td>
+<td>0.419397</td>
+<td>0.299766</td>
+<td>0.526932</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">13</td>
+<td>sentence-transformers/stsb-xlm-r-multilingual</td>
+<td>0.361811</td>
+<td>0.231850</td>
+<td>0.484778</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">14</td>
+<td>sonoisa/clip-vit-b-32-japanese-v1</td>
+<td>0.320160</td>
+<td>0.203747</td>
+<td>0.437939</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">15</td>
+<td>sonoisa/sentence-bert-base-ja-mean-tokens</td>
+<td>0.293779</td>
+<td>0.177986</td>
+<td>0.402810</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">16</td>
+<td>google/canine-s</td>
+<td>0.270446</td>
+<td>0.159251</td>
+<td>0.358314</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">17</td>
+<td>google/canine-c</td>
+<td>0.258978</td>
+<td>0.159251</td>
+<td>0.341920</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">18</td>
+<td>colorfulscoop/sbert-base-ja</td>
+<td>0.227531</td>
+<td>0.133489</td>
+<td>0.295082</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">19</td>
+<td>sonoisa/t5-base-japanese</td>
+<td>0.213053</td>
+<td>0.135831</td>
+<td>0.278689</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">20</td>
+<td>M-CLIP/M-BERT-Distil-40</td>
+<td>0.170714</td>
+<td>0.084309</td>
+<td>0.236534</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">21</td>
+<td>microsoft/unihanlm-base</td>
+<td>0.162957</td>
+<td>0.098361</td>
+<td>0.187354</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">22</td>
+<td>nielsr/lilt-xlm-roberta-base</td>
+<td>0.143722</td>
+<td>0.074941</td>
+<td>0.173302</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">23</td>
+<td>severinsimmler/xlm-roberta-longformer-base-16384</td>
+<td>0.129116</td>
+<td>0.072600</td>
+<td>0.145199</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">24</td>
+<td>facebook/nllb-moe-54b</td>
+<td>0.000000</td>
+<td>0.000000</td>
+<td>0.000000</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">25</td>
+<td>sonoisa/sentence-luke-japanese-base-lite</td>
+<td>0.000000</td>
+<td>0.000000</td>
+<td>0.000000</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">26</td>
+<td>TylorShine/distilhubert-ft-japanese-50k</td>
+<td>0.000000</td>
+<td>0.000000</td>
+<td>0.000000</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">27</td>
+<td>rinna/japanese-hubert-base</td>
+<td>0.000000</td>
+<td>0.000000</td>
+<td>0.000000</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">28</td>
+<td>ArthurZ/nllb-moe-128</td>
+<td>0.000000</td>
+<td>0.000000</td>
+<td>0.000000</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">29</td>
+<td>pkshatech/simcse-ja-bert-base-clcmlp</td>
+<td>0.000000</td>
+<td>0.000000</td>
+<td>0.000000</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">30</td>
+<td>paulhindemith/fasttext-jp-embedding</td>
+<td>0.000000</td>
+<td>0.000000</td>
+<td>0.000000</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">31</td>
+<td>rinna/japanese-cloob-vit-b-16</td>
+<td>0.000000</td>
+<td>0.000000</td>
+<td>0.000000</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">32</td>
+<td>rinna/japanese-clip-vit-b-16</td>
+<td>0.000000</td>
+<td>0.000000</td>
+<td>0.000000</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">33</td>
+<td>sonoisa/sentence-t5-base-ja-mean-tokens</td>
+<td>0.000000</td>
+<td>0.000000</td>
+<td>0.000000</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">34</td>
+<td>megagonlabs/transformers-ud-japanese-electra-b...</td>
+<td>0.000000</td>
+<td>0.000000</td>
+<td>0.000000</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+
+
+</section>
+
+ ]]></description>
+  <category>NLP</category>
+  <category>LLMs</category>
+  <category>LangChain</category>
+  <guid>https://jiang.jp/posts/20230601_embedding_benchmark/index.html</guid>
+  <pubDate>Wed, 31 May 2023 15:00:00 GMT</pubDate>
+</item>
 <item>
   <title>音声基礎モデルの紹介 Part2</title>
   <link>https://jiang.jp/posts/20230523_speech_foundation_models_part2/index.html</link>
