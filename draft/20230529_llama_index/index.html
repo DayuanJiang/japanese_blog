@@ -406,53 +406,49 @@ a_df.shape: (79, 2)</code></pre>
 <div class="sourceCode cell-code" id="cb27"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1"></a><span class="im">import</span> requests</span>
 <span id="cb27-2"><a href="#cb27-2"></a><span class="co"># download japanese stopwords</span></span>
 <span id="cb27-3"><a href="#cb27-3"></a>url <span class="op">=</span> <span class="st">"https://raw.githubusercontent.com/stopwords-iso/stopwords-ja/master/stopwords-ja.txt"</span></span>
-<span id="cb27-4"><a href="#cb27-4"></a>r <span class="op">=</span> requests.get(url)</span>
-<span id="cb27-5"><a href="#cb27-5"></a>stopwords <span class="op">=</span> r.text.split(<span class="st">"</span><span class="ch">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<div class="cell" data-execution_count="179">
-<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1"></a><span class="im">import</span> MeCab</span>
-<span id="cb28-2"><a href="#cb28-2"></a><span class="co"># parser = MeCab.Tagger("-Owakati")</span></span>
-<span id="cb28-3"><a href="#cb28-3"></a>parser <span class="op">=</span> MeCab.Tagger()</span>
-<span id="cb28-4"><a href="#cb28-4"></a><span class="kw">def</span> extract_nouns_verbs(text):</span>
-<span id="cb28-5"><a href="#cb28-5"></a>    parser <span class="op">=</span> MeCab.Tagger()</span>
-<span id="cb28-6"><a href="#cb28-6"></a>    parsed_text <span class="op">=</span> parser.parse(text)</span>
-<span id="cb28-7"><a href="#cb28-7"></a>    lines <span class="op">=</span> parsed_text.split(<span class="st">'</span><span class="ch">\n</span><span class="st">'</span>)</span>
-<span id="cb28-8"><a href="#cb28-8"></a>    nouns_verbs <span class="op">=</span> []</span>
-<span id="cb28-9"><a href="#cb28-9"></a></span>
-<span id="cb28-10"><a href="#cb28-10"></a>    <span class="cf">for</span> line <span class="kw">in</span> lines:</span>
-<span id="cb28-11"><a href="#cb28-11"></a>        <span class="cf">if</span> <span class="st">'名詞'</span> <span class="kw">in</span> line <span class="kw">or</span> <span class="st">'動詞'</span> <span class="kw">in</span> line:</span>
-<span id="cb28-12"><a href="#cb28-12"></a>            parts <span class="op">=</span> line.split(<span class="st">'</span><span class="ch">\t</span><span class="st">'</span>)</span>
-<span id="cb28-13"><a href="#cb28-13"></a>            word <span class="op">=</span> parts[<span class="dv">0</span>]</span>
-<span id="cb28-14"><a href="#cb28-14"></a>            <span class="cf">if</span> <span class="kw">not</span> word.isascii():</span>
-<span id="cb28-15"><a href="#cb28-15"></a>                nouns_verbs.append(word)</span>
-<span id="cb28-16"><a href="#cb28-16"></a>    <span class="cf">return</span> nouns_verbs</span>
-<span id="cb28-17"><a href="#cb28-17"></a></span>
-<span id="cb28-18"><a href="#cb28-18"></a><span class="kw">def</span> preprocess(text):</span>
-<span id="cb28-19"><a href="#cb28-19"></a>    <span class="cf">return</span> [token <span class="cf">for</span> token <span class="kw">in</span> extract_nouns_verbs(text) <span class="cf">if</span> token <span class="kw">not</span> <span class="kw">in</span> stopwords]</span>
-<span id="cb28-20"><a href="#cb28-20"></a>    <span class="co"># return parser.parse(text).strip().split()</span></span>
-<span id="cb28-21"><a href="#cb28-21"></a></span>
-<span id="cb28-22"><a href="#cb28-22"></a>tokenized_texts <span class="op">=</span> [preprocess(text) <span class="cf">for</span> text <span class="kw">in</span> a_df[<span class="st">"Text"</span>]] </span>
-<span id="cb28-23"><a href="#cb28-23"></a></span>
-<span id="cb28-24"><a href="#cb28-24"></a><span class="im">from</span> rank_bm25 <span class="im">import</span> BM25Okapi</span>
-<span id="cb28-25"><a href="#cb28-25"></a>bm25 <span class="op">=</span> BM25Okapi(tokenized_texts)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb27-4"><a href="#cb27-4"></a>stopwords <span class="op">=</span> requests.get(url).text.split(<span class="st">"</span><span class="ch">\n</span><span class="st">"</span>)</span>
+<span id="cb27-5"><a href="#cb27-5"></a></span>
+<span id="cb27-6"><a href="#cb27-6"></a><span class="im">import</span> MeCab</span>
+<span id="cb27-7"><a href="#cb27-7"></a><span class="co"># parser = MeCab.Tagger("-Owakati")</span></span>
+<span id="cb27-8"><a href="#cb27-8"></a><span class="kw">def</span> extract_nouns_verbs(text):</span>
+<span id="cb27-9"><a href="#cb27-9"></a>    parser <span class="op">=</span> MeCab.Tagger()</span>
+<span id="cb27-10"><a href="#cb27-10"></a>    parsed_text <span class="op">=</span> parser.parse(text)</span>
+<span id="cb27-11"><a href="#cb27-11"></a>    lines <span class="op">=</span> parsed_text.split(<span class="st">'</span><span class="ch">\n</span><span class="st">'</span>)</span>
+<span id="cb27-12"><a href="#cb27-12"></a>    nouns_verbs <span class="op">=</span> []</span>
+<span id="cb27-13"><a href="#cb27-13"></a></span>
+<span id="cb27-14"><a href="#cb27-14"></a>    <span class="cf">for</span> line <span class="kw">in</span> lines:</span>
+<span id="cb27-15"><a href="#cb27-15"></a>        <span class="cf">if</span> <span class="st">'名詞'</span> <span class="kw">in</span> line <span class="kw">or</span> <span class="st">'動詞'</span> <span class="kw">in</span> line:</span>
+<span id="cb27-16"><a href="#cb27-16"></a>            parts <span class="op">=</span> line.split(<span class="st">'</span><span class="ch">\t</span><span class="st">'</span>)</span>
+<span id="cb27-17"><a href="#cb27-17"></a>            word <span class="op">=</span> parts[<span class="dv">0</span>]</span>
+<span id="cb27-18"><a href="#cb27-18"></a>            <span class="cf">if</span> <span class="kw">not</span> word.isascii():</span>
+<span id="cb27-19"><a href="#cb27-19"></a>                nouns_verbs.append(word)</span>
+<span id="cb27-20"><a href="#cb27-20"></a>    <span class="cf">return</span> nouns_verbs</span>
+<span id="cb27-21"><a href="#cb27-21"></a></span>
+<span id="cb27-22"><a href="#cb27-22"></a><span class="kw">def</span> preprocess(text):</span>
+<span id="cb27-23"><a href="#cb27-23"></a>    <span class="cf">return</span> [token <span class="cf">for</span> token <span class="kw">in</span> extract_nouns_verbs(text) <span class="cf">if</span> token <span class="kw">not</span> <span class="kw">in</span> stopwords]</span>
+<span id="cb27-24"><a href="#cb27-24"></a></span>
+<span id="cb27-25"><a href="#cb27-25"></a>tokenized_texts <span class="op">=</span> [preprocess(text) <span class="cf">for</span> text <span class="kw">in</span> a_df[<span class="st">"Text"</span>]] </span>
+<span id="cb27-26"><a href="#cb27-26"></a></span>
+<span id="cb27-27"><a href="#cb27-27"></a><span class="im">from</span> rank_bm25 <span class="im">import</span> BM25Okapi</span>
+<span id="cb27-28"><a href="#cb27-28"></a>bm25 <span class="op">=</span> BM25Okapi(tokenized_texts)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell" data-execution_count="131">
-<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1"></a><span class="co"># for query, aid, embedding in query_list:</span></span>
-<span id="cb29-2"><a href="#cb29-2"></a><span class="co">#     tokenized_query = parser.parse(query).strip().split()</span></span>
-<span id="cb29-3"><a href="#cb29-3"></a><span class="co">#     rank_result = bm25.get_top_n(tokenized_query,a_df.AID , n=DOC_NUM)</span></span>
-<span id="cb29-4"><a href="#cb29-4"></a>    </span>
-<span id="cb29-5"><a href="#cb29-5"></a><span class="kw">def</span> get_query_result_rank(txt, aid, vectorstore):</span>
-<span id="cb29-6"><a href="#cb29-6"></a>    search_result <span class="op">=</span> vectorstore.similarity_search(txt, k<span class="op">=</span>DOC_NUM)</span>
-<span id="cb29-7"><a href="#cb29-7"></a>    rank_result <span class="op">=</span> [r.metadata[<span class="st">"AID"</span>] <span class="cf">for</span> r <span class="kw">in</span> search_result]</span>
-<span id="cb29-8"><a href="#cb29-8"></a>    <span class="cf">return</span> rank_result.index(aid) <span class="op">+</span> <span class="dv">1</span></span>
-<span id="cb29-9"><a href="#cb29-9"></a></span>
-<span id="cb29-10"><a href="#cb29-10"></a><span class="kw">def</span> get_query_result_rank_bm25(txt, aid, bm25):</span>
-<span id="cb29-11"><a href="#cb29-11"></a>    tokenized_query <span class="op">=</span>  preprocess(txt)</span>
-<span id="cb29-12"><a href="#cb29-12"></a>    rank_result <span class="op">=</span> bm25.get_top_n(tokenized_query,a_df.AID , n<span class="op">=</span>DOC_NUM)</span>
-<span id="cb29-13"><a href="#cb29-13"></a>    <span class="cf">return</span> rank_result.index(aid) <span class="op">+</span> <span class="dv">1</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1"></a><span class="co"># for query, aid, embedding in query_list:</span></span>
+<span id="cb28-2"><a href="#cb28-2"></a><span class="co">#     tokenized_query = parser.parse(query).strip().split()</span></span>
+<span id="cb28-3"><a href="#cb28-3"></a><span class="co">#     rank_result = bm25.get_top_n(tokenized_query,a_df.AID , n=DOC_NUM)</span></span>
+<span id="cb28-4"><a href="#cb28-4"></a>    </span>
+<span id="cb28-5"><a href="#cb28-5"></a><span class="kw">def</span> get_query_result_rank(txt, aid, vectorstore):</span>
+<span id="cb28-6"><a href="#cb28-6"></a>    search_result <span class="op">=</span> vectorstore.similarity_search(txt, k<span class="op">=</span>DOC_NUM)</span>
+<span id="cb28-7"><a href="#cb28-7"></a>    rank_result <span class="op">=</span> [r.metadata[<span class="st">"AID"</span>] <span class="cf">for</span> r <span class="kw">in</span> search_result]</span>
+<span id="cb28-8"><a href="#cb28-8"></a>    <span class="cf">return</span> rank_result.index(aid) <span class="op">+</span> <span class="dv">1</span></span>
+<span id="cb28-9"><a href="#cb28-9"></a></span>
+<span id="cb28-10"><a href="#cb28-10"></a><span class="kw">def</span> get_query_result_rank_bm25(txt, aid, bm25):</span>
+<span id="cb28-11"><a href="#cb28-11"></a>    tokenized_query <span class="op">=</span>  preprocess(txt)</span>
+<span id="cb28-12"><a href="#cb28-12"></a>    rank_result <span class="op">=</span> bm25.get_top_n(tokenized_query,a_df.AID , n<span class="op">=</span>DOC_NUM)</span>
+<span id="cb28-13"><a href="#cb28-13"></a>    <span class="cf">return</span> rank_result.index(aid) <span class="op">+</span> <span class="dv">1</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell" data-execution_count="180">
-<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1"></a>bm25_result <span class="op">=</span> evaluate(query_list, bm25, get_query_result_rank_bm25)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1"></a>bm25_result <span class="op">=</span> evaluate(query_list, bm25, get_query_result_rank_bm25)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
 <script type="application/vnd.jupyter.widget-view+json">
 {"model_id":"27afd16fd4a14af4807053d09b02ba76","version_major":2,"version_minor":0,"quarto_mimetype":"application/vnd.jupyter.widget-view+json"}
@@ -460,11 +456,11 @@ a_df.shape: (79, 2)</code></pre>
 </div>
 </div>
 <div class="cell" data-execution_count="170">
-<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1"></a><span class="bu">print</span>(faiss_result[<span class="dv">1</span>:])</span>
-<span id="cb31-2"><a href="#cb31-2"></a><span class="bu">print</span>(chrome_result[<span class="dv">1</span>:])</span>
-<span id="cb31-3"><a href="#cb31-3"></a><span class="bu">print</span>(lmidx_result[<span class="dv">1</span>:])</span>
-<span id="cb31-4"><a href="#cb31-4"></a><span class="bu">print</span>(elastic_result[<span class="dv">1</span>:])</span>
-<span id="cb31-5"><a href="#cb31-5"></a><span class="bu">print</span>(bm25_result[<span class="dv">1</span>:])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1"></a><span class="bu">print</span>(faiss_result[<span class="dv">1</span>:])</span>
+<span id="cb30-2"><a href="#cb30-2"></a><span class="bu">print</span>(chrome_result[<span class="dv">1</span>:])</span>
+<span id="cb30-3"><a href="#cb30-3"></a><span class="bu">print</span>(lmidx_result[<span class="dv">1</span>:])</span>
+<span id="cb30-4"><a href="#cb30-4"></a><span class="bu">print</span>(elastic_result[<span class="dv">1</span>:])</span>
+<span id="cb30-5"><a href="#cb30-5"></a><span class="bu">print</span>(bm25_result[<span class="dv">1</span>:])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>(0.6853719607667331, 0.550351288056206, 0.8665105386416861)
 (0.6853569484566387, 0.550351288056206, 0.8665105386416861)
@@ -474,11 +470,11 @@ a_df.shape: (79, 2)</code></pre>
 </div>
 </div>
 <div class="cell" data-execution_count="133">
-<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1"></a><span class="bu">print</span>(faiss_result[<span class="dv">1</span>:])</span>
-<span id="cb33-2"><a href="#cb33-2"></a><span class="bu">print</span>(chrome_result[<span class="dv">1</span>:])</span>
-<span id="cb33-3"><a href="#cb33-3"></a><span class="bu">print</span>(lmidx_result[<span class="dv">1</span>:])</span>
-<span id="cb33-4"><a href="#cb33-4"></a><span class="bu">print</span>(elastic_result[<span class="dv">1</span>:])</span>
-<span id="cb33-5"><a href="#cb33-5"></a><span class="bu">print</span>(bm25_result[<span class="dv">1</span>:])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1"></a><span class="bu">print</span>(faiss_result[<span class="dv">1</span>:])</span>
+<span id="cb32-2"><a href="#cb32-2"></a><span class="bu">print</span>(chrome_result[<span class="dv">1</span>:])</span>
+<span id="cb32-3"><a href="#cb32-3"></a><span class="bu">print</span>(lmidx_result[<span class="dv">1</span>:])</span>
+<span id="cb32-4"><a href="#cb32-4"></a><span class="bu">print</span>(elastic_result[<span class="dv">1</span>:])</span>
+<span id="cb32-5"><a href="#cb32-5"></a><span class="bu">print</span>(bm25_result[<span class="dv">1</span>:])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>(0.6853719607667331, 0.550351288056206, 0.8665105386416861)
 (0.6853569484566387, 0.550351288056206, 0.8665105386416861)
@@ -488,10 +484,10 @@ a_df.shape: (79, 2)</code></pre>
 </div>
 </div>
 <div class="cell" data-execution_count="142">
-<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1"></a><span class="bu">print</span>((faiss_result[<span class="dv">0</span>][<span class="st">"rank"</span>] <span class="op">!=</span> chrome_result[<span class="dv">0</span>][<span class="st">"rank"</span>]).<span class="bu">sum</span>())</span>
-<span id="cb35-2"><a href="#cb35-2"></a><span class="bu">print</span>((faiss_result[<span class="dv">0</span>][<span class="st">"rank"</span>] <span class="op">!=</span> lmidx_result[<span class="dv">0</span>][<span class="st">"rank"</span>]).<span class="bu">sum</span>())</span>
-<span id="cb35-3"><a href="#cb35-3"></a><span class="bu">print</span>((faiss_result[<span class="dv">0</span>][<span class="st">"rank"</span>] <span class="op">!=</span> elastic_result[<span class="dv">0</span>][<span class="st">"rank"</span>]).<span class="bu">sum</span>())</span>
-<span id="cb35-4"><a href="#cb35-4"></a><span class="bu">print</span>((faiss_result[<span class="dv">0</span>][<span class="st">"rank"</span>] <span class="op">!=</span> bm25_result[<span class="dv">0</span>][<span class="st">"rank"</span>]).<span class="bu">sum</span>())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1"></a><span class="bu">print</span>((faiss_result[<span class="dv">0</span>][<span class="st">"rank"</span>] <span class="op">!=</span> chrome_result[<span class="dv">0</span>][<span class="st">"rank"</span>]).<span class="bu">sum</span>())</span>
+<span id="cb34-2"><a href="#cb34-2"></a><span class="bu">print</span>((faiss_result[<span class="dv">0</span>][<span class="st">"rank"</span>] <span class="op">!=</span> lmidx_result[<span class="dv">0</span>][<span class="st">"rank"</span>]).<span class="bu">sum</span>())</span>
+<span id="cb34-3"><a href="#cb34-3"></a><span class="bu">print</span>((faiss_result[<span class="dv">0</span>][<span class="st">"rank"</span>] <span class="op">!=</span> elastic_result[<span class="dv">0</span>][<span class="st">"rank"</span>]).<span class="bu">sum</span>())</span>
+<span id="cb34-4"><a href="#cb34-4"></a><span class="bu">print</span>((faiss_result[<span class="dv">0</span>][<span class="st">"rank"</span>] <span class="op">!=</span> bm25_result[<span class="dv">0</span>][<span class="st">"rank"</span>]).<span class="bu">sum</span>())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>1
 153
@@ -500,12 +496,12 @@ a_df.shape: (79, 2)</code></pre>
 </div>
 </div>
 <div class="cell" data-execution_count="1">
-<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb37-1"><a href="#cb37-1"></a><span class="im">import</span> os</span>
-<span id="cb37-2"><a href="#cb37-2"></a>os.environ[<span class="st">'KMP_DUPLICATE_LIB_OK'</span>]<span class="op">=</span><span class="st">'TRUE'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb36-1"><a href="#cb36-1"></a><span class="im">import</span> os</span>
+<span id="cb36-2"><a href="#cb36-2"></a>os.environ[<span class="st">'KMP_DUPLICATE_LIB_OK'</span>]<span class="op">=</span><span class="st">'TRUE'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell" data-execution_count="2">
-<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb38-1"><a href="#cb38-1"></a><span class="im">from</span> langchain.embeddings <span class="im">import</span> HuggingFaceEmbeddings</span>
-<span id="cb38-2"><a href="#cb38-2"></a>embeddings <span class="op">=</span> HuggingFaceEmbeddings(model_name<span class="op">=</span><span class="st">"distiluse-base-multilingual-cased-v2"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb37-1"><a href="#cb37-1"></a><span class="im">from</span> langchain.embeddings <span class="im">import</span> HuggingFaceEmbeddings</span>
+<span id="cb37-2"><a href="#cb37-2"></a>embeddings <span class="op">=</span> HuggingFaceEmbeddings(model_name<span class="op">=</span><span class="st">"distiluse-base-multilingual-cased-v2"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-error">
 <pre><code>: </code></pre>
 </div>
@@ -514,18 +510,18 @@ a_df.shape: (79, 2)</code></pre>
 </div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb41-1"><a href="#cb41-1"></a><span class="co"># save embeddings to pickle</span></span>
-<span id="cb41-2"><a href="#cb41-2"></a><span class="im">import</span> pickle</span>
-<span id="cb41-3"><a href="#cb41-3"></a><span class="cf">with</span> <span class="bu">open</span>(<span class="st">"embeddings.pkl"</span>, <span class="st">"wb"</span>) <span class="im">as</span> f:</span>
-<span id="cb41-4"><a href="#cb41-4"></a>    pickle.dump(embeddings, f)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb40-1"><a href="#cb40-1"></a><span class="co"># save embeddings to pickle</span></span>
+<span id="cb40-2"><a href="#cb40-2"></a><span class="im">import</span> pickle</span>
+<span id="cb40-3"><a href="#cb40-3"></a><span class="cf">with</span> <span class="bu">open</span>(<span class="st">"embeddings.pkl"</span>, <span class="st">"wb"</span>) <span class="im">as</span> f:</span>
+<span id="cb40-4"><a href="#cb40-4"></a>    pickle.dump(embeddings, f)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb42-1"><a href="#cb42-1"></a><span class="im">from</span> langchain.embeddings <span class="im">import</span> TensorflowHubEmbeddings</span>
-<span id="cb42-2"><a href="#cb42-2"></a></span>
-<span id="cb42-3"><a href="#cb42-3"></a>embedding_tfhub <span class="op">=</span> TensorflowHubEmbeddings()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb41-1"><a href="#cb41-1"></a><span class="im">from</span> langchain.embeddings <span class="im">import</span> TensorflowHubEmbeddings</span>
+<span id="cb41-2"><a href="#cb41-2"></a></span>
+<span id="cb41-3"><a href="#cb41-3"></a>embedding_tfhub <span class="op">=</span> TensorflowHubEmbeddings()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb43-1"><a href="#cb43-1"></a>query_result <span class="op">=</span> embedding_tfhub.embed_query(<span class="st">"日本語"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb42-1"><a href="#cb42-1"></a>query_result <span class="op">=</span> embedding_tfhub.embed_query(<span class="st">"日本語"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Collecting tensorflow-hub
   Downloading tensorflow_hub-0.13.0-py2.py3-none-any.whl (100 kB)
@@ -538,13 +534,13 @@ Note: you may need to restart the kernel to use updated packages.</code></pre>
 </div>
 </div>
 <div class="cell" data-execution_count="1">
-<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb45-1"><a href="#cb45-1"></a><span class="im">import</span> torch</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb44"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb44-1"><a href="#cb44-1"></a><span class="im">import</span> torch</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb46-1"><a href="#cb46-1"></a><span class="im">import</span> tensorflow_hub</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb45-1"><a href="#cb45-1"></a><span class="im">import</span> tensorflow_hub</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell" data-execution_count="1">
-<div class="sourceCode cell-code" id="cb47"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb47-1"><a href="#cb47-1"></a>conda install nomkl</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb46-1"><a href="#cb46-1"></a>conda install nomkl</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Retrieving notices: ...working... done
 Collecting package metadata (current_repodata.json): done

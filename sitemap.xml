@@ -2,70 +2,78 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://jiang.jp/draft/20230529_llama_index/index.html</loc>
-    <lastmod>2023-06-01T15:28:11.431Z</lastmod>
+    <lastmod>2023-07-15T16:47:48.372Z</lastmod>
+  </url>
+  <url>
+    <loc>https://jiang.jp/draft/20230602_retriever_benchmark/index.html</loc>
+    <lastmod>2023-07-15T16:47:49.016Z</lastmod>
   </url>
   <url>
     <loc>https://jiang.jp/posts/20230509_react/index.html</loc>
-    <lastmod>2023-06-01T15:28:12.050Z</lastmod>
+    <lastmod>2023-07-15T16:47:49.702Z</lastmod>
   </url>
   <url>
     <loc>https://jiang.jp/posts/20230513_azure_openai/index.html</loc>
-    <lastmod>2023-06-01T15:28:12.497Z</lastmod>
+    <lastmod>2023-07-15T16:47:50.049Z</lastmod>
   </url>
   <url>
     <loc>https://jiang.jp/posts/20230523_speech_foundation_models_part1/index.html</loc>
-    <lastmod>2023-06-01T15:28:12.998Z</lastmod>
+    <lastmod>2023-07-15T16:47:50.437Z</lastmod>
   </url>
   <url>
     <loc>https://jiang.jp/posts/20230505_LangChain_basic/index.html</loc>
-    <lastmod>2023-06-01T15:28:13.640Z</lastmod>
+    <lastmod>2023-07-15T16:47:50.971Z</lastmod>
   </url>
   <url>
     <loc>https://jiang.jp/posts/20230601_embedding_benchmark/index.html</loc>
-    <lastmod>2023-06-01T15:28:14.317Z</lastmod>
+    <lastmod>2023-07-15T16:47:51.571Z</lastmod>
   </url>
   <url>
     <loc>https://jiang.jp/posts/20230510_hyde_detailed/index.html</loc>
-    <lastmod>2023-06-01T15:28:14.853Z</lastmod>
+    <lastmod>2023-07-15T16:47:52.037Z</lastmod>
   </url>
   <url>
     <loc>https://jiang.jp/posts/20230430_HyDE/index.html</loc>
-    <lastmod>2023-06-01T15:28:15.292Z</lastmod>
+    <lastmod>2023-07-15T16:47:52.373Z</lastmod>
   </url>
   <url>
     <loc>https://jiang.jp/posts/20230429_promptagator/index.html</loc>
-    <lastmod>2023-06-01T15:28:15.982Z</lastmod>
+    <lastmod>2023-07-15T16:47:52.964Z</lastmod>
+  </url>
+  <url>
+    <loc>https://jiang.jp/posts/20230611_retreiver/index.html</loc>
+    <lastmod>2023-07-15T16:47:53.544Z</lastmod>
   </url>
   <url>
     <loc>https://jiang.jp/posts/20230523_speech_foundation_models_part2/index.html</loc>
-    <lastmod>2023-06-01T15:28:16.484Z</lastmod>
+    <lastmod>2023-07-15T16:47:53.958Z</lastmod>
   </url>
   <url>
     <loc>https://jiang.jp/posts/20230518_grammar_checker/index.html</loc>
-    <lastmod>2023-06-01T15:28:16.860Z</lastmod>
+    <lastmod>2023-07-15T16:47:54.280Z</lastmod>
   </url>
   <url>
     <loc>https://jiang.jp/posts/20230428_inpars/index.html</loc>
-    <lastmod>2023-06-01T15:28:17.321Z</lastmod>
+    <lastmod>2023-07-15T16:47:54.620Z</lastmod>
   </url>
   <url>
     <loc>https://jiang.jp/posts/20230502_inpars_light/index.html</loc>
-    <lastmod>2023-06-01T15:28:17.707Z</lastmod>
+    <lastmod>2023-07-15T16:47:54.966Z</lastmod>
   </url>
   <url>
     <loc>https://jiang.jp/posts/20230505_tiktoken/index.html</loc>
-    <lastmod>2023-06-01T15:28:18.198Z</lastmod>
+    <lastmod>2023-07-15T16:47:55.440Z</lastmod>
   </url>
   <url>
     <loc>https://jiang.jp/posts/20230501_inpars_v2/index.html</loc>
-    <lastmod>2023-06-01T15:28:18.552Z</lastmod>
+    <lastmod>2023-07-15T16:47:55.844Z</lastmod>
   </url>
   <url>
     <loc>https://jiang.jp/index.html</loc>
-    <lastmod>2023-06-01T15:28:19.712Z</lastmod>
+    <lastmod>2023-07-15T16:47:56.922Z</lastmod>
   </url>
   <url>
     <loc>https://jiang.jp/about.html</loc>
-    <lastmod>2023-06-01T15:28:20.172Z</lastmod>
+    <lastmod>2023-07-15T16:47:57.235Z</lastmod>
   </url>
 </urlset>
