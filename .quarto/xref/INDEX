@@ -82,5 +82,20 @@
   },
   "posts/20230523_speech_foundation_models_part1/index.qmd": {
     "index.html": "ccd3d229"
+  },
+  "draft/20230601_embedding_benchmark/index.ipynb": {
+    "index.html": "ab9a2fb1"
+  },
+  "draft/20230529_llama_index/index.ipynb": {
+    "index.html": "7dd85c12"
+  },
+  "posts/20230601_embedding_benchmark/index.ipynb": {
+    "index.html": "18bc110e"
+  },
+  "posts/20230611_retreiver/index.ipynb": {
+    "index.html": "1581a517"
+  },
+  "draft/20230602_retriever_benchmark/index.ipynb": {
+    "index.html": "c58636a0"
   }
 }

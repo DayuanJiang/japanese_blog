@@ -3,3 +3,5 @@
 .quarto/*
 .env
 /draft/
+*.pkl
+/data/
