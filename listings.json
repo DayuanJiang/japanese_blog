@@ -2,6 +2,7 @@
   {
     "listing": "/index.html",
     "items": [
+      "/posts/20231011_cs224n_lecture_1/index.html",
       "/posts/20230611_retreiver/index.html",
       "/posts/20230601_embedding_benchmark/index.html",
       "/posts/20230523_speech_foundation_models_part2/index.html",
