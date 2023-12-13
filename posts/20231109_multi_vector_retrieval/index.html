@@ -153,12 +153,12 @@ gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#この記事の内容" id="toc-この記事の内容" class="nav-link active" data-scroll-target="#この記事の内容">この記事の内容</a></li>
-  <li><a href="#multi-vector-retrieverとは" id="toc-multi-vector-retrieverとは" class="nav-link" data-scroll-target="#multi-vector-retrieverとは">Multi-Vector Retrieverとは</a></li>
-  <li><a href="#簡単な利用例" id="toc-簡単な利用例" class="nav-link" data-scroll-target="#簡単な利用例">簡単な利用例</a>
+  <li><a href="#内容概要" id="toc-内容概要" class="nav-link active" data-scroll-target="#内容概要">内容概要</a></li>
+  <li><a href="#multi-vector-retrieverについて" id="toc-multi-vector-retrieverについて" class="nav-link" data-scroll-target="#multi-vector-retrieverについて">Multi-Vector Retrieverについて</a></li>
+  <li><a href="#簡単な使用例" id="toc-簡単な使用例" class="nav-link" data-scroll-target="#簡単な使用例">簡単な使用例</a>
   <ul class="collapse">
   <li><a href="#初期化" id="toc-初期化" class="nav-link" data-scroll-target="#初期化">初期化</a></li>
-  <li><a href="#使い方" id="toc-使い方" class="nav-link" data-scroll-target="#使い方">使い方</a></li>
+  <li><a href="#使用方法" id="toc-使用方法" class="nav-link" data-scroll-target="#使用方法">使用方法</a></li>
   </ul></li>
   <li><a href="#実験結果" id="toc-実験結果" class="nav-link" data-scroll-target="#実験結果">実験結果</a>
   <ul class="collapse">
@@ -203,29 +203,25 @@ gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
 
 </header>
 
-<section id="この記事の内容" class="level2">
-<h2 class="anchored" data-anchor-id="この記事の内容">この記事の内容</h2>
-<p>この記事は<code>Multi-Vector Retriever</code>の使い方を紹介し、その上で複数の実験を行い、その有効性を検証します。 検証内容としては以下です。</p>
-<ul>
-<li>以下のメタデータを生成し、それをベクトルとして追加する<br>
-‐ サマリー<br>
-‐ タイトル<br>
-‐ キーワード<br>
-‐ 回答できる質問<br>
-</li>
-<li>ドキュメントを文単位に切り、文単位で検索を行う</li>
-</ul>
+<section id="内容概要" class="level2">
+<h2 class="anchored" data-anchor-id="内容概要">内容概要</h2>
+<p>この記事では、<code>Multi-Vector Retriever</code>の使用方法を紹介し、複数の実験を通じてその効果を検証しました。実験から得られた主な知見は以下の3点です。</p>
+<ol type="1">
+<li>テキストを単純に結合してドキュメントにサマリーを追加すると、精度がむしろ低下することがわかりました。</li>
+<li><code>Multi-Vector Retriever</code>を使用してもTop1の精度は向上しませんでしたが、MRR（平均逆順位）を見ると全体の精度が改善されていることが分かります。</li>
+<li>センテンスレベルでの検索が常に良い結果をもたらすわけではないことが明らかになりました。</li>
+</ol>
 </section>
-<section id="multi-vector-retrieverとは" class="level2">
-<h2 class="anchored" data-anchor-id="multi-vector-retrieverとは">Multi-Vector Retrieverとは</h2>
-<p><code>Multi-Vector Retriever</code>とはLangChainのRetrieverの一つです。名前の通り、複数の埋め込みベクトルで検索を行うことはその特徴です。例えばドキュメントのサマリーを作り、ドキュメントとサマリーそれぞれのベクトルを作成して検索を行うことができます。</p>
+<section id="multi-vector-retrieverについて" class="level2">
+<h2 class="anchored" data-anchor-id="multi-vector-retrieverについて">Multi-Vector Retrieverについて</h2>
+<p><code>Multi-Vector Retriever</code>はLangChainシステムの検索機能の一つで、複数の埋め込みベクトルを使用して検索を行うことが特徴です。ドキュメントのサマリーを作成し、ドキュメントとサマリーの両方に対してベクトルを生成し、それらを用いて検索を行うことができます。</p>
 </section>
-<section id="簡単な利用例" class="level2">
-<h2 class="anchored" data-anchor-id="簡単な利用例">簡単な利用例</h2>
-<p>これから簡単な利用例から使い方を説明します。</p>
+<section id="簡単な使用例" class="level2">
+<h2 class="anchored" data-anchor-id="簡単な使用例">簡単な使用例</h2>
+<p>以下に簡単な使用例を説明します。</p>
 <section id="初期化" class="level3">
 <h3 class="anchored" data-anchor-id="初期化">初期化</h3>
-<p>例えば、今ドキュメントを3つあり、それぞれサマリーを生成しましたが、それを全部検索に使いたいです。初期化する際にはまずヒットしたいドキュメントをIDをつけて<code>docstore</code>に入れます。また、ドキュメントとサマリー両方とも<code>Metadata</code>にIDを入れてVectorstoreを作る必要もあります。</p>
+<p>例えば、現在3つのドキュメントがあり、それぞれにサマリーを生成したとします。これらをすべて検索に使用したい場合、初期化する際にはまず、IDを付けてそれぞれのドキュメントを<code>docstore</code>に追加します。さらに、ドキュメントとサマリーの両方に<code>Metadata</code>としてIDを付け、ベクトルストアを作成する必要があります。</p>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
 <p><img src="multi-vector_retriever_init.svg" class="img-fluid figure-img"></p>
@@ -269,10 +265,10 @@ gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
 <span id="cb1-34"><a href="#cb1-34"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
-<section id="使い方" class="level3">
-<h3 class="anchored" data-anchor-id="使い方">使い方</h3>
-<p>使い方は普通の<code>Retriever</code>と同じように、<code>get_relevant_documents</code>の関数をコールすれば良いです。その中で発生することとしては、まずQueryでVectorstoreで検索をかける。ヒットしたものに対してIDを取り出して、取り出したIDでDocstoreにでドキュメントを取得して返します。</p>
-<p>ここの注意点としては、検索の<code>k=4</code>で指定しましたが、上位4位に<code>ID2</code>が2回出現したため、最終の結果は4個ではなく、3個のドキュメントが出力されます。</p>
+<section id="使用方法" class="level3">
+<h3 class="anchored" data-anchor-id="使用方法">使用方法</h3>
+<p>使用方法は通常の<code>Retriever</code>と同様で、<code>get_relevant_documents</code>関数を呼び出すだけです。この関数内で行われるプロセスは、まずクエリを使ってVectorstoreで検索を行います。検索にヒットしたアイテムからIDを抽出し、そのIDを使用してDocstoreからドキュメントを取得し、結果を返します。</p>
+<p>ここでの注意点は、検索で<code>k=4</code>を指定した場合、上位4位の結果の中に<code>ID2</code>が2回出現することがあります。そのため、最終的な結果は4つではなく、3つのドキュメントが出力されることになります。</p>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
 <p><img src="multi-vector_retriever_retrieve.svg" class="img-fluid figure-img"></p>
@@ -292,7 +288,7 @@ gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
 </section>
 <section id="実験結果" class="level2">
 <h2 class="anchored" data-anchor-id="実験結果">実験結果</h2>
-<p>次に以下の実験を行います。</p>
+<p>以下の実験を行いました。</p>
 <ul>
 <li>サマリーを生成し、それをベクトルとして追加する<br>
 </li>
@@ -452,9 +448,9 @@ a_df.shape: (79, 2)</code></pre>
 </table>
 <p>実験からわかることとしては以下の3点です。</p>
 <ol type="1">
-<li>サマリーを単純にテキストの結合でドキュメントに追加した場合は、精度がむしろ悪化しました。</li>
-<li>Multi-Vector Retrieverのやり方で、Top1の正確率が高くならなかったですが、MRRを見ると、全体の精度が改善できています。</li>
-<li>センテンスレベルでの検索はいつも良い結果を得られる訳では無いです。</li>
+<li>テキストを単純に結合してドキュメントにサマリーを追加すると、精度がむしろ低下することがわかりました。</li>
+<li><code>Multi-Vector Retriever</code>を使用してもTop1の精度は向上しませんでしたが、MRR（平均逆順位）を見ると全体の精度が改善されていることが分かります。</li>
+<li>センテンスレベルでの検索が常に良い結果をもたらすわけではないことが明らかになりました。</li>
 </ol>
 </section>
 </section>
