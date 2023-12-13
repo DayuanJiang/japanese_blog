@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.340">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="dcterms.date" content="2023-12-10">
+
+<title>blog - Multi-Vector Retrieverの使い方とその効果</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit"
+  }
+}</script>
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=G-56TE34D1Z4"></script>
+
+<script type="text/javascript">
+
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg==" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script>
+<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
+<script src="https://unpkg.com/@jupyter-widgets/html-manager@*/dist/embed-amd.js" crossorigin="anonymous"></script>
+
+
+<link rel="stylesheet" href="../../styles.css">
+</head>
+
+<body class="nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container">
+    <a class="navbar-brand" href="../../index.html">
+    <span class="navbar-title">blog</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../about.html" rel="" target="">
+ <span class="menu-text">About</span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="http://www.linkedin.com/in/jiang-dayuan" rel="" target=""><i class="bi bi-linkedin" role="img">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+</ul>
+            <div class="quarto-navbar-tools">
+</div>
+          </div> <!-- /navcollapse -->
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#この記事の内容" id="toc-この記事の内容" class="nav-link active" data-scroll-target="#この記事の内容">この記事の内容</a></li>
+  <li><a href="#multi-vector-retrieverとは" id="toc-multi-vector-retrieverとは" class="nav-link" data-scroll-target="#multi-vector-retrieverとは">Multi-Vector Retrieverとは</a></li>
+  <li><a href="#簡単な利用例" id="toc-簡単な利用例" class="nav-link" data-scroll-target="#簡単な利用例">簡単な利用例</a>
+  <ul class="collapse">
+  <li><a href="#初期化" id="toc-初期化" class="nav-link" data-scroll-target="#初期化">初期化</a></li>
+  <li><a href="#使い方" id="toc-使い方" class="nav-link" data-scroll-target="#使い方">使い方</a></li>
+  </ul></li>
+  <li><a href="#実験結果" id="toc-実験結果" class="nav-link" data-scroll-target="#実験結果">実験結果</a>
+  <ul class="collapse">
+  <li><a href="#実験の設定" id="toc-実験の設定" class="nav-link" data-scroll-target="#実験の設定">実験の設定</a></li>
+  </ul></li>
+  <li><a href="#実験の詳細-コード" id="toc-実験の詳細-コード" class="nav-link" data-scroll-target="#実験の詳細-コード">実験の詳細 + コード</a>
+  <ul class="collapse">
+  <li><a href="#メタデータ実験" id="toc-メタデータ実験" class="nav-link" data-scroll-target="#メタデータ実験">メタデータ実験</a></li>
+  <li><a href="#ドキュメントを文単位に切り文単位で検索を行う" id="toc-ドキュメントを文単位に切り文単位で検索を行う" class="nav-link" data-scroll-target="#ドキュメントを文単位に切り文単位で検索を行う">ドキュメントを文単位に切り、文単位で検索を行う</a></li>
+  </ul></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Multi-Vector Retrieverの使い方とその効果</h1>
+  <div class="quarto-categories">
+    <div class="quarto-category">NLP</div>
+    <div class="quarto-category">LLM</div>
+    <div class="quarto-category">LangChain</div>
+  </div>
+  </div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">December 10, 2023</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+</header>
+
+<section id="この記事の内容" class="level2">
+<h2 class="anchored" data-anchor-id="この記事の内容">この記事の内容</h2>
+<p>この記事は<code>Multi-Vector Retriever</code>の使い方を紹介し、その上で複数の実験を行い、その有効性を検証します。 検証内容としては以下です。</p>
+<ul>
+<li>以下のメタデータを生成し、それをベクトルとして追加する<br>
+‐ サマリー<br>
+‐ タイトル<br>
+‐ キーワード<br>
+‐ 回答できる質問<br>
+</li>
+<li>ドキュメントを文単位に切り、文単位で検索を行う</li>
+</ul>
+</section>
+<section id="multi-vector-retrieverとは" class="level2">
+<h2 class="anchored" data-anchor-id="multi-vector-retrieverとは">Multi-Vector Retrieverとは</h2>
+<p><code>Multi-Vector Retriever</code>とはLangChainのRetrieverの一つです。名前の通り、複数の埋め込みベクトルで検索を行うことはその特徴です。例えばドキュメントのサマリーを作り、ドキュメントとサマリーそれぞれのベクトルを作成して検索を行うことができます。</p>
+</section>
+<section id="簡単な利用例" class="level2">
+<h2 class="anchored" data-anchor-id="簡単な利用例">簡単な利用例</h2>
+<p>これから簡単な利用例から使い方を説明します。</p>
+<section id="初期化" class="level3">
+<h3 class="anchored" data-anchor-id="初期化">初期化</h3>
+<p>例えば、今ドキュメントを3つあり、それぞれサマリーを生成しましたが、それを全部検索に使いたいです。初期化する際にはまずヒットしたいドキュメントをIDをつけて<code>docstore</code>に入れます。また、ドキュメントとサマリー両方とも<code>Metadata</code>にIDを入れてVectorstoreを作る必要もあります。</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="multi-vector_retriever_init.svg" class="img-fluid figure-img"></p>
+<figcaption class="figure-caption">初期化の説明</figcaption>
+</figure>
+</div>
+<div class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1"></a><span class="im">from</span> dotenv <span class="im">import</span> load_dotenv</span>
+<span id="cb1-2"><a href="#cb1-2"></a><span class="im">from</span> langchain.embeddings <span class="im">import</span> OpenAIEmbeddings</span>
+<span id="cb1-3"><a href="#cb1-3"></a><span class="im">from</span> langchain.retrievers.multi_vector <span class="im">import</span> MultiVectorRetriever</span>
+<span id="cb1-4"><a href="#cb1-4"></a><span class="im">from</span> langchain.schema <span class="im">import</span> Document</span>
+<span id="cb1-5"><a href="#cb1-5"></a><span class="im">from</span> langchain.storage <span class="im">import</span> InMemoryStore</span>
+<span id="cb1-6"><a href="#cb1-6"></a><span class="im">from</span> langchain.vectorstores <span class="im">import</span> FAISS</span>
+<span id="cb1-7"><a href="#cb1-7"></a></span>
+<span id="cb1-8"><a href="#cb1-8"></a>load_dotenv()</span>
+<span id="cb1-9"><a href="#cb1-9"></a></span>
+<span id="cb1-10"><a href="#cb1-10"></a><span class="co"># create 3 documents and its summaries</span></span>
+<span id="cb1-11"><a href="#cb1-11"></a>docs <span class="op">=</span> [</span>
+<span id="cb1-12"><a href="#cb1-12"></a>    Document(page_content<span class="op">=</span><span class="st">"doc"</span> <span class="op">+</span> <span class="bu">str</span>(i), metadata<span class="op">=</span>{<span class="st">"doc_id"</span>: <span class="st">"doc"</span> <span class="op">+</span> <span class="bu">str</span>(i)})</span>
+<span id="cb1-13"><a href="#cb1-13"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, <span class="dv">4</span>)</span>
+<span id="cb1-14"><a href="#cb1-14"></a>] </span>
+<span id="cb1-15"><a href="#cb1-15"></a></span>
+<span id="cb1-16"><a href="#cb1-16"></a>summarys <span class="op">=</span> [</span>
+<span id="cb1-17"><a href="#cb1-17"></a>    Document(page_content<span class="op">=</span><span class="st">"summary"</span> <span class="op">+</span> <span class="bu">str</span>(i), metadata<span class="op">=</span>{<span class="st">"doc_id"</span>: <span class="st">"doc"</span> <span class="op">+</span> <span class="bu">str</span>(i)})</span>
+<span id="cb1-18"><a href="#cb1-18"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, <span class="dv">4</span>)</span>
+<span id="cb1-19"><a href="#cb1-19"></a>]</span>
+<span id="cb1-20"><a href="#cb1-20"></a></span>
+<span id="cb1-21"><a href="#cb1-21"></a><span class="co"># initialize docstore</span></span>
+<span id="cb1-22"><a href="#cb1-22"></a>docstore <span class="op">=</span> InMemoryStore()</span>
+<span id="cb1-23"><a href="#cb1-23"></a>docstore.mset(<span class="bu">list</span>(<span class="bu">zip</span>([<span class="st">"doc"</span> <span class="op">+</span> <span class="bu">str</span>(i) <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, <span class="dv">4</span>)], docs)))</span>
+<span id="cb1-24"><a href="#cb1-24"></a></span>
+<span id="cb1-25"><a href="#cb1-25"></a><span class="co"># put documents and summaries in the vector store</span></span>
+<span id="cb1-26"><a href="#cb1-26"></a>multi_vector_vectorstore <span class="op">=</span> FAISS.from_documents(docs <span class="op">+</span> summarys, OpenAIEmbeddings())</span>
+<span id="cb1-27"><a href="#cb1-27"></a></span>
+<span id="cb1-28"><a href="#cb1-28"></a><span class="co"># initialize retriever</span></span>
+<span id="cb1-29"><a href="#cb1-29"></a>sample_retriever <span class="op">=</span> MultiVectorRetriever(</span>
+<span id="cb1-30"><a href="#cb1-30"></a>    vectorstore<span class="op">=</span>multi_vector_vectorstore,</span>
+<span id="cb1-31"><a href="#cb1-31"></a>    docstore<span class="op">=</span>docstore,</span>
+<span id="cb1-32"><a href="#cb1-32"></a>    id_key<span class="op">=</span><span class="st">"doc_id"</span>,</span>
+<span id="cb1-33"><a href="#cb1-33"></a>    search_kwargs<span class="op">=</span>{<span class="st">"k"</span>: <span class="dv">4</span>},</span>
+<span id="cb1-34"><a href="#cb1-34"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="使い方" class="level3">
+<h3 class="anchored" data-anchor-id="使い方">使い方</h3>
+<p>使い方は普通の<code>Retriever</code>と同じように、<code>get_relevant_documents</code>の関数をコールすれば良いです。その中で発生することとしては、まずQueryでVectorstoreで検索をかける。ヒットしたものに対してIDを取り出して、取り出したIDでDocstoreにでドキュメントを取得して返します。</p>
+<p>ここの注意点としては、検索の<code>k=4</code>で指定しましたが、上位4位に<code>ID2</code>が2回出現したため、最終の結果は4個ではなく、3個のドキュメントが出力されます。</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="multi-vector_retriever_retrieve.svg" class="img-fluid figure-img"></p>
+<figcaption class="figure-caption">Multi-Vector Retriever検索の仕組み</figcaption>
+</figure>
+</div>
+<div class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1"></a>sample_retriever.get_relevant_documents(<span class="st">"doc1"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="2">
+<pre><code>[Document(page_content='doc1', metadata={'doc_id': 'doc1'}),
+ Document(page_content='doc2', metadata={'doc_id': 'doc2'}),
+ Document(page_content='doc3', metadata={'doc_id': 'doc3'})]</code></pre>
+</div>
+</div>
+<p>なお、LangChainにあるもう一個<code>Parent Document Retriever</code>はほぼこれと同じ概念です。なんでわざわざ2つ作ったかが謎です。</p>
+</section>
+</section>
+<section id="実験結果" class="level2">
+<h2 class="anchored" data-anchor-id="実験結果">実験結果</h2>
+<p>次に以下の実験を行います。</p>
+<ul>
+<li>サマリーを生成し、それをベクトルとして追加する<br>
+</li>
+<li>ドキュメントを文単位に切り、文単位で検索を行う</li>
+</ul>
+<section id="実験の設定" class="level3">
+<h3 class="anchored" data-anchor-id="実験の設定">実験の設定</h3>
+<p>使うデータはいつもの東京都立大学のeラーニングシステムのQ&amp;Aデータです。このデータは、東京都立大学で導入されたeラーニングシステムのユーザーから2015年4月から2018年7月までに報告された問題点としてのQ&amp;Aデータを収集したものです。427の質問と79の回答が含まれています。質問にどの回答に紐づくかのラベルがあります。</p>
+<p>データの様子は下記の通りです。</p>
+<div class="cell" data-execution_count="3">
+<details>
+<summary>実験用コード</summary>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb4-2"><a href="#cb4-2"></a><span class="im">import</span> html2text</span>
+<span id="cb4-3"><a href="#cb4-3"></a><span class="co"># https://zenodo.org/record/2783642</span></span>
+<span id="cb4-4"><a href="#cb4-4"></a>q_df <span class="op">=</span> pd.read_csv(<span class="st">"https://zenodo.org/record/2783642/files/Questions.csv"</span>)</span>
+<span id="cb4-5"><a href="#cb4-5"></a>a_df <span class="op">=</span> pd.read_csv(<span class="st">"https://zenodo.org/record/2783642/files/Answers.csv"</span>)</span>
+<span id="cb4-6"><a href="#cb4-6"></a><span class="bu">print</span>(<span class="st">"q_df.shape:"</span>, q_df.shape)</span>
+<span id="cb4-7"><a href="#cb4-7"></a><span class="bu">print</span>(<span class="st">"a_df.shape:"</span>, a_df.shape)</span>
+<span id="cb4-8"><a href="#cb4-8"></a>q_df.columns <span class="op">=</span> [c.strip() <span class="cf">for</span> c <span class="kw">in</span> q_df.columns]</span>
+<span id="cb4-9"><a href="#cb4-9"></a>a_df.columns <span class="op">=</span> [c.strip() <span class="cf">for</span> c <span class="kw">in</span> a_df.columns]</span>
+<span id="cb4-10"><a href="#cb4-10"></a>a_df[<span class="st">"Text"</span>] <span class="op">=</span> a_df[<span class="st">"Text"</span>].<span class="bu">apply</span>(<span class="kw">lambda</span> x: html2text.html2text(x))</span>
+<span id="cb4-11"><a href="#cb4-11"></a>df <span class="op">=</span> q_df.merge(a_df, on<span class="op">=</span><span class="st">"AID"</span>)</span>
+<span id="cb4-12"><a href="#cb4-12"></a>df.columns <span class="op">=</span> [<span class="st">"query"</span>, <span class="st">"AID"</span>, <span class="st">"document"</span>]</span>
+<span id="cb4-13"><a href="#cb4-13"></a></span>
+<span id="cb4-14"><a href="#cb4-14"></a>metadata <span class="op">=</span> a_df[[<span class="st">"AID"</span>]].to_dict(orient<span class="op">=</span><span class="st">"records"</span>)</span>
+<span id="cb4-15"><a href="#cb4-15"></a>documents <span class="op">=</span> a_df[<span class="st">"Text"</span>].tolist()</span>
+<span id="cb4-16"><a href="#cb4-16"></a>query_list <span class="op">=</span> <span class="bu">list</span>(<span class="bu">zip</span>(q_df[<span class="st">"Text"</span>], q_df[<span class="st">"AID"</span>]))</span>
+<span id="cb4-17"><a href="#cb4-17"></a>display(q_df.head(<span class="dv">3</span>))</span>
+<span id="cb4-18"><a href="#cb4-18"></a>display(a_df.head(<span class="dv">3</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>q_df.shape: (427, 2)
+a_df.shape: (79, 2)</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">Text</th>
+<th data-quarto-table-cell-role="th">AID</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>履修している授業で先生が資料をアップロードしているはずだが、コース上に資料が見当たらない。</td>
+<td>A001</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>資料をマイページに置いたが、学生からは見えなかった。</td>
+<td>A001</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>前期の科目の「資料」を学生から見られないようにするにはどうしたら良いか？</td>
+<td>A001</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">AID</th>
+<th data-quarto-table-cell-role="th">Text</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>A001</td>
+<td>資料が見つからない場合は、以下の点を確認してください。 \n \n \n【受講生編】 ...</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>A002</td>
+<td>資料のアップロードやお知らせ作成時の電子メールでの通知の有無は、各授業の担当教員が設定できま...</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>A003</td>
+<td>kibacoにはファイルへパスワードを設定する機能はありません。資料は受講生全員に開示されま...</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<p>評価指標は以下の3つです。</p>
+<ol type="1">
+<li>Mean Reciprocal Rank（MRR）: 正解ドキュメントの順位の平均の逆数で、ランク全体を評価する指標。</li>
+<li>Recall@1: 正解ドキュメントが1番目に並んでいるかどうかを評価する指標。</li>
+<li>Recall@5: 正解ドキュメントが上位5位以内に入っているかどうかを評価する指標。</li>
+</ol>
+<p>その結果のまとめは以下になります。</p>
+<table class="table">
+<colgroup>
+<col style="width: 37%">
+<col style="width: 13%">
+<col style="width: 24%">
+<col style="width: 24%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">実験名</th>
+<th style="text-align: right;">mrr</th>
+<th style="text-align: right;">recall_at_1</th>
+<th style="text-align: right;">recall_at_5</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">ドキュメントのみ</td>
+<td style="text-align: right;">0.6777</td>
+<td style="text-align: right;"><strong>0.5457</strong></td>
+<td style="text-align: right;">0.8454</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">サマリーのみ</td>
+<td style="text-align: right;">0.6475</td>
+<td style="text-align: right;">0.5035</td>
+<td style="text-align: right;">0.8244</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong>テキスト結合</strong><br>ドキュメント+サマリー</td>
+<td style="text-align: right;">0.6612</td>
+<td style="text-align: right;">0.5199</td>
+<td style="text-align: right;">0.8407</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong>Multi-Vector Retriever</strong><br>ドキュメント+サマリー</td>
+<td style="text-align: right;"><strong>0.683</strong></td>
+<td style="text-align: right;"><strong>0.5457</strong></td>
+<td style="text-align: right;"><strong>0.8501</strong></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong>Multi-Vector Retriever</strong><br>センテンスレベル</td>
+<td style="text-align: right;">0.66</td>
+<td style="text-align: right;">0.5199</td>
+<td style="text-align: right;">0.8454</td>
+</tr>
+</tbody>
+</table>
+<p>実験からわかることとしては以下の3点です。</p>
+<ol type="1">
+<li>サマリーを単純にテキストの結合でドキュメントに追加した場合は、精度がむしろ悪化しました。</li>
+<li>Multi-Vector Retrieverのやり方で、Top1の正確率が高くならなかったですが、MRRを見ると、全体の精度が改善できています。</li>
+<li>センテンスレベルでの検索はいつも良い結果を得られる訳では無いです。</li>
+</ol>
+</section>
+</section>
+<section id="実験の詳細-コード" class="level2">
+<h2 class="anchored" data-anchor-id="実験の詳細-コード">実験の詳細 + コード</h2>
+<p>実験の詳細は以下です。興味がある方が次にご覧ください。ちなみに、実験の効率化するために、並列化を行いました。</p>
+<div class="cell" data-execution_count="22">
+<details>
+<summary>実験用コード</summary>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1"></a><span class="im">import</span> sys</span>
+<span id="cb6-2"><a href="#cb6-2"></a></span>
+<span id="cb6-3"><a href="#cb6-3"></a>sys.path.append(<span class="st">"../"</span>)</span>
+<span id="cb6-4"><a href="#cb6-4"></a><span class="im">from</span> src.parallel <span class="im">import</span> parallelize_function</span>
+<span id="cb6-5"><a href="#cb6-5"></a><span class="im">from</span> dataclasses <span class="im">import</span> dataclass</span>
+<span id="cb6-6"><a href="#cb6-6"></a></span>
+<span id="cb6-7"><a href="#cb6-7"></a>DOC_NUM <span class="op">=</span> <span class="bu">len</span>(a_df)</span>
+<span id="cb6-8"><a href="#cb6-8"></a></span>
+<span id="cb6-9"><a href="#cb6-9"></a><span class="at">@dataclass</span></span>
+<span id="cb6-10"><a href="#cb6-10"></a><span class="kw">class</span> EvaluationResults:</span>
+<span id="cb6-11"><a href="#cb6-11"></a>    result_df: pd.DataFrame</span>
+<span id="cb6-12"><a href="#cb6-12"></a>    mrr: <span class="bu">float</span></span>
+<span id="cb6-13"><a href="#cb6-13"></a>    recall_at_1: <span class="bu">float</span></span>
+<span id="cb6-14"><a href="#cb6-14"></a>    recall_at_5: <span class="bu">float</span></span>
+<span id="cb6-15"><a href="#cb6-15"></a></span>
+<span id="cb6-16"><a href="#cb6-16"></a></span>
+<span id="cb6-17"><a href="#cb6-17"></a><span class="kw">def</span> mrr(rank_array):</span>
+<span id="cb6-18"><a href="#cb6-18"></a>    <span class="cf">return</span> (<span class="dv">1</span> <span class="op">/</span> rank_array).mean()</span>
+<span id="cb6-19"><a href="#cb6-19"></a></span>
+<span id="cb6-20"><a href="#cb6-20"></a></span>
+<span id="cb6-21"><a href="#cb6-21"></a></span>
+<span id="cb6-22"><a href="#cb6-22"></a><span class="kw">def</span> recall_at_k(rank_array, k):</span>
+<span id="cb6-23"><a href="#cb6-23"></a>    <span class="cf">return</span> (rank_array <span class="op">&lt;=</span> k).mean()</span>
+<span id="cb6-24"><a href="#cb6-24"></a></span>
+<span id="cb6-25"><a href="#cb6-25"></a></span>
+<span id="cb6-26"><a href="#cb6-26"></a><span class="co"># Define a function to be executed in parallel</span></span>
+<span id="cb6-27"><a href="#cb6-27"></a><span class="kw">def</span> evaluate_single_query(query_aid_tuple, search_func, doc_num):</span>
+<span id="cb6-28"><a href="#cb6-28"></a>    query, aid <span class="op">=</span> query_aid_tuple</span>
+<span id="cb6-29"><a href="#cb6-29"></a>    search_result <span class="op">=</span> search_func(query)</span>
+<span id="cb6-30"><a href="#cb6-30"></a>    aid_list <span class="op">=</span> []</span>
+<span id="cb6-31"><a href="#cb6-31"></a>    <span class="cf">for</span> doc <span class="kw">in</span> search_result:</span>
+<span id="cb6-32"><a href="#cb6-32"></a>        aid_list.append(doc.metadata[<span class="st">"doc_id"</span>])</span>
+<span id="cb6-33"><a href="#cb6-33"></a>    <span class="cf">if</span> aid <span class="kw">not</span> <span class="kw">in</span> aid_list:</span>
+<span id="cb6-34"><a href="#cb6-34"></a>        rank <span class="op">=</span> doc_num <span class="op">+</span> <span class="dv">1</span></span>
+<span id="cb6-35"><a href="#cb6-35"></a>    <span class="cf">else</span>:</span>
+<span id="cb6-36"><a href="#cb6-36"></a>        rank <span class="op">=</span> aid_list.index(aid) <span class="op">+</span> <span class="dv">1</span></span>
+<span id="cb6-37"><a href="#cb6-37"></a>    <span class="cf">return</span> query, rank, aid_list</span>
+<span id="cb6-38"><a href="#cb6-38"></a></span>
+<span id="cb6-39"><a href="#cb6-39"></a></span>
+<span id="cb6-40"><a href="#cb6-40"></a><span class="co"># Parallelized evaluate function</span></span>
+<span id="cb6-41"><a href="#cb6-41"></a><span class="kw">def</span> parallel_evaluate(</span>
+<span id="cb6-42"><a href="#cb6-42"></a>    query_list, search_func, max_workers<span class="op">=</span><span class="dv">20</span>, doc_num<span class="op">=</span>DOC_NUM</span>
+<span id="cb6-43"><a href="#cb6-43"></a>):</span>
+<span id="cb6-44"><a href="#cb6-44"></a>    <span class="co"># Prepare arguments for parallel execution</span></span>
+<span id="cb6-45"><a href="#cb6-45"></a>    args_list <span class="op">=</span> [</span>
+<span id="cb6-46"><a href="#cb6-46"></a>        (query_aid, search_func, doc_num) <span class="cf">for</span> query_aid <span class="kw">in</span> query_list</span>
+<span id="cb6-47"><a href="#cb6-47"></a>    ]</span>
+<span id="cb6-48"><a href="#cb6-48"></a></span>
+<span id="cb6-49"><a href="#cb6-49"></a>    <span class="co"># Execute the evaluate_single_query function in parallel</span></span>
+<span id="cb6-50"><a href="#cb6-50"></a>    results <span class="op">=</span> parallelize_function(</span>
+<span id="cb6-51"><a href="#cb6-51"></a>        evaluate_single_query, args_list, max_workers<span class="op">=</span>max_workers</span>
+<span id="cb6-52"><a href="#cb6-52"></a>    )</span>
+<span id="cb6-53"><a href="#cb6-53"></a></span>
+<span id="cb6-54"><a href="#cb6-54"></a>    <span class="co"># Process results and create a DataFrame</span></span>
+<span id="cb6-55"><a href="#cb6-55"></a>    result_list <span class="op">=</span> [result <span class="cf">for</span> result <span class="kw">in</span> results <span class="cf">if</span> <span class="kw">not</span> <span class="bu">isinstance</span>(result, <span class="pp">Exception</span>)]</span>
+<span id="cb6-56"><a href="#cb6-56"></a>    result_df <span class="op">=</span> pd.DataFrame(result_list, columns<span class="op">=</span>[<span class="st">"query"</span>, <span class="st">"rank"</span>, <span class="st">"rank_result"</span>])</span>
+<span id="cb6-57"><a href="#cb6-57"></a></span>
+<span id="cb6-58"><a href="#cb6-58"></a>    <span class="co"># Calculate evaluation metrics</span></span>
+<span id="cb6-59"><a href="#cb6-59"></a>    <span class="cf">return</span> EvaluationResults(</span>
+<span id="cb6-60"><a href="#cb6-60"></a>        result_df,</span>
+<span id="cb6-61"><a href="#cb6-61"></a>        mrr(result_df[<span class="st">"rank"</span>]),</span>
+<span id="cb6-62"><a href="#cb6-62"></a>        recall_at_k(result_df[<span class="st">"rank"</span>], <span class="dv">1</span>),</span>
+<span id="cb6-63"><a href="#cb6-63"></a>        recall_at_k(result_df[<span class="st">"rank"</span>], <span class="dv">5</span>),</span>
+<span id="cb6-64"><a href="#cb6-64"></a>    )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-1-contents" aria-controls="callout-1" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+実験用並列コード
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-1" class="callout-1-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<div class="sourceCode" id="cb7"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1"></a><span class="im">from</span> concurrent.futures <span class="im">import</span> ThreadPoolExecutor, as_completed</span>
+<span id="cb7-2"><a href="#cb7-2"></a><span class="im">from</span> itertools <span class="im">import</span> cycle</span>
+<span id="cb7-3"><a href="#cb7-3"></a></span>
+<span id="cb7-4"><a href="#cb7-4"></a><span class="im">from</span> tenacity <span class="im">import</span> retry, stop_after_attempt, wait_exponential</span>
+<span id="cb7-5"><a href="#cb7-5"></a><span class="im">from</span> tqdm.auto <span class="im">import</span> tqdm</span>
+<span id="cb7-6"><a href="#cb7-6"></a></span>
+<span id="cb7-7"><a href="#cb7-7"></a></span>
+<span id="cb7-8"><a href="#cb7-8"></a><span class="at">@retry</span>(wait<span class="op">=</span>wait_exponential(multiplier<span class="op">=</span><span class="dv">5</span>, <span class="bu">min</span><span class="op">=</span><span class="dv">1</span>, <span class="bu">max</span><span class="op">=</span><span class="dv">60</span>), stop<span class="op">=</span>stop_after_attempt(<span class="dv">5</span>))</span>
+<span id="cb7-9"><a href="#cb7-9"></a><span class="kw">def</span> retry_wrapper(func, <span class="op">*</span>args, <span class="op">**</span>kwargs):</span>
+<span id="cb7-10"><a href="#cb7-10"></a>    <span class="cf">return</span> func(<span class="op">*</span>args, <span class="op">**</span>kwargs)</span>
+<span id="cb7-11"><a href="#cb7-11"></a></span>
+<span id="cb7-12"><a href="#cb7-12"></a></span>
+<span id="cb7-13"><a href="#cb7-13"></a><span class="kw">def</span> parallelize_function(funcs, args_list, kwargs_list<span class="op">=</span><span class="va">None</span>, max_workers<span class="op">=</span><span class="dv">10</span>):</span>
+<span id="cb7-14"><a href="#cb7-14"></a>    <span class="cf">if</span> kwargs_list <span class="kw">is</span> <span class="va">None</span>:</span>
+<span id="cb7-15"><a href="#cb7-15"></a>        kwargs_list <span class="op">=</span> [{}] <span class="op">*</span> <span class="bu">len</span>(</span>
+<span id="cb7-16"><a href="#cb7-16"></a>            args_list</span>
+<span id="cb7-17"><a href="#cb7-17"></a>        )  <span class="co"># Empty dictionaries if no kwargs are provided</span></span>
+<span id="cb7-18"><a href="#cb7-18"></a></span>
+<span id="cb7-19"><a href="#cb7-19"></a>    <span class="cf">if</span> <span class="kw">not</span> <span class="bu">isinstance</span>(funcs, <span class="bu">list</span>):</span>
+<span id="cb7-20"><a href="#cb7-20"></a>        funcs <span class="op">=</span> [funcs]  <span class="co"># Make it a list if a single function is provided</span></span>
+<span id="cb7-21"><a href="#cb7-21"></a></span>
+<span id="cb7-22"><a href="#cb7-22"></a>    <span class="co"># Ensure args_list and kwargs_list have the same length</span></span>
+<span id="cb7-23"><a href="#cb7-23"></a>    <span class="cf">if</span> <span class="bu">len</span>(args_list) <span class="op">!=</span> <span class="bu">len</span>(kwargs_list):</span>
+<span id="cb7-24"><a href="#cb7-24"></a>        <span class="cf">raise</span> <span class="pp">ValueError</span>(<span class="st">"args_list and kwargs_list must have the same length."</span>)</span>
+<span id="cb7-25"><a href="#cb7-25"></a></span>
+<span id="cb7-26"><a href="#cb7-26"></a>    results <span class="op">=</span> [<span class="va">None</span>] <span class="op">*</span> <span class="bu">len</span>(args_list)  <span class="co"># Pre-allocate results list with None values</span></span>
+<span id="cb7-27"><a href="#cb7-27"></a>    <span class="cf">with</span> ThreadPoolExecutor(max_workers<span class="op">=</span>max_workers) <span class="im">as</span> executor:</span>
+<span id="cb7-28"><a href="#cb7-28"></a>        futures_to_index <span class="op">=</span> {}</span>
+<span id="cb7-29"><a href="#cb7-29"></a>        func_iter <span class="op">=</span> cycle(funcs)  <span class="co"># Use itertools.cycle to handle function iteration</span></span>
+<span id="cb7-30"><a href="#cb7-30"></a></span>
+<span id="cb7-31"><a href="#cb7-31"></a>        <span class="co"># Submit tasks to the executor</span></span>
+<span id="cb7-32"><a href="#cb7-32"></a>        <span class="cf">for</span> i, (args, kwargs) <span class="kw">in</span> <span class="bu">enumerate</span>(<span class="bu">zip</span>(args_list, kwargs_list)):</span>
+<span id="cb7-33"><a href="#cb7-33"></a>            func <span class="op">=</span> <span class="bu">next</span>(func_iter)</span>
+<span id="cb7-34"><a href="#cb7-34"></a>            future <span class="op">=</span> executor.submit(retry_wrapper, func, <span class="op">*</span>args, <span class="op">**</span>kwargs)</span>
+<span id="cb7-35"><a href="#cb7-35"></a>            futures_to_index[future] <span class="op">=</span> i  <span class="co"># Map future to its index in args_list</span></span>
+<span id="cb7-36"><a href="#cb7-36"></a></span>
+<span id="cb7-37"><a href="#cb7-37"></a>        <span class="co"># Collect results as tasks complete</span></span>
+<span id="cb7-38"><a href="#cb7-38"></a>        <span class="cf">for</span> future <span class="kw">in</span> tqdm(</span>
+<span id="cb7-39"><a href="#cb7-39"></a>            as_completed(futures_to_index),</span>
+<span id="cb7-40"><a href="#cb7-40"></a>            total<span class="op">=</span><span class="bu">len</span>(futures_to_index),</span>
+<span id="cb7-41"><a href="#cb7-41"></a>            desc<span class="op">=</span><span class="st">"Processing tasks"</span>,</span>
+<span id="cb7-42"><a href="#cb7-42"></a>        ):</span>
+<span id="cb7-43"><a href="#cb7-43"></a>            index <span class="op">=</span> futures_to_index[future]</span>
+<span id="cb7-44"><a href="#cb7-44"></a>            <span class="cf">try</span>:</span>
+<span id="cb7-45"><a href="#cb7-45"></a>                result <span class="op">=</span> future.result()</span>
+<span id="cb7-46"><a href="#cb7-46"></a>                results[index] <span class="op">=</span> result  <span class="co"># Place result in the corresponding index</span></span>
+<span id="cb7-47"><a href="#cb7-47"></a>            <span class="cf">except</span> <span class="pp">Exception</span> <span class="im">as</span> exc:</span>
+<span id="cb7-48"><a href="#cb7-48"></a>                <span class="bu">print</span>(<span class="ss">f"Task </span><span class="sc">{</span>index<span class="sc">}</span><span class="ss"> generated an exception: </span><span class="sc">{</span>exc<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb7-49"><a href="#cb7-49"></a>                results[index] <span class="op">=</span> exc  <span class="co"># Store the exception in the results list</span></span>
+<span id="cb7-50"><a href="#cb7-50"></a></span>
+<span id="cb7-51"><a href="#cb7-51"></a>    <span class="cf">return</span> results</span>
+<span id="cb7-52"><a href="#cb7-52"></a></span>
+<span id="cb7-53"><a href="#cb7-53"></a></span>
+<span id="cb7-54"><a href="#cb7-54"></a><span class="co"># Example usage:</span></span>
+<span id="cb7-55"><a href="#cb7-55"></a><span class="co"># funcs = [chain1.invoke, chain2.invoke]  # List of functions for load balancing</span></span>
+<span id="cb7-56"><a href="#cb7-56"></a><span class="co"># args_list = [(arg1,), (arg2,), ...]  # List of argument tuples</span></span>
+<span id="cb7-57"><a href="#cb7-57"></a><span class="co"># kwargs_list = [{"kwarg1": value1}, {"kwarg2": value2}, ...]  # List of keyword argument dictionaries</span></span>
+<span id="cb7-58"><a href="#cb7-58"></a><span class="co"># results = parallelize_function(funcs, args_list, kwargs_list)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</div>
+</div>
+<section id="メタデータ実験" class="level3">
+<h3 class="anchored" data-anchor-id="メタデータ実験">メタデータ実験</h3>
+<p>今回はサマリーを生成し、それをベクトルとして追加します。</p>
+<p>まず必要なのはデータ生成です。まず簡単のプロンプトを書いて、それぞれのデータを生成します。これも本記事の本題ではないため、コードを折り畳みします。</p>
+<div class="cell">
+<details>
+<summary>データ生成用コード</summary>
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1"></a><span class="im">from</span> dotenv <span class="im">import</span> load_dotenv</span>
+<span id="cb8-2"><a href="#cb8-2"></a><span class="im">from</span> langchain.chat_models.openai <span class="im">import</span> ChatOpenAI</span>
+<span id="cb8-3"><a href="#cb8-3"></a><span class="im">from</span> langchain.embeddings <span class="im">import</span> OpenAIEmbeddings</span>
+<span id="cb8-4"><a href="#cb8-4"></a><span class="im">from</span> langchain.schema <span class="im">import</span> HumanMessage</span>
+<span id="cb8-5"><a href="#cb8-5"></a><span class="im">from</span> tqdm.auto <span class="im">import</span> tqdm</span>
+<span id="cb8-6"><a href="#cb8-6"></a></span>
+<span id="cb8-7"><a href="#cb8-7"></a>_ <span class="op">=</span> load_dotenv()</span>
+<span id="cb8-8"><a href="#cb8-8"></a></span>
+<span id="cb8-9"><a href="#cb8-9"></a>llm <span class="op">=</span> ChatOpenAI(temperature<span class="op">=</span><span class="dv">0</span>, model<span class="op">=</span><span class="st">"gpt-3.5-turbo"</span>, request_timeout<span class="op">=</span><span class="dv">20</span>)</span>
+<span id="cb8-10"><a href="#cb8-10"></a></span>
+<span id="cb8-11"><a href="#cb8-11"></a><span class="kw">def</span> generate_metadata(msg, text_list, save_path):</span>
+<span id="cb8-12"><a href="#cb8-12"></a>    metadata <span class="op">=</span> []</span>
+<span id="cb8-13"><a href="#cb8-13"></a>    <span class="cf">for</span> txt <span class="kw">in</span> tqdm(text_list):</span>
+<span id="cb8-14"><a href="#cb8-14"></a>        result <span class="op">=</span> llm([HumanMessage(content<span class="op">=</span>msg.<span class="bu">format</span>(doc<span class="op">=</span>txt))]).content.replace(<span class="st">"</span><span class="ch">\n</span><span class="st">"</span>, <span class="st">" "</span>)</span>
+<span id="cb8-15"><a href="#cb8-15"></a>        metadata.append(result)</span>
+<span id="cb8-16"><a href="#cb8-16"></a></span>
+<span id="cb8-17"><a href="#cb8-17"></a>    <span class="cf">with</span> <span class="bu">open</span>(save_path, <span class="st">"w"</span>) <span class="im">as</span> f:</span>
+<span id="cb8-18"><a href="#cb8-18"></a>        f.write(<span class="st">"</span><span class="ch">\n</span><span class="st">"</span>.join(metadata))</span>
+<span id="cb8-19"><a href="#cb8-19"></a></span>
+<span id="cb8-20"><a href="#cb8-20"></a></span>
+<span id="cb8-21"><a href="#cb8-21"></a>msg <span class="op">=</span> <span class="st">"""</span></span>
+<span id="cb8-22"><a href="#cb8-22"></a><span class="st">次のドキュメントを50字以内にサマリーしてください。</span></span>
+<span id="cb8-23"><a href="#cb8-23"></a><span class="st">===ドキュメント===</span></span>
+<span id="cb8-24"><a href="#cb8-24"></a><span class="sc">{doc}</span></span>
+<span id="cb8-25"><a href="#cb8-25"></a><span class="st">"""</span></span>
+<span id="cb8-26"><a href="#cb8-26"></a>text_list <span class="op">=</span> a_df.Text.to_list()</span>
+<span id="cb8-27"><a href="#cb8-27"></a>generate_metadata(msg, text_list, <span class="st">"./3.5_turbo_summaries.txt"</span>)</span>
+<span id="cb8-28"><a href="#cb8-28"></a></span>
+<span id="cb8-29"><a href="#cb8-29"></a><span class="cf">with</span> <span class="bu">open</span>(<span class="st">"3.5_turbo_summaries.txt"</span>, <span class="st">"r"</span>) <span class="im">as</span> f:</span>
+<span id="cb8-30"><a href="#cb8-30"></a>    summaries <span class="op">=</span> f.read().split(<span class="st">"</span><span class="ch">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<p>出力したデータのサンプルをお見せします。</p>
+<div class="cell" data-execution_count="51">
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1"></a><span class="bu">print</span>(summaries[<span class="dv">0</span>])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>資料が見つからない場合の確認事項は以下の通りです。受講生は自身が登録されているコースを確認し、資料の利用可能期間を確認してください。教員は科目に対応するコースに資料を掲載し、同じ曜日・時限・教室で開講する別の科目がないか確認し、フォルダやファイルが非表示になっていないか、利用可能期間が正しく設定されているかを確認してください。</code></pre>
+</div>
+</div>
+<p>次に直接ドキュメントに追加した場合とMulti-Vector Retrieverを使う場合の検索精度をみます。</p>
+<div class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1"></a><span class="im">from</span> langchain.retrievers.multi_vector <span class="im">import</span> MultiVectorRetriever, ParentDocumentRetriever</span>
+<span id="cb11-2"><a href="#cb11-2"></a><span class="im">from</span> langchain.schema.document <span class="im">import</span> Document</span>
+<span id="cb11-3"><a href="#cb11-3"></a><span class="im">from</span> langchain.storage <span class="im">import</span> InMemoryStore</span>
+<span id="cb11-4"><a href="#cb11-4"></a><span class="im">from</span> langchain.vectorstores <span class="im">import</span> FAISS</span>
+<span id="cb11-5"><a href="#cb11-5"></a></span>
+<span id="cb11-6"><a href="#cb11-6"></a>docs <span class="op">=</span> [</span>
+<span id="cb11-7"><a href="#cb11-7"></a>    Document(page_content<span class="op">=</span>s, metadata<span class="op">=</span>{<span class="st">"doc_id"</span>: a_df.AID[i]})</span>
+<span id="cb11-8"><a href="#cb11-8"></a>    <span class="cf">for</span> i, s <span class="kw">in</span> <span class="bu">enumerate</span>(a_df.Text.tolist())</span>
+<span id="cb11-9"><a href="#cb11-9"></a>]</span>
+<span id="cb11-10"><a href="#cb11-10"></a></span>
+<span id="cb11-11"><a href="#cb11-11"></a>summarys <span class="op">=</span> [</span>
+<span id="cb11-12"><a href="#cb11-12"></a>    Document(page_content<span class="op">=</span>summaries[i], metadata<span class="op">=</span>{<span class="st">"doc_id"</span>: a_df.AID[i]})</span>
+<span id="cb11-13"><a href="#cb11-13"></a>    <span class="cf">for</span> i, s <span class="kw">in</span> <span class="bu">enumerate</span>(a_df.Text.tolist())</span>
+<span id="cb11-14"><a href="#cb11-14"></a>]</span>
+<span id="cb11-15"><a href="#cb11-15"></a></span>
+<span id="cb11-16"><a href="#cb11-16"></a></span>
+<span id="cb11-17"><a href="#cb11-17"></a>doc_summarys <span class="op">=</span> [</span>
+<span id="cb11-18"><a href="#cb11-18"></a>    Document(</span>
+<span id="cb11-19"><a href="#cb11-19"></a>        page_content<span class="op">=</span><span class="ss">f"summary: </span><span class="sc">{</span>summaries[i]<span class="sc">}</span><span class="ss"> </span><span class="ch">\n</span><span class="ss"> text: </span><span class="sc">{</span>a_df<span class="sc">.</span>Text[i]<span class="sc">}</span><span class="ss">"</span>,</span>
+<span id="cb11-20"><a href="#cb11-20"></a>        metadata<span class="op">=</span>{<span class="st">"doc_id"</span>: a_df.AID[i]},</span>
+<span id="cb11-21"><a href="#cb11-21"></a>    )</span>
+<span id="cb11-22"><a href="#cb11-22"></a>    <span class="cf">for</span> i, s <span class="kw">in</span> <span class="bu">enumerate</span>(a_df.Text.tolist())</span>
+<span id="cb11-23"><a href="#cb11-23"></a>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1"></a>vectorstore_doc <span class="op">=</span> FAISS.from_documents(docs, OpenAIEmbeddings())</span>
+<span id="cb12-2"><a href="#cb12-2"></a>vectorstore_summary <span class="op">=</span> FAISS.from_documents(summarys, OpenAIEmbeddings())</span>
+<span id="cb12-3"><a href="#cb12-3"></a>vectorstore_doc_summary <span class="op">=</span> FAISS.from_documents(doc_summarys, OpenAIEmbeddings())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="23">
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1"></a>doc_result <span class="op">=</span> parallel_evaluate(</span>
+<span id="cb13-2"><a href="#cb13-2"></a>    query_list, <span class="kw">lambda</span> q: vectorstore_doc.similarity_search(q, k<span class="op">=</span>DOC_NUM)</span>
+<span id="cb13-3"><a href="#cb13-3"></a>)</span>
+<span id="cb13-4"><a href="#cb13-4"></a>summary_result <span class="op">=</span> parallel_evaluate(</span>
+<span id="cb13-5"><a href="#cb13-5"></a>    query_list, <span class="kw">lambda</span> q: vectorstore_summary.similarity_search(q, k<span class="op">=</span>DOC_NUM)</span>
+<span id="cb13-6"><a href="#cb13-6"></a>)</span>
+<span id="cb13-7"><a href="#cb13-7"></a>doc_summary_result <span class="op">=</span> parallel_evaluate(</span>
+<span id="cb13-8"><a href="#cb13-8"></a>    query_list, <span class="kw">lambda</span> q: vectorstore_doc_summary.similarity_search(q, k<span class="op">=</span>DOC_NUM)</span>
+<span id="cb13-9"><a href="#cb13-9"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<script type="application/vnd.jupyter.widget-view+json">
+{"model_id":"2ecb027b0de34c3e98429f74abf3037c","version_major":2,"version_minor":0,"quarto_mimetype":"application/vnd.jupyter.widget-view+json"}
+</script>
+</div>
+<div class="cell-output cell-output-display">
+<script type="application/vnd.jupyter.widget-view+json">
+{"model_id":"fe0f65b4f1144dc6ac1ffb04598f5ca9","version_major":2,"version_minor":0,"quarto_mimetype":"application/vnd.jupyter.widget-view+json"}
+</script>
+</div>
+<div class="cell-output cell-output-display">
+<script type="application/vnd.jupyter.widget-view+json">
+{"model_id":"51c3529886d94094bb9c4dd8f7aef9b7","version_major":2,"version_minor":0,"quarto_mimetype":"application/vnd.jupyter.widget-view+json"}
+</script>
+</div>
+<div class="cell-output cell-output-display">
+<script type="application/vnd.jupyter.widget-view+json">
+{"model_id":"595d95e373d24e30b92501f5a8ba2ef9","version_major":2,"version_minor":0,"quarto_mimetype":"application/vnd.jupyter.widget-view+json"}
+</script>
+</div>
+<div class="cell-output cell-output-display">
+<script type="application/vnd.jupyter.widget-view+json">
+{"model_id":"7d09a60ca22b4d208a915d80a69ee063","version_major":2,"version_minor":0,"quarto_mimetype":"application/vnd.jupyter.widget-view+json"}
+</script>
+</div>
+<div class="cell-output cell-output-display">
+<script type="application/vnd.jupyter.widget-view+json">
+{"model_id":"75745d4330a1462ea06e63147a7d377c","version_major":2,"version_minor":0,"quarto_mimetype":"application/vnd.jupyter.widget-view+json"}
+</script>
+</div>
+</div>
+<div class="cell" data-execution_count="52">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1"></a>result_df <span class="op">=</span> pd.DataFrame(</span>
+<span id="cb14-2"><a href="#cb14-2"></a>    [</span>
+<span id="cb14-3"><a href="#cb14-3"></a>        [<span class="st">"only_doc"</span>, doc_result.mrr, doc_result.recall_at_1, doc_result.recall_at_5],</span>
+<span id="cb14-4"><a href="#cb14-4"></a>        [<span class="st">"summary"</span>, summary_result.mrr, summary_result.recall_at_1, summary_result.recall_at_5],</span>
+<span id="cb14-5"><a href="#cb14-5"></a>        [<span class="st">"doc_summary"</span>, doc_summary_result.mrr, doc_summary_result.recall_at_1, doc_summary_result.recall_at_5],</span>
+<span id="cb14-6"><a href="#cb14-6"></a>        ],</span>
+<span id="cb14-7"><a href="#cb14-7"></a>    columns <span class="op">=</span> [<span class="st">"model_id"</span>,<span class="st">"mrr"</span>,<span class="st">"recall_at_1"</span>,<span class="st">"recall_at_5"</span>]</span>
+<span id="cb14-8"><a href="#cb14-8"></a>    ).sort_values(<span class="st">"mrr"</span>, ascending<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb14-9"><a href="#cb14-9"></a>result_df.<span class="bu">round</span>(<span class="dv">4</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="52">
+<div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">model_id</th>
+<th data-quarto-table-cell-role="th">mrr</th>
+<th data-quarto-table-cell-role="th">recall_at_1</th>
+<th data-quarto-table-cell-role="th">recall_at_5</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>only_doc</td>
+<td>0.6777</td>
+<td>0.5457</td>
+<td>0.8454</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">2</td>
+<td>doc_summary</td>
+<td>0.6612</td>
+<td>0.5199</td>
+<td>0.8407</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">1</td>
+<td>summary</td>
+<td>0.6475</td>
+<td>0.5035</td>
+<td>0.8244</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<p>ご覧の通り、それぞれ直接ドキュメントに追加する場合は、性能が逆に悪化しました。</p>
+<p>次に説明の中と同じようにドキュメントとサマリーに結合した場合どうなるかをみてみます。</p>
+<div class="cell" data-execution_count="26">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1"></a>multi_vector_vectorstore <span class="op">=</span> FAISS.from_documents(docs <span class="op">+</span> summarys, OpenAIEmbeddings())</span>
+<span id="cb15-2"><a href="#cb15-2"></a><span class="co"># The storage layer for the parent documents</span></span>
+<span id="cb15-3"><a href="#cb15-3"></a>store <span class="op">=</span> InMemoryStore()</span>
+<span id="cb15-4"><a href="#cb15-4"></a><span class="co"># The retriever (empty to start)</span></span>
+<span id="cb15-5"><a href="#cb15-5"></a>multi_vector_retriever <span class="op">=</span> MultiVectorRetriever(</span>
+<span id="cb15-6"><a href="#cb15-6"></a>    vectorstore<span class="op">=</span>multi_vector_vectorstore,</span>
+<span id="cb15-7"><a href="#cb15-7"></a>    docstore<span class="op">=</span>store,</span>
+<span id="cb15-8"><a href="#cb15-8"></a>    id_key<span class="op">=</span><span class="st">"doc_id"</span>,</span>
+<span id="cb15-9"><a href="#cb15-9"></a>    search_kwargs<span class="op">=</span>{<span class="st">"k"</span>: <span class="dv">1000</span>},</span>
+<span id="cb15-10"><a href="#cb15-10"></a>)</span>
+<span id="cb15-11"><a href="#cb15-11"></a>multi_vector_retriever.docstore.mset(<span class="bu">list</span>(<span class="bu">zip</span>(a_df.AID.tolist(), docs)))</span>
+<span id="cb15-12"><a href="#cb15-12"></a>multi_vectore_result <span class="op">=</span> parallel_evaluate(</span>
+<span id="cb15-13"><a href="#cb15-13"></a>    query_list, <span class="kw">lambda</span> q: multi_vector_retriever.get_relevant_documents(q)</span>
+<span id="cb15-14"><a href="#cb15-14"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<script type="application/vnd.jupyter.widget-view+json">
+{"model_id":"028458bb8a944d499ceb10afa3542ce8","version_major":2,"version_minor":0,"quarto_mimetype":"application/vnd.jupyter.widget-view+json"}
+</script>
+</div>
+</div>
+<div class="cell" data-execution_count="53">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1"></a><span class="co"># add the result to the dataframe as a row </span></span>
+<span id="cb16-2"><a href="#cb16-2"></a>new_row <span class="op">=</span> {</span>
+<span id="cb16-3"><a href="#cb16-3"></a>        <span class="st">"model_id"</span>: <span class="st">"multi_vector"</span>,</span>
+<span id="cb16-4"><a href="#cb16-4"></a>        <span class="st">"mrr"</span>: multi_vectore_result.mrr,</span>
+<span id="cb16-5"><a href="#cb16-5"></a>        <span class="st">"recall_at_1"</span>: multi_vectore_result.recall_at_1,</span>
+<span id="cb16-6"><a href="#cb16-6"></a>        <span class="st">"recall_at_5"</span>: multi_vectore_result.recall_at_5,</span>
+<span id="cb16-7"><a href="#cb16-7"></a>    },</span>
+<span id="cb16-8"><a href="#cb16-8"></a>result_df <span class="op">=</span> pd.concat([result_df, pd.DataFrame(new_row)], ignore_index<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb16-9"><a href="#cb16-9"></a>result_df.<span class="bu">round</span>(<span class="dv">4</span>).sort_values(<span class="st">"mrr"</span>, ascending<span class="op">=</span><span class="va">False</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="53">
+<div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">model_id</th>
+<th data-quarto-table-cell-role="th">mrr</th>
+<th data-quarto-table-cell-role="th">recall_at_1</th>
+<th data-quarto-table-cell-role="th">recall_at_5</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">3</td>
+<td>multi_vector</td>
+<td>0.6830</td>
+<td>0.5457</td>
+<td>0.8501</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">0</td>
+<td>only_doc</td>
+<td>0.6777</td>
+<td>0.5457</td>
+<td>0.8454</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">1</td>
+<td>doc_summary</td>
+<td>0.6612</td>
+<td>0.5199</td>
+<td>0.8407</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">2</td>
+<td>summary</td>
+<td>0.6475</td>
+<td>0.5035</td>
+<td>0.8244</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+</section>
+<section id="ドキュメントを文単位に切り文単位で検索を行う" class="level3">
+<h3 class="anchored" data-anchor-id="ドキュメントを文単位に切り文単位で検索を行う">ドキュメントを文単位に切り、文単位で検索を行う</h3>
+<p>次にドキュメントを文単位に切り、文単位で検索を行います。</p>
+<div class="cell" data-execution_count="40">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1"></a>sentences <span class="op">=</span> [</span>
+<span id="cb17-2"><a href="#cb17-2"></a>    Document(page_content<span class="op">=</span>sent, metadata<span class="op">=</span>{<span class="st">"doc_id"</span>: a_df.AID[i]})</span>
+<span id="cb17-3"><a href="#cb17-3"></a>    <span class="cf">for</span> i, s <span class="kw">in</span> <span class="bu">enumerate</span>(a_df.Text.tolist())</span>
+<span id="cb17-4"><a href="#cb17-4"></a>    <span class="cf">for</span> sent <span class="kw">in</span> s.split(<span class="st">"</span><span class="ch">\n</span><span class="st">"</span>)</span>
+<span id="cb17-5"><a href="#cb17-5"></a>]</span>
+<span id="cb17-6"><a href="#cb17-6"></a><span class="bu">print</span>(<span class="bu">len</span>(sentences))</span>
+<span id="cb17-7"><a href="#cb17-7"></a>multi_vector_vectorstore_sent <span class="op">=</span> FAISS.from_documents(sentences, OpenAIEmbeddings())</span>
+<span id="cb17-8"><a href="#cb17-8"></a><span class="co"># The storage layer for the parent documents</span></span>
+<span id="cb17-9"><a href="#cb17-9"></a>store <span class="op">=</span> InMemoryStore()</span>
+<span id="cb17-10"><a href="#cb17-10"></a><span class="co"># The retriever (empty to start)</span></span>
+<span id="cb17-11"><a href="#cb17-11"></a>multi_vector_retriever_sent <span class="op">=</span> MultiVectorRetriever(</span>
+<span id="cb17-12"><a href="#cb17-12"></a>    vectorstore<span class="op">=</span>multi_vector_vectorstore_sent,</span>
+<span id="cb17-13"><a href="#cb17-13"></a>    docstore<span class="op">=</span>store,</span>
+<span id="cb17-14"><a href="#cb17-14"></a>    id_key<span class="op">=</span><span class="st">"doc_id"</span>,</span>
+<span id="cb17-15"><a href="#cb17-15"></a>    search_kwargs<span class="op">=</span>{<span class="st">"k"</span>: <span class="dv">1000</span>},</span>
+<span id="cb17-16"><a href="#cb17-16"></a>)</span>
+<span id="cb17-17"><a href="#cb17-17"></a>multi_vector_retriever_sent.docstore.mset(<span class="bu">list</span>(<span class="bu">zip</span>(a_df.AID.tolist(), docs)))</span>
+<span id="cb17-18"><a href="#cb17-18"></a>multi_vector_retriever_sent_result <span class="op">=</span> parallel_evaluate(</span>
+<span id="cb17-19"><a href="#cb17-19"></a>    query_list, <span class="kw">lambda</span> q: multi_vector_retriever_sent.get_relevant_documents(q)</span>
+<span id="cb17-20"><a href="#cb17-20"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>333</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<script type="application/vnd.jupyter.widget-view+json">
+{"model_id":"5cc9c8951a55415eb1aec4eb4402de5b","version_major":2,"version_minor":0,"quarto_mimetype":"application/vnd.jupyter.widget-view+json"}
+</script>
+</div>
+</div>
+<div class="cell" data-execution_count="43">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1"></a>multi_vector_retriever_sent_result <span class="op">=</span> parallel_evaluate(</span>
+<span id="cb19-2"><a href="#cb19-2"></a>    query_list, <span class="kw">lambda</span> q: multi_vector_retriever_sent.get_relevant_documents(q)</span>
+<span id="cb19-3"><a href="#cb19-3"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<script type="application/vnd.jupyter.widget-view+json">
+{"model_id":"515d132241014b1b983db7e9ff4915eb","version_major":2,"version_minor":0,"quarto_mimetype":"application/vnd.jupyter.widget-view+json"}
+</script>
+</div>
+</div>
+<div class="cell" data-execution_count="55">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1"></a>new_row <span class="op">=</span> {</span>
+<span id="cb20-2"><a href="#cb20-2"></a>        <span class="st">"model_id"</span>: <span class="st">"multi_vector_sent"</span>,</span>
+<span id="cb20-3"><a href="#cb20-3"></a>        <span class="st">"mrr"</span>: multi_vector_retriever_sent_result.mrr,</span>
+<span id="cb20-4"><a href="#cb20-4"></a>        <span class="st">"recall_at_1"</span>: multi_vector_retriever_sent_result.recall_at_1,</span>
+<span id="cb20-5"><a href="#cb20-5"></a>        <span class="st">"recall_at_5"</span>: multi_vector_retriever_sent_result.recall_at_5,</span>
+<span id="cb20-6"><a href="#cb20-6"></a>    },</span>
+<span id="cb20-7"><a href="#cb20-7"></a>result_df <span class="op">=</span> pd.concat([result_df, pd.DataFrame(new_row)], ignore_index<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb20-8"><a href="#cb20-8"></a>result_df.<span class="bu">round</span>(<span class="dv">4</span>).sort_values(<span class="st">"mrr"</span>, ascending<span class="op">=</span><span class="va">False</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="55">
+<div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">model_id</th>
+<th data-quarto-table-cell-role="th">mrr</th>
+<th data-quarto-table-cell-role="th">recall_at_1</th>
+<th data-quarto-table-cell-role="th">recall_at_5</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>multi_vector_all_docs</td>
+<td>0.6831</td>
+<td>0.5433</td>
+<td>0.8595</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>multi_vector</td>
+<td>0.6830</td>
+<td>0.5457</td>
+<td>0.8501</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>only_doc</td>
+<td>0.6777</td>
+<td>0.5457</td>
+<td>0.8454</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>doc_summary</td>
+<td>0.6612</td>
+<td>0.5199</td>
+<td>0.8407</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">5</td>
+<td>multi_vector_sent</td>
+<td>0.6600</td>
+<td>0.5199</td>
+<td>0.8454</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">2</td>
+<td>summary</td>
+<td>0.6475</td>
+<td>0.5035</td>
+<td>0.8244</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+
+
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+<script src="https://utteranc.es/client.js" repo="AlbertRapp/blogComments" issue-term="pathname" theme="github-light" crossorigin="anonymous" async="">
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>

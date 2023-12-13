@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="dcterms.date" content="2023-10-11">
-<meta name="description" content="音声基礎モデルの中のCPC, Wav2vec 2.0, XLS-R, HuBERT, WavLM, Best-RQを紹介しました。">
+<meta name="description" content="Stanford University CS224N Lecture 1 のスライドの解説、メインのテーマは授業の紹介とWord2vec">
 
 <title>blog - Stanford CS224N 深層学習による自然言語処理 Lecture 1 まとめ</title>
 <style>
@@ -232,10 +232,13 @@ gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
 </section>
 <section id="最適化の基礎" class="level2">
 <h2 class="anchored" data-anchor-id="最適化の基礎">最適化の基礎</h2>
-<p><img src="images/0036 Large.jpeg" class="img-fluid"> Word2vecは勾配降下法で最適化します。(勾配降下法について詳しく知りたい方は、CourseraのAndrew Ng先生の機械学習の授業の受講を強くおすすめします。)</p>
-<p><img src="images/0037 Large.jpeg" class="img-fluid">勾配降下法は簡単に言うと、目的関数がパラメーターに対する偏微分を計算し、パラメーターが偏微分をひくことで目的関数を最小化することができます。</p>
-<p>αは学習率です。</p>
-<p><img src="images/0038 Large.jpeg" class="img-fluid"> また、勾配降下法はすべてのデータに対して同時計算しています。学習データの中にある単語数は数十億あるため、同時計算はできないため、一般的なやり方としては、毎回数個のデータを使ってパラメーターをアップデートすることです。それはStochastic gradient descent(SGD)と言います。</p>
+<p><img src="images/0036 Large.jpeg" class="img-fluid">ワードベクトルの学習方法については、ランダムなワードベクトルから始め、損失関数を定義し、勾配降下法を用いて損失関数を最小化するようにベクトルを更新していきます。具体的には、現在のパラメータから勾配を計算し、その負の方向に小さなステップを進めることで、損失関数を最小化する方向に進んでいきます。</p>
+<p>ステップサイズは調整可能で、小さすぎると計算が多くなり、大きすぎると最適解に収束しない可能性があります。また、ニューラルネットワークは一般的に凸ではないため、最適解が一意でない可能性がありますが、実際には問題なく動作します。</p>
+<p>(勾配降下法について詳しく知りたい方は、CourseraのAndrew Ng先生の機械学習の授業の受講を強くおすすめします。)</p>
+<p><img src="images/0037 Large.jpeg" class="img-fluid"></p>
+<p>勾配降下法とは、現在のパラメータθの値を持ち、学習率またはステップサイズαを使用して勾配の負の方向に少し移動します。これにより、新しいパラメータ値が得られます。これらはベクトルであり、各個別のパラメータは、そのパラメータに対するjの偏微分を計算することで少し更新されます。これが単純な勾配降下法のアルゴリズムです。</p>
+<p><img src="images/0038 Large.jpeg" class="img-fluid">全コーパスを用いて損失関数やその勾配を計算すると、非常に時間がかかり、一度の勾配更新に長い時間を要するため、最適化が極めて遅くなります。そのため、ニューラルネットワークではほぼ100%の場合、勾配降下法ではなく確率的勾配降下法(SGD)が用いられます。SGDでは、全コーパスに基づく勾配の推定ではなく、一つまたは少数の中心語に基づく勾配の推定を行います。この推定はノイズが多く不完全ですが、それを用いてパラメータを更新します。これにより、一度のコーパス通過で何十億ものパラメータ更新が可能となり、学習速度が大幅に向上します。</p>
+<p>また、SGDは学習過程で揺れ動く特性がありますが、これが複雑なネットワークではより良い解を学習することを可能にします。したがって、確率的勾配降下法は計算速度を大幅に向上させるだけでなく、より良い結果を得ることができます。</p>
 </section>
 <section id="word-vectorを実際に見る" class="level2">
 <h2 class="anchored" data-anchor-id="word-vectorを実際に見る">Word Vectorを実際に見る</h2>

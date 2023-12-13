@@ -10,7 +10,2051 @@
 <atom:link href="https://jiang.jp/index.xml" rel="self" type="application/rss+xml"/>
 <description></description>
 <generator>quarto-1.3.340</generator>
-<lastBuildDate>Tue, 10 Oct 2023 15:00:00 GMT</lastBuildDate>
+<lastBuildDate>Sat, 09 Dec 2023 15:00:00 GMT</lastBuildDate>
+<item>
+  <title>Multi-Vector Retrieverの使い方とその効果</title>
+  <link>https://jiang.jp/posts/20231109_multi_vector_retrieval/index.html</link>
+  <description><![CDATA[ 
+
+
+
+<section id="この記事の内容" class="level2">
+<h2 class="anchored" data-anchor-id="この記事の内容">この記事の内容</h2>
+<p>この記事は<code>Multi-Vector Retriever</code>の使い方を紹介し、その上で複数の実験を行い、その有効性を検証します。 検証内容としては以下です。</p>
+<ul>
+<li>以下のメタデータを生成し、それをベクトルとして追加する<br>
+‐ サマリー<br>
+‐ タイトル<br>
+‐ キーワード<br>
+‐ 回答できる質問<br>
+</li>
+<li>ドキュメントを文単位に切り、文単位で検索を行う</li>
+</ul>
+</section>
+<section id="multi-vector-retrieverとは" class="level2">
+<h2 class="anchored" data-anchor-id="multi-vector-retrieverとは">Multi-Vector Retrieverとは</h2>
+<p><code>Multi-Vector Retriever</code>とはLangChainのRetrieverの一つです。名前の通り、複数の埋め込みベクトルで検索を行うことはその特徴です。例えばドキュメントのサマリーを作り、ドキュメントとサマリーそれぞれのベクトルを作成して検索を行うことができます。</p>
+</section>
+<section id="簡単な利用例" class="level2">
+<h2 class="anchored" data-anchor-id="簡単な利用例">簡単な利用例</h2>
+<p>これから簡単な利用例から使い方を説明します。</p>
+<section id="初期化" class="level3">
+<h3 class="anchored" data-anchor-id="初期化">初期化</h3>
+<p>例えば、今ドキュメントを3つあり、それぞれサマリーを生成しましたが、それを全部検索に使いたいです。初期化する際にはまずヒットしたいドキュメントをIDをつけて<code>docstore</code>に入れます。また、ドキュメントとサマリー両方とも<code>Metadata</code>にIDを入れてVectorstoreを作る必要もあります。</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://jiang.jp/posts/20231109_multi_vector_retrieval/multi-vector_retriever_init.svg" class="img-fluid figure-img"></p>
+<figcaption class="figure-caption">初期化の説明</figcaption>
+</figure>
+</div>
+<div class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb1-1"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> dotenv <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> load_dotenv</span>
+<span id="cb1-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.embeddings <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> OpenAIEmbeddings</span>
+<span id="cb1-3"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.retrievers.multi_vector <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> MultiVectorRetriever</span>
+<span id="cb1-4"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.schema <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> Document</span>
+<span id="cb1-5"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.storage <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> InMemoryStore</span>
+<span id="cb1-6"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.vectorstores <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> FAISS</span>
+<span id="cb1-7"></span>
+<span id="cb1-8">load_dotenv()</span>
+<span id="cb1-9"></span>
+<span id="cb1-10"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># create 3 documents and its summaries</span></span>
+<span id="cb1-11">docs <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [</span>
+<span id="cb1-12">    Document(page_content<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"doc"</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">str</span>(i), metadata<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>{<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"doc_id"</span>: <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"doc"</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">str</span>(i)})</span>
+<span id="cb1-13">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> i <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">range</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">4</span>)</span>
+<span id="cb1-14">] </span>
+<span id="cb1-15"></span>
+<span id="cb1-16">summarys <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [</span>
+<span id="cb1-17">    Document(page_content<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"summary"</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">str</span>(i), metadata<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>{<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"doc_id"</span>: <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"doc"</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">str</span>(i)})</span>
+<span id="cb1-18">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> i <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">range</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">4</span>)</span>
+<span id="cb1-19">]</span>
+<span id="cb1-20"></span>
+<span id="cb1-21"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># initialize docstore</span></span>
+<span id="cb1-22">docstore <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> InMemoryStore()</span>
+<span id="cb1-23">docstore.mset(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">list</span>(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">zip</span>([<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"doc"</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">str</span>(i) <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> i <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">range</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">4</span>)], docs)))</span>
+<span id="cb1-24"></span>
+<span id="cb1-25"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># put documents and summaries in the vector store</span></span>
+<span id="cb1-26">multi_vector_vectorstore <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> FAISS.from_documents(docs <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> summarys, OpenAIEmbeddings())</span>
+<span id="cb1-27"></span>
+<span id="cb1-28"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># initialize retriever</span></span>
+<span id="cb1-29">sample_retriever <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> MultiVectorRetriever(</span>
+<span id="cb1-30">    vectorstore<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>multi_vector_vectorstore,</span>
+<span id="cb1-31">    docstore<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>docstore,</span>
+<span id="cb1-32">    id_key<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"doc_id"</span>,</span>
+<span id="cb1-33">    search_kwargs<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>{<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"k"</span>: <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">4</span>},</span>
+<span id="cb1-34">)</span></code></pre></div>
+</div>
+</section>
+<section id="使い方" class="level3">
+<h3 class="anchored" data-anchor-id="使い方">使い方</h3>
+<p>使い方は普通の<code>Retriever</code>と同じように、<code>get_relevant_documents</code>の関数をコールすれば良いです。その中で発生することとしては、まずQueryでVectorstoreで検索をかける。ヒットしたものに対してIDを取り出して、取り出したIDでDocstoreにでドキュメントを取得して返します。</p>
+<p>ここの注意点としては、検索の<code>k=4</code>で指定しましたが、上位4位に<code>ID2</code>が2回出現したため、最終の結果は4個ではなく、3個のドキュメントが出力されます。</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://jiang.jp/posts/20231109_multi_vector_retrieval/multi-vector_retriever_retrieve.svg" class="img-fluid figure-img"></p>
+<figcaption class="figure-caption">Multi-Vector Retriever検索の仕組み</figcaption>
+</figure>
+</div>
+<div class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb2-1">sample_retriever.get_relevant_documents(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"doc1"</span>)</span></code></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="2">
+<pre><code>[Document(page_content='doc1', metadata={'doc_id': 'doc1'}),
+ Document(page_content='doc2', metadata={'doc_id': 'doc2'}),
+ Document(page_content='doc3', metadata={'doc_id': 'doc3'})]</code></pre>
+</div>
+</div>
+<p>なお、LangChainにあるもう一個<code>Parent Document Retriever</code>はほぼこれと同じ概念です。なんでわざわざ2つ作ったかが謎です。</p>
+</section>
+</section>
+<section id="実験結果" class="level2">
+<h2 class="anchored" data-anchor-id="実験結果">実験結果</h2>
+<p>次に以下の実験を行います。</p>
+<ul>
+<li>サマリーを生成し、それをベクトルとして追加する<br>
+</li>
+<li>ドキュメントを文単位に切り、文単位で検索を行う</li>
+</ul>
+<section id="実験の設定" class="level3">
+<h3 class="anchored" data-anchor-id="実験の設定">実験の設定</h3>
+<p>使うデータはいつもの東京都立大学のeラーニングシステムのQ&amp;Aデータです。このデータは、東京都立大学で導入されたeラーニングシステムのユーザーから2015年4月から2018年7月までに報告された問題点としてのQ&amp;Aデータを収集したものです。427の質問と79の回答が含まれています。質問にどの回答に紐づくかのラベルがあります。</p>
+<p>データの様子は下記の通りです。</p>
+<div class="cell" data-execution_count="3">
+<details>
+<summary>実験用コード</summary>
+<div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb4-1"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> pandas <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> pd</span>
+<span id="cb4-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> html2text</span>
+<span id="cb4-3"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># https://zenodo.org/record/2783642</span></span>
+<span id="cb4-4">q_df <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> pd.read_csv(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"https://zenodo.org/record/2783642/files/Questions.csv"</span>)</span>
+<span id="cb4-5">a_df <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> pd.read_csv(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"https://zenodo.org/record/2783642/files/Answers.csv"</span>)</span>
+<span id="cb4-6"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"q_df.shape:"</span>, q_df.shape)</span>
+<span id="cb4-7"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"a_df.shape:"</span>, a_df.shape)</span>
+<span id="cb4-8">q_df.columns <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [c.strip() <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> c <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> q_df.columns]</span>
+<span id="cb4-9">a_df.columns <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [c.strip() <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> c <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> a_df.columns]</span>
+<span id="cb4-10">a_df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Text"</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> a_df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Text"</span>].<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">apply</span>(<span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">lambda</span> x: html2text.html2text(x))</span>
+<span id="cb4-11">df <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> q_df.merge(a_df, on<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"AID"</span>)</span>
+<span id="cb4-12">df.columns <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"query"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"AID"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"document"</span>]</span>
+<span id="cb4-13"></span>
+<span id="cb4-14">metadata <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> a_df[[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"AID"</span>]].to_dict(orient<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"records"</span>)</span>
+<span id="cb4-15">documents <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> a_df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Text"</span>].tolist()</span>
+<span id="cb4-16">query_list <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">list</span>(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">zip</span>(q_df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Text"</span>], q_df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"AID"</span>]))</span>
+<span id="cb4-17">display(q_df.head(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>))</span>
+<span id="cb4-18">display(a_df.head(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>))</span></code></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>q_df.shape: (427, 2)
+a_df.shape: (79, 2)</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">Text</th>
+<th data-quarto-table-cell-role="th">AID</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>履修している授業で先生が資料をアップロードしているはずだが、コース上に資料が見当たらない。</td>
+<td>A001</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>資料をマイページに置いたが、学生からは見えなかった。</td>
+<td>A001</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>前期の科目の「資料」を学生から見られないようにするにはどうしたら良いか？</td>
+<td>A001</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+<div class="cell-output cell-output-display">
+<div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">AID</th>
+<th data-quarto-table-cell-role="th">Text</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>A001</td>
+<td>資料が見つからない場合は、以下の点を確認してください。 \n \n \n【受講生編】 ...</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>A002</td>
+<td>資料のアップロードやお知らせ作成時の電子メールでの通知の有無は、各授業の担当教員が設定できま...</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">2</td>
+<td>A003</td>
+<td>kibacoにはファイルへパスワードを設定する機能はありません。資料は受講生全員に開示されま...</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<p>評価指標は以下の3つです。</p>
+<ol type="1">
+<li>Mean Reciprocal Rank（MRR）: 正解ドキュメントの順位の平均の逆数で、ランク全体を評価する指標。</li>
+<li>Recall@1: 正解ドキュメントが1番目に並んでいるかどうかを評価する指標。</li>
+<li>Recall@5: 正解ドキュメントが上位5位以内に入っているかどうかを評価する指標。</li>
+</ol>
+<p>その結果のまとめは以下になります。</p>
+<table class="table">
+<colgroup>
+<col style="width: 37%">
+<col style="width: 13%">
+<col style="width: 24%">
+<col style="width: 24%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">実験名</th>
+<th style="text-align: right;">mrr</th>
+<th style="text-align: right;">recall_at_1</th>
+<th style="text-align: right;">recall_at_5</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">ドキュメントのみ</td>
+<td style="text-align: right;">0.6777</td>
+<td style="text-align: right;"><strong>0.5457</strong></td>
+<td style="text-align: right;">0.8454</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">サマリーのみ</td>
+<td style="text-align: right;">0.6475</td>
+<td style="text-align: right;">0.5035</td>
+<td style="text-align: right;">0.8244</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong>テキスト結合</strong><br>ドキュメント+サマリー</td>
+<td style="text-align: right;">0.6612</td>
+<td style="text-align: right;">0.5199</td>
+<td style="text-align: right;">0.8407</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><strong>Multi-Vector Retriever</strong><br>ドキュメント+サマリー</td>
+<td style="text-align: right;"><strong>0.683</strong></td>
+<td style="text-align: right;"><strong>0.5457</strong></td>
+<td style="text-align: right;"><strong>0.8501</strong></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><strong>Multi-Vector Retriever</strong><br>センテンスレベル</td>
+<td style="text-align: right;">0.66</td>
+<td style="text-align: right;">0.5199</td>
+<td style="text-align: right;">0.8454</td>
+</tr>
+</tbody>
+</table>
+<p>実験からわかることとしては以下の3点です。</p>
+<ol type="1">
+<li>サマリーを単純にテキストの結合でドキュメントに追加した場合は、精度がむしろ悪化しました。</li>
+<li>Multi-Vector Retrieverのやり方で、Top1の正確率が高くならなかったですが、MRRを見ると、全体の精度が改善できています。</li>
+<li>センテンスレベルでの検索はいつも良い結果を得られる訳では無いです。</li>
+</ol>
+</section>
+</section>
+<section id="実験の詳細-コード" class="level2">
+<h2 class="anchored" data-anchor-id="実験の詳細-コード">実験の詳細 + コード</h2>
+<p>実験の詳細は以下です。興味がある方が次にご覧ください。ちなみに、実験の効率化するために、並列化を行いました。</p>
+<div class="cell" data-execution_count="22">
+<details>
+<summary>実験用コード</summary>
+<div class="sourceCode cell-code" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb6-1"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> sys</span>
+<span id="cb6-2"></span>
+<span id="cb6-3">sys.path.append(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"../"</span>)</span>
+<span id="cb6-4"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> src.parallel <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> parallelize_function</span>
+<span id="cb6-5"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> dataclasses <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> dataclass</span>
+<span id="cb6-6"></span>
+<span id="cb6-7">DOC_NUM <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">len</span>(a_df)</span>
+<span id="cb6-8"></span>
+<span id="cb6-9"><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">@dataclass</span></span>
+<span id="cb6-10"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">class</span> EvaluationResults:</span>
+<span id="cb6-11">    result_df: pd.DataFrame</span>
+<span id="cb6-12">    mrr: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span></span>
+<span id="cb6-13">    recall_at_1: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span></span>
+<span id="cb6-14">    recall_at_5: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span></span>
+<span id="cb6-15"></span>
+<span id="cb6-16"></span>
+<span id="cb6-17"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">def</span> mrr(rank_array):</span>
+<span id="cb6-18">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">return</span> (<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> rank_array).mean()</span>
+<span id="cb6-19"></span>
+<span id="cb6-20"></span>
+<span id="cb6-21"></span>
+<span id="cb6-22"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">def</span> recall_at_k(rank_array, k):</span>
+<span id="cb6-23">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">return</span> (rank_array <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;=</span> k).mean()</span>
+<span id="cb6-24"></span>
+<span id="cb6-25"></span>
+<span id="cb6-26"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Define a function to be executed in parallel</span></span>
+<span id="cb6-27"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">def</span> evaluate_single_query(query_aid_tuple, search_func, doc_num):</span>
+<span id="cb6-28">    query, aid <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> query_aid_tuple</span>
+<span id="cb6-29">    search_result <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> search_func(query)</span>
+<span id="cb6-30">    aid_list <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> []</span>
+<span id="cb6-31">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> doc <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> search_result:</span>
+<span id="cb6-32">        aid_list.append(doc.metadata[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"doc_id"</span>])</span>
+<span id="cb6-33">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">if</span> aid <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">not</span> <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> aid_list:</span>
+<span id="cb6-34">        rank <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> doc_num <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span></span>
+<span id="cb6-35">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">else</span>:</span>
+<span id="cb6-36">        rank <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> aid_list.index(aid) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span></span>
+<span id="cb6-37">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">return</span> query, rank, aid_list</span>
+<span id="cb6-38"></span>
+<span id="cb6-39"></span>
+<span id="cb6-40"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Parallelized evaluate function</span></span>
+<span id="cb6-41"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">def</span> parallel_evaluate(</span>
+<span id="cb6-42">    query_list, search_func, max_workers<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">20</span>, doc_num<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>DOC_NUM</span>
+<span id="cb6-43">):</span>
+<span id="cb6-44">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Prepare arguments for parallel execution</span></span>
+<span id="cb6-45">    args_list <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [</span>
+<span id="cb6-46">        (query_aid, search_func, doc_num) <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> query_aid <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> query_list</span>
+<span id="cb6-47">    ]</span>
+<span id="cb6-48"></span>
+<span id="cb6-49">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Execute the evaluate_single_query function in parallel</span></span>
+<span id="cb6-50">    results <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> parallelize_function(</span>
+<span id="cb6-51">        evaluate_single_query, args_list, max_workers<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>max_workers</span>
+<span id="cb6-52">    )</span>
+<span id="cb6-53"></span>
+<span id="cb6-54">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Process results and create a DataFrame</span></span>
+<span id="cb6-55">    result_list <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [result <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> result <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> results <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">if</span> <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">not</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">isinstance</span>(result, <span class="pp" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">Exception</span>)]</span>
+<span id="cb6-56">    result_df <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> pd.DataFrame(result_list, columns<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"query"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"rank"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"rank_result"</span>])</span>
+<span id="cb6-57"></span>
+<span id="cb6-58">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Calculate evaluation metrics</span></span>
+<span id="cb6-59">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">return</span> EvaluationResults(</span>
+<span id="cb6-60">        result_df,</span>
+<span id="cb6-61">        mrr(result_df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"rank"</span>]),</span>
+<span id="cb6-62">        recall_at_k(result_df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"rank"</span>], <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>),</span>
+<span id="cb6-63">        recall_at_k(result_df[<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"rank"</span>], <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>),</span>
+<span id="cb6-64">    )</span></code></pre></div>
+</details>
+</div>
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-1-contents" aria-controls="callout-1" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+実験用並列コード
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-1" class="callout-1-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<div class="sourceCode" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb7-1"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> concurrent.futures <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> ThreadPoolExecutor, as_completed</span>
+<span id="cb7-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> itertools <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> cycle</span>
+<span id="cb7-3"></span>
+<span id="cb7-4"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> tenacity <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> retry, stop_after_attempt, wait_exponential</span>
+<span id="cb7-5"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> tqdm.auto <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> tqdm</span>
+<span id="cb7-6"></span>
+<span id="cb7-7"></span>
+<span id="cb7-8"><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">@retry</span>(wait<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>wait_exponential(multiplier<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>, <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">min</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>, <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">max</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">60</span>), stop<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>stop_after_attempt(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">5</span>))</span>
+<span id="cb7-9"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">def</span> retry_wrapper(func, <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span>args, <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">**</span>kwargs):</span>
+<span id="cb7-10">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">return</span> func(<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span>args, <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">**</span>kwargs)</span>
+<span id="cb7-11"></span>
+<span id="cb7-12"></span>
+<span id="cb7-13"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">def</span> parallelize_function(funcs, args_list, kwargs_list<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span>, max_workers<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">10</span>):</span>
+<span id="cb7-14">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">if</span> kwargs_list <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">is</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span>:</span>
+<span id="cb7-15">        kwargs_list <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [{}] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">len</span>(</span>
+<span id="cb7-16">            args_list</span>
+<span id="cb7-17">        )  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Empty dictionaries if no kwargs are provided</span></span>
+<span id="cb7-18"></span>
+<span id="cb7-19">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">if</span> <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">not</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">isinstance</span>(funcs, <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">list</span>):</span>
+<span id="cb7-20">        funcs <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [funcs]  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Make it a list if a single function is provided</span></span>
+<span id="cb7-21"></span>
+<span id="cb7-22">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Ensure args_list and kwargs_list have the same length</span></span>
+<span id="cb7-23">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">if</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">len</span>(args_list) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">!=</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">len</span>(kwargs_list):</span>
+<span id="cb7-24">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">raise</span> <span class="pp" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">ValueError</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"args_list and kwargs_list must have the same length."</span>)</span>
+<span id="cb7-25"></span>
+<span id="cb7-26">    results <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [<span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">len</span>(args_list)  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Pre-allocate results list with None values</span></span>
+<span id="cb7-27">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">with</span> ThreadPoolExecutor(max_workers<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>max_workers) <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> executor:</span>
+<span id="cb7-28">        futures_to_index <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> {}</span>
+<span id="cb7-29">        func_iter <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> cycle(funcs)  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Use itertools.cycle to handle function iteration</span></span>
+<span id="cb7-30"></span>
+<span id="cb7-31">        <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Submit tasks to the executor</span></span>
+<span id="cb7-32">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> i, (args, kwargs) <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">enumerate</span>(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">zip</span>(args_list, kwargs_list)):</span>
+<span id="cb7-33">            func <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">next</span>(func_iter)</span>
+<span id="cb7-34">            future <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> executor.submit(retry_wrapper, func, <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span>args, <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">**</span>kwargs)</span>
+<span id="cb7-35">            futures_to_index[future] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> i  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Map future to its index in args_list</span></span>
+<span id="cb7-36"></span>
+<span id="cb7-37">        <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Collect results as tasks complete</span></span>
+<span id="cb7-38">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> future <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> tqdm(</span>
+<span id="cb7-39">            as_completed(futures_to_index),</span>
+<span id="cb7-40">            total<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">len</span>(futures_to_index),</span>
+<span id="cb7-41">            desc<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Processing tasks"</span>,</span>
+<span id="cb7-42">        ):</span>
+<span id="cb7-43">            index <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> futures_to_index[future]</span>
+<span id="cb7-44">            <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">try</span>:</span>
+<span id="cb7-45">                result <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> future.result()</span>
+<span id="cb7-46">                results[index] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> result  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Place result in the corresponding index</span></span>
+<span id="cb7-47">            <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">except</span> <span class="pp" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">Exception</span> <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> exc:</span>
+<span id="cb7-48">                <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"Task </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>index<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;"> generated an exception: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>exc<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb7-49">                results[index] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> exc  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Store the exception in the results list</span></span>
+<span id="cb7-50"></span>
+<span id="cb7-51">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">return</span> results</span>
+<span id="cb7-52"></span>
+<span id="cb7-53"></span>
+<span id="cb7-54"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Example usage:</span></span>
+<span id="cb7-55"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># funcs = [chain1.invoke, chain2.invoke]  # List of functions for load balancing</span></span>
+<span id="cb7-56"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># args_list = [(arg1,), (arg2,), ...]  # List of argument tuples</span></span>
+<span id="cb7-57"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># kwargs_list = [{"kwarg1": value1}, {"kwarg2": value2}, ...]  # List of keyword argument dictionaries</span></span>
+<span id="cb7-58"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># results = parallelize_function(funcs, args_list, kwargs_list)</span></span></code></pre></div>
+</div>
+</div>
+</div>
+<section id="メタデータ実験" class="level3">
+<h3 class="anchored" data-anchor-id="メタデータ実験">メタデータ実験</h3>
+<p>今回はサマリーを生成し、それをベクトルとして追加します。</p>
+<p>まず必要なのはデータ生成です。まず簡単のプロンプトを書いて、それぞれのデータを生成します。これも本記事の本題ではないため、コードを折り畳みします。</p>
+<div class="cell">
+<details>
+<summary>データ生成用コード</summary>
+<div class="sourceCode cell-code" id="cb8" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb8-1"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> dotenv <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> load_dotenv</span>
+<span id="cb8-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.chat_models.openai <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> ChatOpenAI</span>
+<span id="cb8-3"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.embeddings <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> OpenAIEmbeddings</span>
+<span id="cb8-4"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.schema <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> HumanMessage</span>
+<span id="cb8-5"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> tqdm.auto <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> tqdm</span>
+<span id="cb8-6"></span>
+<span id="cb8-7">_ <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> load_dotenv()</span>
+<span id="cb8-8"></span>
+<span id="cb8-9">llm <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> ChatOpenAI(temperature<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>, model<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"gpt-3.5-turbo"</span>, request_timeout<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">20</span>)</span>
+<span id="cb8-10"></span>
+<span id="cb8-11"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">def</span> generate_metadata(msg, text_list, save_path):</span>
+<span id="cb8-12">    metadata <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> []</span>
+<span id="cb8-13">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> txt <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> tqdm(text_list):</span>
+<span id="cb8-14">        result <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> llm([HumanMessage(content<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>msg.<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">format</span>(doc<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>txt))]).content.replace(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span><span class="ch" style="color: #20794D;
+background-color: null;
+font-style: inherit;">\n</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">" "</span>)</span>
+<span id="cb8-15">        metadata.append(result)</span>
+<span id="cb8-16"></span>
+<span id="cb8-17">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">with</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">open</span>(save_path, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"w"</span>) <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> f:</span>
+<span id="cb8-18">        f.write(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span><span class="ch" style="color: #20794D;
+background-color: null;
+font-style: inherit;">\n</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>.join(metadata))</span>
+<span id="cb8-19"></span>
+<span id="cb8-20"></span>
+<span id="cb8-21">msg <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"""</span></span>
+<span id="cb8-22"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">次のドキュメントを50字以内にサマリーしてください。</span></span>
+<span id="cb8-23"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">===ドキュメント===</span></span>
+<span id="cb8-24"><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{doc}</span></span>
+<span id="cb8-25"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"""</span></span>
+<span id="cb8-26">text_list <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> a_df.Text.to_list()</span>
+<span id="cb8-27">generate_metadata(msg, text_list, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"./3.5_turbo_summaries.txt"</span>)</span>
+<span id="cb8-28"></span>
+<span id="cb8-29"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">with</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">open</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"3.5_turbo_summaries.txt"</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"r"</span>) <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">as</span> f:</span>
+<span id="cb8-30">    summaries <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> f.read().split(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span><span class="ch" style="color: #20794D;
+background-color: null;
+font-style: inherit;">\n</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span></code></pre></div>
+</details>
+</div>
+<p>出力したデータのサンプルをお見せします。</p>
+<div class="cell" data-execution_count="51">
+<div class="sourceCode cell-code" id="cb9" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb9-1"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(summaries[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>])</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>資料が見つからない場合の確認事項は以下の通りです。受講生は自身が登録されているコースを確認し、資料の利用可能期間を確認してください。教員は科目に対応するコースに資料を掲載し、同じ曜日・時限・教室で開講する別の科目がないか確認し、フォルダやファイルが非表示になっていないか、利用可能期間が正しく設定されているかを確認してください。</code></pre>
+</div>
+</div>
+<p>次に直接ドキュメントに追加した場合とMulti-Vector Retrieverを使う場合の検索精度をみます。</p>
+<div class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb11" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb11-1"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.retrievers.multi_vector <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> MultiVectorRetriever, ParentDocumentRetriever</span>
+<span id="cb11-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.schema.document <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> Document</span>
+<span id="cb11-3"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.storage <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> InMemoryStore</span>
+<span id="cb11-4"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.vectorstores <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> FAISS</span>
+<span id="cb11-5"></span>
+<span id="cb11-6">docs <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [</span>
+<span id="cb11-7">    Document(page_content<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>s, metadata<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>{<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"doc_id"</span>: a_df.AID[i]})</span>
+<span id="cb11-8">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> i, s <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">enumerate</span>(a_df.Text.tolist())</span>
+<span id="cb11-9">]</span>
+<span id="cb11-10"></span>
+<span id="cb11-11">summarys <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [</span>
+<span id="cb11-12">    Document(page_content<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>summaries[i], metadata<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>{<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"doc_id"</span>: a_df.AID[i]})</span>
+<span id="cb11-13">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> i, s <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">enumerate</span>(a_df.Text.tolist())</span>
+<span id="cb11-14">]</span>
+<span id="cb11-15"></span>
+<span id="cb11-16"></span>
+<span id="cb11-17">doc_summarys <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [</span>
+<span id="cb11-18">    Document(</span>
+<span id="cb11-19">        page_content<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"summary: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>summaries[i]<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;"> </span><span class="ch" style="color: #20794D;
+background-color: null;
+font-style: inherit;">\n</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;"> text: </span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>a_df<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span>Text[i]<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>,</span>
+<span id="cb11-20">        metadata<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>{<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"doc_id"</span>: a_df.AID[i]},</span>
+<span id="cb11-21">    )</span>
+<span id="cb11-22">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> i, s <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">enumerate</span>(a_df.Text.tolist())</span>
+<span id="cb11-23">]</span></code></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb12-1">vectorstore_doc <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> FAISS.from_documents(docs, OpenAIEmbeddings())</span>
+<span id="cb12-2">vectorstore_summary <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> FAISS.from_documents(summarys, OpenAIEmbeddings())</span>
+<span id="cb12-3">vectorstore_doc_summary <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> FAISS.from_documents(doc_summarys, OpenAIEmbeddings())</span></code></pre></div>
+</div>
+<div class="cell" data-execution_count="23">
+<div class="sourceCode cell-code" id="cb13" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb13-1">doc_result <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> parallel_evaluate(</span>
+<span id="cb13-2">    query_list, <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">lambda</span> q: vectorstore_doc.similarity_search(q, k<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>DOC_NUM)</span>
+<span id="cb13-3">)</span>
+<span id="cb13-4">summary_result <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> parallel_evaluate(</span>
+<span id="cb13-5">    query_list, <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">lambda</span> q: vectorstore_summary.similarity_search(q, k<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>DOC_NUM)</span>
+<span id="cb13-6">)</span>
+<span id="cb13-7">doc_summary_result <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> parallel_evaluate(</span>
+<span id="cb13-8">    query_list, <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">lambda</span> q: vectorstore_doc_summary.similarity_search(q, k<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>DOC_NUM)</span>
+<span id="cb13-9">)</span></code></pre></div>
+<div class="cell-output cell-output-display">
+<script type="application/vnd.jupyter.widget-view+json">
+{"model_id":"2ecb027b0de34c3e98429f74abf3037c","version_major":2,"version_minor":0,"quarto_mimetype":"application/vnd.jupyter.widget-view+json"}
+</script>
+</div>
+<div class="cell-output cell-output-display">
+<script type="application/vnd.jupyter.widget-view+json">
+{"model_id":"fe0f65b4f1144dc6ac1ffb04598f5ca9","version_major":2,"version_minor":0,"quarto_mimetype":"application/vnd.jupyter.widget-view+json"}
+</script>
+</div>
+<div class="cell-output cell-output-display">
+<script type="application/vnd.jupyter.widget-view+json">
+{"model_id":"51c3529886d94094bb9c4dd8f7aef9b7","version_major":2,"version_minor":0,"quarto_mimetype":"application/vnd.jupyter.widget-view+json"}
+</script>
+</div>
+<div class="cell-output cell-output-display">
+<script type="application/vnd.jupyter.widget-view+json">
+{"model_id":"595d95e373d24e30b92501f5a8ba2ef9","version_major":2,"version_minor":0,"quarto_mimetype":"application/vnd.jupyter.widget-view+json"}
+</script>
+</div>
+<div class="cell-output cell-output-display">
+<script type="application/vnd.jupyter.widget-view+json">
+{"model_id":"7d09a60ca22b4d208a915d80a69ee063","version_major":2,"version_minor":0,"quarto_mimetype":"application/vnd.jupyter.widget-view+json"}
+</script>
+</div>
+<div class="cell-output cell-output-display">
+<script type="application/vnd.jupyter.widget-view+json">
+{"model_id":"75745d4330a1462ea06e63147a7d377c","version_major":2,"version_minor":0,"quarto_mimetype":"application/vnd.jupyter.widget-view+json"}
+</script>
+</div>
+</div>
+<div class="cell" data-execution_count="52">
+<div class="sourceCode cell-code" id="cb14" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb14-1">result_df <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> pd.DataFrame(</span>
+<span id="cb14-2">    [</span>
+<span id="cb14-3">        [<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"only_doc"</span>, doc_result.mrr, doc_result.recall_at_1, doc_result.recall_at_5],</span>
+<span id="cb14-4">        [<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"summary"</span>, summary_result.mrr, summary_result.recall_at_1, summary_result.recall_at_5],</span>
+<span id="cb14-5">        [<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"doc_summary"</span>, doc_summary_result.mrr, doc_summary_result.recall_at_1, doc_summary_result.recall_at_5],</span>
+<span id="cb14-6">        ],</span>
+<span id="cb14-7">    columns <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"model_id"</span>,<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"mrr"</span>,<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"recall_at_1"</span>,<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"recall_at_5"</span>]</span>
+<span id="cb14-8">    ).sort_values(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"mrr"</span>, ascending<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">False</span>)</span>
+<span id="cb14-9">result_df.<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">round</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">4</span>)</span></code></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="52">
+<div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">model_id</th>
+<th data-quarto-table-cell-role="th">mrr</th>
+<th data-quarto-table-cell-role="th">recall_at_1</th>
+<th data-quarto-table-cell-role="th">recall_at_5</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>only_doc</td>
+<td>0.6777</td>
+<td>0.5457</td>
+<td>0.8454</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">2</td>
+<td>doc_summary</td>
+<td>0.6612</td>
+<td>0.5199</td>
+<td>0.8407</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">1</td>
+<td>summary</td>
+<td>0.6475</td>
+<td>0.5035</td>
+<td>0.8244</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<p>ご覧の通り、それぞれ直接ドキュメントに追加する場合は、性能が逆に悪化しました。</p>
+<p>次に説明の中と同じようにドキュメントとサマリーに結合した場合どうなるかをみてみます。</p>
+<div class="cell" data-execution_count="26">
+<div class="sourceCode cell-code" id="cb15" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb15-1">multi_vector_vectorstore <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> FAISS.from_documents(docs <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> summarys, OpenAIEmbeddings())</span>
+<span id="cb15-2"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># The storage layer for the parent documents</span></span>
+<span id="cb15-3">store <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> InMemoryStore()</span>
+<span id="cb15-4"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># The retriever (empty to start)</span></span>
+<span id="cb15-5">multi_vector_retriever <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> MultiVectorRetriever(</span>
+<span id="cb15-6">    vectorstore<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>multi_vector_vectorstore,</span>
+<span id="cb15-7">    docstore<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>store,</span>
+<span id="cb15-8">    id_key<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"doc_id"</span>,</span>
+<span id="cb15-9">    search_kwargs<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>{<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"k"</span>: <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1000</span>},</span>
+<span id="cb15-10">)</span>
+<span id="cb15-11">multi_vector_retriever.docstore.mset(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">list</span>(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">zip</span>(a_df.AID.tolist(), docs)))</span>
+<span id="cb15-12">multi_vectore_result <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> parallel_evaluate(</span>
+<span id="cb15-13">    query_list, <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">lambda</span> q: multi_vector_retriever.get_relevant_documents(q)</span>
+<span id="cb15-14">)</span></code></pre></div>
+<div class="cell-output cell-output-display">
+<script type="application/vnd.jupyter.widget-view+json">
+{"model_id":"028458bb8a944d499ceb10afa3542ce8","version_major":2,"version_minor":0,"quarto_mimetype":"application/vnd.jupyter.widget-view+json"}
+</script>
+</div>
+</div>
+<div class="cell" data-execution_count="53">
+<div class="sourceCode cell-code" id="cb16" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb16-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># add the result to the dataframe as a row </span></span>
+<span id="cb16-2">new_row <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> {</span>
+<span id="cb16-3">        <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"model_id"</span>: <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"multi_vector"</span>,</span>
+<span id="cb16-4">        <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"mrr"</span>: multi_vectore_result.mrr,</span>
+<span id="cb16-5">        <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"recall_at_1"</span>: multi_vectore_result.recall_at_1,</span>
+<span id="cb16-6">        <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"recall_at_5"</span>: multi_vectore_result.recall_at_5,</span>
+<span id="cb16-7">    },</span>
+<span id="cb16-8">result_df <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> pd.concat([result_df, pd.DataFrame(new_row)], ignore_index<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb16-9">result_df.<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">round</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">4</span>).sort_values(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"mrr"</span>, ascending<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">False</span>)</span></code></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="53">
+<div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">model_id</th>
+<th data-quarto-table-cell-role="th">mrr</th>
+<th data-quarto-table-cell-role="th">recall_at_1</th>
+<th data-quarto-table-cell-role="th">recall_at_5</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">3</td>
+<td>multi_vector</td>
+<td>0.6830</td>
+<td>0.5457</td>
+<td>0.8501</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">0</td>
+<td>only_doc</td>
+<td>0.6777</td>
+<td>0.5457</td>
+<td>0.8454</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">1</td>
+<td>doc_summary</td>
+<td>0.6612</td>
+<td>0.5199</td>
+<td>0.8407</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">2</td>
+<td>summary</td>
+<td>0.6475</td>
+<td>0.5035</td>
+<td>0.8244</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+</section>
+<section id="ドキュメントを文単位に切り文単位で検索を行う" class="level3">
+<h3 class="anchored" data-anchor-id="ドキュメントを文単位に切り文単位で検索を行う">ドキュメントを文単位に切り、文単位で検索を行う</h3>
+<p>次にドキュメントを文単位に切り、文単位で検索を行います。</p>
+<div class="cell" data-execution_count="40">
+<div class="sourceCode cell-code" id="cb17" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb17-1">sentences <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [</span>
+<span id="cb17-2">    Document(page_content<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>sent, metadata<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>{<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"doc_id"</span>: a_df.AID[i]})</span>
+<span id="cb17-3">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> i, s <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">enumerate</span>(a_df.Text.tolist())</span>
+<span id="cb17-4">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> sent <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> s.split(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span><span class="ch" style="color: #20794D;
+background-color: null;
+font-style: inherit;">\n</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"</span>)</span>
+<span id="cb17-5">]</span>
+<span id="cb17-6"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">len</span>(sentences))</span>
+<span id="cb17-7">multi_vector_vectorstore_sent <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> FAISS.from_documents(sentences, OpenAIEmbeddings())</span>
+<span id="cb17-8"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># The storage layer for the parent documents</span></span>
+<span id="cb17-9">store <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> InMemoryStore()</span>
+<span id="cb17-10"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># The retriever (empty to start)</span></span>
+<span id="cb17-11">multi_vector_retriever_sent <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> MultiVectorRetriever(</span>
+<span id="cb17-12">    vectorstore<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>multi_vector_vectorstore_sent,</span>
+<span id="cb17-13">    docstore<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>store,</span>
+<span id="cb17-14">    id_key<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"doc_id"</span>,</span>
+<span id="cb17-15">    search_kwargs<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>{<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"k"</span>: <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1000</span>},</span>
+<span id="cb17-16">)</span>
+<span id="cb17-17">multi_vector_retriever_sent.docstore.mset(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">list</span>(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">zip</span>(a_df.AID.tolist(), docs)))</span>
+<span id="cb17-18">multi_vector_retriever_sent_result <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> parallel_evaluate(</span>
+<span id="cb17-19">    query_list, <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">lambda</span> q: multi_vector_retriever_sent.get_relevant_documents(q)</span>
+<span id="cb17-20">)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>333</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<script type="application/vnd.jupyter.widget-view+json">
+{"model_id":"5cc9c8951a55415eb1aec4eb4402de5b","version_major":2,"version_minor":0,"quarto_mimetype":"application/vnd.jupyter.widget-view+json"}
+</script>
+</div>
+</div>
+<div class="cell" data-execution_count="43">
+<div class="sourceCode cell-code" id="cb19" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb19-1">multi_vector_retriever_sent_result <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> parallel_evaluate(</span>
+<span id="cb19-2">    query_list, <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">lambda</span> q: multi_vector_retriever_sent.get_relevant_documents(q)</span>
+<span id="cb19-3">)</span></code></pre></div>
+<div class="cell-output cell-output-display">
+<script type="application/vnd.jupyter.widget-view+json">
+{"model_id":"515d132241014b1b983db7e9ff4915eb","version_major":2,"version_minor":0,"quarto_mimetype":"application/vnd.jupyter.widget-view+json"}
+</script>
+</div>
+</div>
+<div class="cell" data-execution_count="55">
+<div class="sourceCode cell-code" id="cb20" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb20-1">new_row <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> {</span>
+<span id="cb20-2">        <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"model_id"</span>: <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"multi_vector_sent"</span>,</span>
+<span id="cb20-3">        <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"mrr"</span>: multi_vector_retriever_sent_result.mrr,</span>
+<span id="cb20-4">        <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"recall_at_1"</span>: multi_vector_retriever_sent_result.recall_at_1,</span>
+<span id="cb20-5">        <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"recall_at_5"</span>: multi_vector_retriever_sent_result.recall_at_5,</span>
+<span id="cb20-6">    },</span>
+<span id="cb20-7">result_df <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> pd.concat([result_df, pd.DataFrame(new_row)], ignore_index<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb20-8">result_df.<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">round</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">4</span>).sort_values(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"mrr"</span>, ascending<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">False</span>)</span></code></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="55">
+<div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">model_id</th>
+<th data-quarto-table-cell-role="th">mrr</th>
+<th data-quarto-table-cell-role="th">recall_at_1</th>
+<th data-quarto-table-cell-role="th">recall_at_5</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">4</td>
+<td>multi_vector_all_docs</td>
+<td>0.6831</td>
+<td>0.5433</td>
+<td>0.8595</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">3</td>
+<td>multi_vector</td>
+<td>0.6830</td>
+<td>0.5457</td>
+<td>0.8501</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">0</td>
+<td>only_doc</td>
+<td>0.6777</td>
+<td>0.5457</td>
+<td>0.8454</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">1</td>
+<td>doc_summary</td>
+<td>0.6612</td>
+<td>0.5199</td>
+<td>0.8407</td>
+</tr>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">5</td>
+<td>multi_vector_sent</td>
+<td>0.6600</td>
+<td>0.5199</td>
+<td>0.8454</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">2</td>
+<td>summary</td>
+<td>0.6475</td>
+<td>0.5035</td>
+<td>0.8244</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+
+
+</section>
+</section>
+
+ ]]></description>
+  <category>NLP</category>
+  <category>LLM</category>
+  <category>LangChain</category>
+  <guid>https://jiang.jp/posts/20231109_multi_vector_retrieval/index.html</guid>
+  <pubDate>Sat, 09 Dec 2023 15:00:00 GMT</pubDate>
+</item>
+<item>
+  <title>Stanford CS224N 深層学習による自然言語処理 Lecture 3 まとめ</title>
+  <link>https://jiang.jp/posts/20231014_cs224n_lecture_3/index.html</link>
+  <description><![CDATA[ 
+
+
+
+<p>今日は3回目のレクチャーです。今回の授業は自然言語処理とは関係しなくて、深層学習の内容になります。その辺に詳しい方はこのレクチャーを飛ばして良いです。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0001.jpeg" class="img-fluid"></p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0002.jpeg" class="img-fluid"></p>
+<p>今回の講義では、ニューラルネットワークの学習に関する数学的詳細について説明します。まず、ニューラルネットワークの訓練のための勾配を手作業でどのように計算するかを見ていきます。次に、それがよりアルゴリズム的にどのように行われるかを見ていきます。つまり、Back propagationのことです。</p>
+<p>また、シラバスのSuggested Readingの部分にはいくつかの補足資料がありまして、そちらを見るのは強くおすすめします。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0003.jpeg" class="img-fluid"></p>
+<p>NERは、テキスト内の単語を人名、場所、製品、日付、時間などのエンティティカテゴリにラベル付けするタスクです。単純な辞書を使うだけではなく、文脈を利用して正確な認識を行う必要があります。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0004.jpeg" class="img-fluid"></p>
+<p>一番シンプルのやりかたはウィンドウサイズを定義し(例えば5)、5つのワードベクトルを横で繋いて、それをニューラルネットワーク層に通してロジスティック分類器を作ることです。それで中心にある単語は地名かを判断します。人名や他のことを判断するときは、ぞれぞれ2値分類器を作ります。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0005.jpeg" class="img-fluid"></p>
+<p>このスライトをに詳細な計算方法を示しています。インプット<code>x</code>をまず隠れ層を通して<code>h</code>になります。また、ベクトルを数値に変換するために<code>u</code>と内積を取ってスケールの<code>s</code>になります。<code>s</code>をロジスティクス関数で0から1の数値に変換します。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0006.jpeg" class="img-fluid"></p>
+<p>上記のモデルを学習するために、パラメーターから目的関数の偏微分を差し引くする必要があります。その計算は手動と自動の2つのやり方があります。それもこれから説明することです。</p>
+<section id="行列微分計算" class="level2">
+<h2 class="anchored" data-anchor-id="行列微分計算">行列微分計算</h2>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0007.jpeg" class="img-fluid"></p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0008.jpeg" class="img-fluid"></p>
+<p>多変数微分は、行列を使用すると単一変数の微分と同じです。行列を使わないよりもはるかに高速で有用ですが、そこまで直感ではありません。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0009.jpeg" class="img-fluid"></p>
+<p>例えば、 <img src="https://latex.codecogs.com/png.latex?f(x)=x%5E3"> の式があります。その式の勾配は微分のことです。つまり、インプットを少し変えると、アウトプットをどうなるかのことです。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0010.jpeg" class="img-fluid"></p>
+<p>関数に複数のインプットがある場合は、各インプットの偏微分はベクトルになります。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0011.jpeg" class="img-fluid"></p>
+<p>関数に複数のインプットと複数のアウトプットを持つ場合は、各アウトプットが各インプットに対する偏微分は行列になります。例えば、1行目の1列はアウトプット1がインプット1に対す偏微分です。それはヤコビ行列と言います。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0012.jpeg" class="img-fluid"></p>
+<p>複数の関数をパイプラインで組み合わせしている場合は、微分は各関数の微分の掛け算です。ヤコビ行列の時も同じです。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0017.jpeg" class="img-fluid"></p>
+<p>例えば、Sigmoid等の活性化関数は入力値に対して個別に適用するため、ヤコブ行列の中の行と列が一致しない場合は偏微分は0で、一致する場合のみ偏微分が計算されます。最終結果が対角線行列になります。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0021.jpeg" class="img-fluid"></p>
+<p>他もいくつかの例を上げました。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0023.jpeg" class="img-fluid"></p>
+<p>先程の簡単なネットワークに戻します。通常は目標関数の偏微分を計算する必要がありますが、今回は説明の簡単さから考えて、その手前の偏微分を計算します。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0024.jpeg" class="img-fluid"></p>
+<p>上記の式をもう少し分解してみます。(青字の部分)</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0025.jpeg" class="img-fluid"></p>
+<p>まず、パラメーター <img src="https://latex.codecogs.com/png.latex?b"> の偏微分を計算します。先程紹介したChain ruleで微分式を3つに分解することができます。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0033.jpeg" class="img-fluid"></p>
+<p>先程の紹介したヤコビ行列の結果を参照することで最終結果を出すことができます。</p>
+<p>ちなみに、最終結果の中にある「○」とは、アダマール積と言います。同じサイズの行列に対して成分ごとに積を取ることによって定まる行列の積です。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0034.jpeg" class="img-fluid"></p>
+<p>次に、 パラメーターの<img src="https://latex.codecogs.com/png.latex?W">の偏微分を計算します。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0035.jpeg" class="img-fluid"></p>
+<p>式を分解すると、それは <img src="https://latex.codecogs.com/png.latex?b"> の偏微分と似ています。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0036.jpeg" class="img-fluid"></p>
+<p>計算の時だけではなくて、実装の時も同じ部分を1回のみ計算して重複使用しています。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0038.jpeg" class="img-fluid"></p>
+<p>また、インプットの次元すは1, アウトプットの次元数は<img src="https://latex.codecogs.com/png.latex?n%20%5Ctimes%20m">場合は、ヤコビ行列の結果は <img src="https://latex.codecogs.com/png.latex?1%20%5Ctimes%20n%20%5Ctimes%20m"> になります。一方、パラメーター <img src="https://latex.codecogs.com/png.latex?W"> の次元数は <img src="https://latex.codecogs.com/png.latex?n%20%5Ctimes%20m"> なので、これで後続の引き算ができません。そのため、勾配がパラメーターの次元数と同じようにしたいです。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0039.jpeg" class="img-fluid"></p>
+<p>どうやってそれが達成できるのでしょうか。 結果としては <img src="https://latex.codecogs.com/png.latex?%5Cdelta%5ET%20x%5ET"> で計算するとそうなります。要は前の項は <img src="https://latex.codecogs.com/png.latex?%5Cdelta"> のことがわかります。後ろの項の計算結果は <img src="https://latex.codecogs.com/png.latex?x"> になるはずです。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0040.jpeg" class="img-fluid"></p>
+<p>このスライドで説明する意図が分からなかったです。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0041.jpeg" class="img-fluid"></p>
+<p>もともとの計算は転置がないですが、 <img src="https://latex.codecogs.com/png.latex?W"> の形に合わせるために転置の操作をいれました。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0042.jpeg" class="img-fluid"></p>
+<p>ヤコビ行列の形がShape Conventionと違いますが、Assignment2のところで実装しやすいためにShape Conventionに沿ってやってください。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0043.jpeg" class="img-fluid"></p>
+<p>実装する際に、ヤコビ行列で計算して、最後にShape Conventionの形に変換するのは一つのやり方です。こちらの方は実装上やりやすいです。もう一つのやり方としては常にShape Conventionにそってやることです。このやり方だと、いつもパラメーターの次元を意識しながら実装しないとエラーになるため、ややこしいです。</p>
+</section>
+<section id="逆伝播" class="level2">
+<h2 class="anchored" data-anchor-id="逆伝播">逆伝播</h2>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0044.jpeg" class="img-fluid"></p>
+<p>今までの話は逆伝播に近いです。逆伝播は単純に微分して、微分の結果を用いてパラメーターをアップデートすることです。</p>
+<p>前に話したもう一つのトリックとして、微分の結果を重複に使うことです。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0046.jpeg" class="img-fluid"></p>
+<p>自動微分システムがあります。それはニューラルネットワークをグラフに表現して計算しています。グラフのソースノードはインプットです。中間のノードは各計算ステップです。エッジに沿って計算結果を渡します。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0047.jpeg" class="img-fluid"></p>
+<p>このやり方で、順伝播(Forward Propagation)ができます。でも、逆伝播もしないといけないです。それは次のスライドから話します。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0048.jpeg" class="img-fluid"></p>
+<p>逆伝播は順伝播と同じように、エッジに沿って、最終結果からソースノードへ逆方向に渡します。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0049.jpeg" class="img-fluid"></p>
+<p>一個のノードを例として話します。 <img src="https://latex.codecogs.com/png.latex?h=f(z)"> の式について、そのノードは下流の勾配を受けて、上流に伝播します。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0051.jpeg" class="img-fluid"></p>
+<p>そのノード自身の勾配もあるので、Chain ruleを利用して、勾配をアップデートして上流に渡します。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0052.jpeg" class="img-fluid"></p>
+<p>基本的には下流の勾配を自身の勾配を掛け算して上流に渡します。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0054.jpeg" class="img-fluid"></p>
+<p>上流に複数のノードがある場合は、ローカル勾配も複数用意して上流に渡します。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0057.jpeg" class="img-fluid"></p>
+<p>一個シンプルな例で実際に計算します。例えば、右上の式と各パラメーターの値があります。それを各ステップに分解すると、式は左になり、その順伝播のグラフは下になります。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0060.jpeg" class="img-fluid"></p>
+<p>まず、各ノードの勾配を算出します。その結果は右下の式になります。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0061.jpeg" class="img-fluid"></p>
+<p>次に逆伝播します。最終の結果の勾配は1です。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0062.jpeg" class="img-fluid"></p>
+<p>それを前に伝播すると計算結果は青字の通りになります。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0064.jpeg" class="img-fluid"></p>
+<p>最終的に各エッジの勾配を算出することができます。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0065.jpeg" class="img-fluid"></p>
+<p>これで、最終的結果に対するインプットの勾配も計算できます。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0067.jpeg" class="img-fluid"></p>
+<p>上記の例にある <img src="https://latex.codecogs.com/png.latex?y"> は2つのノードから勾配を受けていますが、足し算で <img src="https://latex.codecogs.com/png.latex?y"> の勾配になります。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0068.jpeg" class="img-fluid"></p>
+<p>また、微分の計算からにもわかりますが、足し算の場合は、下流の勾配は直接上流に流れます。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0069.jpeg" class="img-fluid"></p>
+<p>Max計算の場合は、勾配は一個のノードへ渡して、もう一個は0です。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0070.jpeg" class="img-fluid"></p>
+<p>掛け算の場合は、上流の2つのノードの勾配は順伝播の値の交換になります。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0072.jpeg" class="img-fluid"></p>
+<p>それぞれのノードの別で計算するのは効率ではないです。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0073.jpeg" class="img-fluid"></p>
+<p>効率のやり方としては、各ノードのローカル勾配を一括で計算して、前の計算結果を活かして後ろから一個一個計算して行くことです。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0074.jpeg" class="img-fluid"></p>
+<p>上記のことの全体像はこのスライトにあります。このやり方の重要なところとしては、逆伝播と順伝播の計算量は同じ複雑度になります。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0075.jpeg" class="img-fluid"></p>
+<p>また、それで自動微分システムも作れます。現在主流のTensorflowやPyTorchはこの仕組みを利用しています。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0076.jpeg" class="img-fluid"></p>
+<p>こちらは自動微分システムを実装する際に全体像のPseudo codeです。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0078.jpeg" class="img-fluid"></p>
+<p>全体の流れ以外、各種類のノードを手動で定義する必要があります。これは掛け算のコードです。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0079.jpeg" class="img-fluid"></p>
+<p>後いくつかの補足があります。</p>
+<p>実装したことが正しいかをチェックするために、直接インプットに小さい変化を与えて、アウトプットの変化は勾配に近いを見ることができます。</p>
+<p>一方それはあくまでも近似するやり方ですし、計算も非常に遅いです。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0080.jpeg" class="img-fluid"></p>
+<p>今回の授業は主に逆伝播のことを話しました。</p>
+<p>逆伝播は、計算グラフに沿ってChain ruleを再帰的かつ効率的に適用します。下流の勾配が上流の勾配と局所勾配の積と等しくなります。</p>
+<p><img src="https://jiang.jp/posts/20231014_cs224n_lecture_3/images/0081.jpeg" class="img-fluid"></p>
+<p>PyTorch等の深層学習フレームワークがあるので、中身を実際に知る必要はありません。</p>
+<p>しかし、このクラスでは、これらのことがどのように実装されているかを実際に学んでいることを期待しています。それにより、より深い理解を得ることができます。そして、時には深い理解が必要になることがあります。なぜなら、バックプロパゲーションは常に完全には機能しないからです。だから、それが実際に何をしているのかを理解することは、デバッグにとって非常に重要になることがあります。</p>
+<p>(例えば、勾配爆発・消失のこと、また並列処理の問題を解決するには、今日学んだ知識が必要となってきます)</p>
+
+
+</section>
+
+ ]]></description>
+  <category>NLP</category>
+  <guid>https://jiang.jp/posts/20231014_cs224n_lecture_3/index.html</guid>
+  <pubDate>Sat, 14 Oct 2023 15:00:00 GMT</pubDate>
+</item>
+<item>
+  <title>Stanford CS224N 深層学習による自然言語処理 Lecture 2 まとめ</title>
+  <link>https://jiang.jp/posts/20231013_cs224n_lecture_2/index.html</link>
+  <description><![CDATA[ 
+
+
+
+<section id="授業のロジ" class="level2">
+<h2 class="anchored" data-anchor-id="授業のロジ">授業のロジ</h2>
+<p>Word2vecのモデルを紹介し、ランダムなワードベクトルから始めて、テキストの大量のコーパスを通じて各ワードを反復処理します。各位置で、中心ワードの周囲にどのワードが出現するかを予測しようとします。これは、中心ワードとコンテキストワードのワードベクトル間のドット積に基づいて定義される確率分布によって行います。これにより、あるワードが特定のコンテキスト内に出現する確率推定が得られます。実際のワードがこの機会にコンテキスト内に出現した場合、そのワードがコンテキスト内に出現する可能性を高めるようにワードベクトルを更新します。そして、このシンプルなアルゴリズムだけで、ワードの類似性とワードスペース内の意味のある方向をうまく捉えるワードベクトルを学習することができます。</p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0001.jpeg" class="img-fluid"></p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0002.jpeg" class="img-fluid"></p>
+<p>今日の主な内容は、ワードベクトルについてさらに詳しく学び、ワードセンスに触れ、ニューラルネットワーク分類器の概念を紹介することです。今日のクラスの終わりまでには、GoogleのWord2vec論文やGLoVe論文、または後で取り上げるSanjeev Aroraの論文など、ワード埋め込みに関する論文を自信を持って理解できるようになることが最大の目標です。</p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0003.jpeg" class="img-fluid"></p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0004.jpeg" class="img-fluid"></p>
+<p>まず、Word2vecのモデルの復習をします。Word2vecはランダムなワードベクトルから始めて、大量のコーパスを通じて、各位置の中心語の周囲にどのワードが出現するかを予測しようとします。予測の確率部分は、中心語と文脈語の類似度と中心語とすべての単語の類似度との割り算で計算します。このシンプルなアルゴリズムだけで、ワードの類似性とワードスペース内の意味のある方向をうまく捉えるワードベクトルを学習することができます。</p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0005.jpeg" class="img-fluid"></p>
+<p>ワードベクトルには、中心語ベクトルと文脈語ベクトルがあり、これらの内積を取ることで、特定の文脈語が中心語と共に出現する確率のスコアを得ます。そして、これらのスコアを確率に変換するためにsoftmax変換を使用します。このモデルは、自然言語処理で「Bag of words」モデルと呼ばれ、単語の順序や位置には注意を払わない特徴があります。</p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0006.jpeg" class="img-fluid"></p>
+<p>ワードベクトルは、高次元ベクトル空間内で意味的に類似した単語が近くに配置されるように学習されます。例えば、曜日や携帯電話のブランド、学問の分野など、意味的に関連性のある単語はベクトル空間内で近くにグループ化されます。しかし、このベクトル空間は高次元であり、我々が視覚的に理解できるようにあえて2次元空間に落としているだけです。2次元で近い位置であっても、高次元の中で遠い距離になっているかもしれません。</p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0007.jpeg" class="img-fluid"></p>
+<p>ワードベクトルの学習方法については、ランダムなワードベクトルから始め、損失関数を定義し、勾配降下法を用いて損失関数を最小化するようにベクトルを更新していきます。具体的には、現在のパラメータから勾配を計算し、その負の方向に小さなステップを進めることで、損失関数を最小化する方向に進んでいきます。</p>
+<p>ステップサイズは調整可能で、小さすぎると計算が多くなり、大きすぎると最適解に収束しない可能性があります。また、ニューラルネットワークは一般的に凸ではないため、最適解が一意でない可能性がありますが、実際には問題なく動作します。</p>
+<p>(勾配降下法について詳しく知りたい方は、CourseraのAndrew Ng先生の機械学習の授業の受講を強くおすすめします。)</p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0008.jpeg" class="img-fluid"></p>
+<p>勾配降下法とは、現在のパラメータθの値を持ち、学習率またはステップサイズαを使用して勾配の負の方向に少し移動します。これにより、新しいパラメータ値が得られます。これらはベクトルであり、各個別のパラメータは、そのパラメータに対するjの偏微分を計算することで少し更新されます。これが単純な勾配降下法のアルゴリズムです。</p>
+<p>ワードベクトルの学習方法については、ランダムなワードベクトルから始め、損失関数を定義し、勾配降下法を用いて損失関数を最小化するようにベクトルを更新していきます。具体的には、現在のパラメータから勾配を計算し、その負の方向に小さなステップを進めることで、損失関数を最小化する方向に進んでいきます。</p>
+<p>ステップサイズは調整可能で、小さすぎると計算が多くなり、大きすぎると最適解に収束しない可能性があります。また、ニューラルネットワークは一般的に凸ではないため、最適解が一意でない可能性がありますが、実際には問題なく動作します。</p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0009.jpeg" class="img-fluid"></p>
+<p>全コーパスを用いて損失関数やその勾配を計算すると、非常に時間がかかり、一度の勾配更新に長い時間を要するため、最適化が極めて遅くなります。そのため、ニューラルネットワークではほぼ100%の場合、勾配降下法ではなく確率的勾配降下法(SGD)が用いられます。SGDでは、全コーパスに基づく勾配の推定ではなく、一つまたは少数の中心語に基づく勾配の推定を行います。この推定はノイズが多く不完全ですが、それを用いてパラメータを更新します。これにより、一度のコーパス通過で何十億ものパラメータ更新が可能となり、学習速度が大幅に向上します。</p>
+<p>また、SGDは学習過程で揺れ動く特性がありますが、これが複雑なネットワークではより良い解を学習することを可能にします。したがって、確率的勾配降下法は計算速度を大幅に向上させるだけでなく、より良い結果を得ることができます。</p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0010.jpeg" class="img-fluid"></p>
+<p>特定のウィンドウに基づく確率的勾配更新では、ウィンドウ内に存在する一部の単語に対する勾配情報のみが得られ、語彙の大部分については勾配更新情報が得られないため、非常にスパースな勾配更新となります。例えば、Windowは5の場合は中心語を含めて見える単語数は5+5+1=11個です。なので、アップデートすべき単語はこの11個のみです。他のところの勾配は全部0になります。</p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0011.jpeg" class="img-fluid"></p>
+<p>したがって、システム最適化を考える場合、実装する際に少数の単語のパラメータのみを更新することを考慮すべきです。</p>
+<p>また、ワードベクトルは、数学的な観点からは列ベクトルとして表現されることが多いですが、実際の深層学習パッケージでは行ベクトルとして表現されることが一般的です。これは、メモリの連続した範囲としてワードベクトル全体にアクセスできるため、効率的です。</p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0012.jpeg" class="img-fluid"></p>
+<p>Word2vecでは、各単語タイプに対して中心語ベクトルと文脈語ベクトルの2つのベクトルが存在します。これらは最終的に平均化され、似ているが完全に同一ではありません。単語ごとに1つのベクトルだけを使用してWord2vecアルゴリズムを実装することも可能で、これは少し効果的ですが、アルゴリズムを複雑にします。</p>
+<p>また、Word2vecモデルには基本的なモデルのバリアントは2つあり、一つは「Skip-grams」で、もう一つは「CBOW」です。違いとしては、中心語を予測するか、文脈語を予測するかのことです。これらは似たような結果をもたらしますが、Skip-gramの方が自然で、後続の研究でよく用いられます。また、これまでに紹介したのは単純だがわかりやすいSoftmaxです。しかし、実際には、論文では「negative sampling」と呼ばれる方法を使用することを提案しています。</p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0013.jpeg" class="img-fluid"></p>
+<p>Naive softmaxを使用すると、分母を計算するのが非常にコストがかかるという問題があります。これは、語彙のすべての単語に対して内積を計算する必要があるためです。例えば、語彙が10万語ある場合、分母を計算するためには10万回の内積の計算が必要となります。これを解決するために、ネガティブサンプリングという手法が提案されています。</p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0014.jpeg" class="img-fluid"></p>
+<p>これは、Softmaxを使用する代わりに、真の中心語と文脈語のペアと、ノイズペア（真の中心語を保持し、文脈語をランダムに選択したペア）に対して、ロジスティック回帰モデルを訓練するというアイデアです。</p>
+<p>もともとのSoftmaxの分子は真の中心語と文脈語のペアの類似度、それをなるべく大きくにしたいです。分母はノイズペアの類似度の足し算、それをなるべく小さくしたいです。ネガティブサンプリングの目標関数の前の項目はSoftmaxの分子に対応し、後ろの項目は分母に対応しています。そのため、計算量が減らしながら、モデルを学習することができます。</p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0015.jpeg" class="img-fluid"></p>
+<p>また、Word2vecの論文では、単語のサンプリングにおいて、単語の出現確率や一様分布に基づいて単語をサンプリングするのではなく、単語のユニグラム分布（大規模コーパス内での単語の出現頻度）を3/4乗してサンプリングします。これにより、頻出語と稀出語の差が緩和され、稀出語がやや頻繁にサンプリングされるようになります。これらの手法により、Word2vecは効率的にワードベクトルを学習することができます。</p>
+</section>
+<section id="なぜ直接共起回数をカウントしないか" class="level2">
+<h2 class="anchored" data-anchor-id="なぜ直接共起回数をカウントしないか">なぜ直接共起回数をカウントしないか</h2>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0016.jpeg" class="img-fluid"></p>
+<p>単語の共起行列を作成する方法には2つあります。</p>
+<ul>
+<li><p>一つは既に見てきたように単語の周囲のウィンドウを使用する方法で、これはWord2vecと似ています。これにより、より細かい文法的・意味的な近さを捉えることができます。</p></li>
+<li><p>もう一つの方法は、ウィンドウサイズを段落や全体のウェブページにして共起をカウントすることです。通常、ドキュメントにはある種の構造があり、それが段落であったり、実際のウェブページのようなドキュメントのサイズであったりします。そのような構造から単語の意味を捉えることできます。これは情報検索や潜在的意味解析のような方法でよく使用されます。</p></li>
+</ul>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0017.jpeg" class="img-fluid"></p>
+<p>一個の例を紹介します。具体的には、小さなコーパス（「I like deep learning. I like NLP. I enjoy flying.」）を例に、ウィンドウサイズを1として共起行列を作成しました。この行列では、「I like」が2回、「Deep learning」が1回出現するなど、単語の共起回数が記録されます。この共起行列から、単語の共起ベクトルとしての表現を得ることができます。例えば、「I」の行ベクトルは「I」の表現となります。これにより、意味や使用法が似ている単語は、類似したベクトルを持つと予想できます。</p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0018.jpeg" class="img-fluid"></p>
+<p>これらのカウントベースの単語ベクトルは、それなりに使えますが、いくつかの問題があります。</p>
+<ul>
+<li><p>まず、これらのベクトルは非常に大きく、かつスパース（疎）です。これは、単語ベクトルが非常に大きいためで、通常使用する単語ベクトルよりもはるかに大きいです。</p></li>
+<li><p>また、非常に高次元のベクトルを持つため、スパース性とランダム性が高くなり、コーパスの特定の内容によって結果がノイジーになり、性能が安定ではないです一般的に、低次元のベクトルを使用することでより良い結果を得ることができます。</p></li>
+</ul>
+<p>そのため、重要な情報を固定された小さな次元数の密ベクトルに格納することで、単語の分布と他の単語の文脈についてのほとんどの情報を保存することができます。実際には、使用されるベクトルの次元数は通常25から1000の間です。したがって、カウント共起ベクトルの次元数を削減する方法が必要となります。</p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0019.jpeg" class="img-fluid"></p>
+<p>次元削減の方法として特異値分解（SVD）があります。SVDは、任意の行列（例えば単語の共起行列）を3つの行列（U、対角行列Σ、V転置行列）に分解します。この分解により、元の行列を最大限に再現する低次元の行列を得ることができます。</p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0020.jpeg" class="img-fluid"></p>
+<p>しかし、単語の共起回数をそのままの形でSVDに適用すると、結果はあまり良くないです。これは、単語の出現回数が正規分布に従わないためです。そのため、共起回数をスケーリングすることで、より有用な単語ベクトルを得ることができます。</p>
+<p>具体的には、生の共起回数の対数を取る、最大の共起回数を制限する、機能語を除去するなどの方法が提案されました。これらの手法は、1990年代から2000年代にかけて研究され、共起行列を改善する方法として有効であることが示されました。</p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0021.jpeg" class="img-fluid"></p>
+<p>共起回数でベクトルを生成するCOALSモデルから単語の意味的な成分が線形的に捉えられることがわかりました。例えば、「drive」から「driver」、「swim」から「swimmer」、「teach」から「teacher」、「marry」から「priest」への変化は、それぞれがほぼ平行で、ほぼ同じ大きさのベクトル成分を持つことから、これらは意味的な成分を表しています。この意味的な成分は、単語のアナロジーを解く際に利用できます。例えば、「drive」は「driver」に対して、「marry」は何に対応するかという問いに対して、この意味的な成分を加えることで「priest」を導き出すことができます。</p>
+<p>このように、カウントベースの手法とWord2vecのアルゴリズムは、単語の意味的な関連性を捉える点で共通点を持つことがわかります。</p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0022.jpeg" class="img-fluid"></p>
+<p>GLoVeアルゴリズムは、線形代数に基づく共起行列の手法（LSAやCOALSなど）と、反復的なニューラル更新アルゴリズム（skip-gramやCBOWなど）を結びつけることを目指して開発されました。</p>
+<p>線形代数の手法は訓練の速度や統計の効率的な利用に優れていましたが、大量のカウントに過度な重要性を与えるため、結果は必ずしも良好ではありませんでした。一方、ニューラルモデルは、共起行列に対する統計の利用が非効率的なように見えましたが、時間と空間をトレードオフにすることで大規模なコーパスにスケールすることが容易でした。また、ニューラルモデルは、単語の類似性だけでなく、それを超える複雑なパターンを捉えることができました。</p>
+<p>GLoVeモデルは、共起行列のモデルとニューラルモデルの思考を統一しようとしました。これは、共起行列のカウントの上で計算されるニューラルモデルに似ています。</p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0023.jpeg" class="img-fluid"></p>
+<p>前のグラフで示したように、男性から女性へ、女王から王への単語の意味成分(スペクトル)を単語ベクトルの減算と加算で表現できます。これらの意味成分は、共起確率の割り算としても表現できるのではないかと推測します。</p>
+<p>例えば、固体から気体への意味成分を取り出したいとします。単語が氷と共起するかどうかを見ることで固体の部分を取り出すことができるかもしれません。そして、「固体」は氷と共起するので、それは有望に見えます。一方、ガスは氷とあまり共起しないので、それも有望に見えます。しかし、問題は、「水」も氷と多く共起するということです。また、もしランダムな他の単語を取ると、それはおそらく氷とあまり共起しないでしょう。</p>
+<p>それに対して、単語が蒸気と共起するかどうかを見ると、固体は蒸気とあまり共起しないでしょうが、ガスはそうです。水もまたそうであり、ランダムな単語は少ないでしょう。したがって、我々が取り出したい意味成分、つまりガスから固体への移行を得るためには、実際にはこれらの共起確率の比率を見ることが非常に有用です。なぜなら、それによって我々は固体とガスの間で大から小へのスペクトルを得ることができ、水やランダムな単語に対してはそれが基本的にキャンセルアウトして1を与えるからです。</p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0024.jpeg" class="img-fluid"></p>
+<p>大きなコーパスでそれらを数え上げると、基本的にこれが得られます。これらは実際の共起確率です。そして、水と私のランダムな単語（ここでは「ファッション」）については、これらは約1です。一方、固体が氷または蒸気と共起する確率の比率は約10で、ガスは約1/10です。</p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0025.jpeg" class="img-fluid"></p>
+<p>では、これらの共起確率の比率を線形の意味成分としてどのように捉えることができるでしょうか？単語ベクトル空間内で、単に線形の意味成分を加算し、減算することができるようにするためにはどうすればよいのでしょうか？それは、我々が対数二次モデルを構築することで達成できるように思われます。つまり、二つの単語ベクトル間の内積が共起確率の対数を近似するようにします。</p>
+<p>それを行うと、二つのベクトル間の差が他の単語との類似性に対応し、前のスライドに示した確率比の対数になります。したがって、GloVeモデルは、共起行列モデルとニューラルモデルの思考を統一しようとしました。それはある意味でニューラルモデルに似ていますが、実際には共起行列のカウントの上で計算されます。</p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0026.jpeg" class="img-fluid"></p>
+<p>GloVeモデルは、共起行列モデルとニューラルモデルの思考を統一することを目指し、共起行列のカウントに基づいて計算される一方で、ニューラルモデルと同様の性質を持つように設計されました。具体的な損失関数は、内積が共起の対数に近いことを目指しています。また、「a」、「in」のような一般的な単語がに大きく影響されることを防ぐ関数を使用しています。</p>
+<p>この関数を直接共起カウント行列に最適化することで、大規模なコーパスに対して高速な訓練が可能となります。</p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0027.jpeg" class="img-fluid"></p>
+<p>このアルゴリズムを使用して「frog」（カエル）に最も近い単語を求めると、「frogs」、「toad」などの単語が得られ、これらはすべてカエルを指す単語であることがわかります。これにより、GloVeモデルがうまく機能していることが示されました。</p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0028.jpeg" class="img-fluid"></p>
+<p>では、単語ベクトルをどのように評価することができますか？一般的に、NLPの評価については、内的評価と外的評価の2つの方法があります。</p>
+<p>内的評価とは、直接もしくは中間のサブタスクに評価することです。例えば単語の類似度を測る。内的評価は計算が速いですが、全体のシステムにどれぐらい効果があるかは不明です。したがって、人々は外的評価にも非常に興味があります。</p>
+<p>外的評価とは、全体のフローの中で評価することです。それで全体への影響が見えますが、いくつかの欠点もあります。外的タスクで評価するのには時間がかかります。また、ベクトルのホントの効果を測れないです。それにより、数字が悪くなっている時、ワードベクトルが悪いか、それとも他のプロセスとの相性が悪いかがわからないです。性能を具体的にわからないと、改善できないです。</p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0029.jpeg" class="img-fluid"></p>
+<p>内的評価の一つの方法は、単語ベクトルの類推です。男性が女性に対して王であると言えば、女王が出てくると期待します。</p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0030.jpeg" class="img-fluid"></p>
+<p>GloVeベクトルからの結果を表示しています。GloVeはまさにそういった線形関係をみえることができます。</p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0031.jpeg" class="img-fluid"></p>
+<p>これらの単語ベクトルは実際には世界の知識のかなりを学びます。例えば、会社とその会社のCEOもわかります。</p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0032.jpeg" class="img-fluid"></p>
+<p>また、肯定形、比較形、最上級形の形容詞のベクトルもおおよそ線形成分で移動します。</p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0033.jpeg" class="img-fluid"></p>
+<p>このテーブルからGloVeはSVD、またはWord2vec(CBOWとSG)より優れていることがわかります。これは両方の長所を融合したためと当時は思いましたが、実際はそうではなさそうです。</p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0034.jpeg" class="img-fluid"></p>
+<p>その証拠はこちらのテスト結果です。Word2vecの学習データはニュースですが、GloVeモデルがWikipediaと他のテキストの両方で部分的に訓練されました。Wikipediaには様々の概念を紹介するテキストあるので、それを学習したほうが類似度の計算に有利になります。</p>
+<p>また、GloVeの次元数による精度も測りました。結果から見ると、大体300次元で性能が飽和します。</p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0035.jpeg" class="img-fluid"></p>
+<p>別の内部評価として、これらのモデルが人間の単語の類似性の判断をどのようにモデル化するかを見ることができます。心理学者たちは何十年もの間、人間の単語の類似性のデータを取ってきました。具体的には、「教授」と「医者」のような単語のペアに対して、0から10の間のスコアを与える類似性のスコアを求めています。そして、それらは複数の人間の判断を平均したものです。 。</p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0036.jpeg" class="img-fluid"></p>
+<p>こちらのテストもGloVeの性能のほうが良いことを示しました。(単純に共起回数をSVDで次元圧縮したモデルもそれなり性能が良いです。)</p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0037.jpeg" class="img-fluid"></p>
+<p>次に外部評価の結果を見ましよう。外部評価としては固有名詞認識(Named entity recognition)を利用しています。それはテキストにある人名、組織名等のことを認識することです。こちらのGloVeが一番良いです。</p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0038.jpeg" class="img-fluid"></p>
+<p>次に単語の多義性について話をします。単語、特によく使う単語は複数の意味を持ちます。1個のワードベクトルを単語の複数の意味を捉えることができるのでようか。</p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0039.jpeg" class="img-fluid"></p>
+<p>例えば英語の「pike」は10種類以上の意味があります。</p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0040.jpeg" class="img-fluid"></p>
+<p>単語の各意味をぞれぞれベクトルで表現する研究は実は2012年にですでに行われました。その結果、例えば、jaguar が 獣としてhunterに近い例もありますし、MacOSの名前として softwareに近いベクトルもあります。</p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0041.jpeg" class="img-fluid"></p>
+<p>その研究は単語のベクトルをいくつかのサブベクトルに分解して学習したことです。</p>
+<p>一方、これは実践での主流の方法ではありません。いくつかの理由があります。一つは手法の単純さです。もう一つの理由は、そもそもどのように単語の意味を分解するのは人ぞれぞれで、標準的なやり方がありません。</p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0042.jpeg" class="img-fluid"></p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0043.jpeg" class="img-fluid"></p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0044.jpeg" class="img-fluid"></p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0045.jpeg" class="img-fluid"></p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0046.jpeg" class="img-fluid"></p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0047.jpeg" class="img-fluid"></p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0048.jpeg" class="img-fluid"></p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0049.jpeg" class="img-fluid"></p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0050.jpeg" class="img-fluid"></p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0051.jpeg" class="img-fluid"></p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0052.jpeg" class="img-fluid"></p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0053.jpeg" class="img-fluid"></p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0054.jpeg" class="img-fluid"></p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0055.jpeg" class="img-fluid"></p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0056.jpeg" class="img-fluid"></p>
+<p><img src="https://jiang.jp/posts/20231013_cs224n_lecture_2/images/0057.jpeg" class="img-fluid"></p>
+
+
+</section>
+
+ ]]></description>
+  <category>NLP</category>
+  <guid>https://jiang.jp/posts/20231013_cs224n_lecture_2/index.html</guid>
+  <pubDate>Thu, 12 Oct 2023 15:00:00 GMT</pubDate>
+</item>
 <item>
   <title>Stanford CS224N 深層学習による自然言語処理 Lecture 1 まとめ</title>
   <link>https://jiang.jp/posts/20231011_cs224n_lecture_1/index.html</link>
@@ -93,10 +2137,13 @@
 </section>
 <section id="最適化の基礎" class="level2">
 <h2 class="anchored" data-anchor-id="最適化の基礎">最適化の基礎</h2>
-<p><img src="https://jiang.jp/posts/20231011_cs224n_lecture_1/images/0036 Large.jpeg" class="img-fluid"> Word2vecは勾配降下法で最適化します。(勾配降下法について詳しく知りたい方は、CourseraのAndrew Ng先生の機械学習の授業の受講を強くおすすめします。)</p>
-<p><img src="https://jiang.jp/posts/20231011_cs224n_lecture_1/images/0037 Large.jpeg" class="img-fluid">勾配降下法は簡単に言うと、目的関数がパラメーターに対する偏微分を計算し、パラメーターが偏微分をひくことで目的関数を最小化することができます。</p>
-<p>αは学習率です。</p>
-<p><img src="https://jiang.jp/posts/20231011_cs224n_lecture_1/images/0038 Large.jpeg" class="img-fluid"> また、勾配降下法はすべてのデータに対して同時計算しています。学習データの中にある単語数は数十億あるため、同時計算はできないため、一般的なやり方としては、毎回数個のデータを使ってパラメーターをアップデートすることです。それはStochastic gradient descent(SGD)と言います。</p>
+<p><img src="https://jiang.jp/posts/20231011_cs224n_lecture_1/images/0036 Large.jpeg" class="img-fluid">ワードベクトルの学習方法については、ランダムなワードベクトルから始め、損失関数を定義し、勾配降下法を用いて損失関数を最小化するようにベクトルを更新していきます。具体的には、現在のパラメータから勾配を計算し、その負の方向に小さなステップを進めることで、損失関数を最小化する方向に進んでいきます。</p>
+<p>ステップサイズは調整可能で、小さすぎると計算が多くなり、大きすぎると最適解に収束しない可能性があります。また、ニューラルネットワークは一般的に凸ではないため、最適解が一意でない可能性がありますが、実際には問題なく動作します。</p>
+<p>(勾配降下法について詳しく知りたい方は、CourseraのAndrew Ng先生の機械学習の授業の受講を強くおすすめします。)</p>
+<p><img src="https://jiang.jp/posts/20231011_cs224n_lecture_1/images/0037 Large.jpeg" class="img-fluid"></p>
+<p>勾配降下法とは、現在のパラメータθの値を持ち、学習率またはステップサイズαを使用して勾配の負の方向に少し移動します。これにより、新しいパラメータ値が得られます。これらはベクトルであり、各個別のパラメータは、そのパラメータに対するjの偏微分を計算することで少し更新されます。これが単純な勾配降下法のアルゴリズムです。</p>
+<p><img src="https://jiang.jp/posts/20231011_cs224n_lecture_1/images/0038 Large.jpeg" class="img-fluid">全コーパスを用いて損失関数やその勾配を計算すると、非常に時間がかかり、一度の勾配更新に長い時間を要するため、最適化が極めて遅くなります。そのため、ニューラルネットワークではほぼ100%の場合、勾配降下法ではなく確率的勾配降下法(SGD)が用いられます。SGDでは、全コーパスに基づく勾配の推定ではなく、一つまたは少数の中心語に基づく勾配の推定を行います。この推定はノイズが多く不完全ですが、それを用いてパラメータを更新します。これにより、一度のコーパス通過で何十億ものパラメータ更新が可能となり、学習速度が大幅に向上します。</p>
+<p>また、SGDは学習過程で揺れ動く特性がありますが、これが複雑なネットワークではより良い解を学習することを可能にします。したがって、確率的勾配降下法は計算速度を大幅に向上させるだけでなく、より良い結果を得ることができます。</p>
 </section>
 <section id="word-vectorを実際に見る" class="level2">
 <h2 class="anchored" data-anchor-id="word-vectorを実際に見る">Word Vectorを実際に見る</h2>
