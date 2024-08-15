@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.340">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="dcterms.date" content="2024-08-15">
+<meta name="description" content="LangserveとVercel AI SDKを使って、短期間で強力なGenAIデモアプリを作成する方法を紹介します。LangChainで作成したAIエージェントをREST APIとしてデプロイし、Next.jsを使ってWebアプリを構築する手順を詳しく解説します。クライアントへの提案やプロトタイプ作成に最適なソリューションです。">
+
+<title>blog - LangserveとVercel AI SDKを使ってGenAIデモアプリをクイックに作る</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit"
+  }
+}</script>
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=G-56TE34D1Z4"></script>
+
+<script type="text/javascript">
+
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
+</script>
+
+
+<link rel="stylesheet" href="../../styles.css">
+</head>
+
+<body class="nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container">
+    <a class="navbar-brand" href="../../index.html">
+    <span class="navbar-title">blog</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../about.html" rel="" target="">
+ <span class="menu-text">About</span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="http://www.linkedin.com/in/jiang-dayuan" rel="" target=""><i class="bi bi-linkedin" role="img">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+</ul>
+            <div class="quarto-navbar-tools">
+</div>
+          </div> <!-- /navcollapse -->
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#vercel-ai-sdkとは" id="toc-vercel-ai-sdkとは" class="nav-link active" data-scroll-target="#vercel-ai-sdkとは">Vercel AI SDKとは？</a></li>
+  <li><a href="#利用シーン" id="toc-利用シーン" class="nav-link" data-scroll-target="#利用シーン">利用シーン</a></li>
+  <li><a href="#実例" id="toc-実例" class="nav-link" data-scroll-target="#実例">実例</a>
+  <ul class="collapse">
+  <li><a href="#langchainで作ったagent" id="toc-langchainで作ったagent" class="nav-link" data-scroll-target="#langchainで作ったagent">LangChainで作ったAgent</a></li>
+  <li><a href="#langserveでagentをwebサーバー化する" id="toc-langserveでagentをwebサーバー化する" class="nav-link" data-scroll-target="#langserveでagentをwebサーバー化する">LangServeでAgentをWebサーバー化する</a></li>
+  <li><a href="#vercel-ai-sdkでwebアプリを作成" id="toc-vercel-ai-sdkでwebアプリを作成" class="nav-link" data-scroll-target="#vercel-ai-sdkでwebアプリを作成">Vercel AI SDKでWebアプリを作成</a></li>
+  </ul></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">LangserveとVercel AI SDKを使ってGenAIデモアプリをクイックに作る</h1>
+  <div class="quarto-categories">
+    <div class="quarto-category">LLM</div>
+    <div class="quarto-category">Web</div>
+  </div>
+  </div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">August 15, 2024</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+</header>
+
+<section id="vercel-ai-sdkとは" class="level2">
+<h2 class="anchored" data-anchor-id="vercel-ai-sdkとは">Vercel AI SDKとは？</h2>
+<p>Vercel AI SDKは、Vercel社が提供するAIアプリケーション開発のための強力なフレームワークです。これを使えば、AIアプリケーションの開発が驚くほど簡単になります。</p>
+<p>Vercel AI SDKは、以下の3つの主要なコンポーネントで構成されています。</p>
+<table class="table">
+<colgroup>
+<col style="width: 35%">
+<col style="width: 64%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>ライブラリ</th>
+<th>機能</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>AI SDK Core</td>
+<td>統一されたAPIで任意のLLMを呼び出す（例: generateText、generateObject）</td>
+</tr>
+<tr class="even">
+<td>AI SDK UI</td>
+<td>API経由でストリーミングチャットや生成UIを構築する（例: useChat）</td>
+</tr>
+<tr class="odd">
+<td>AI SDK RSC</td>
+<td>React Server Components (RSC) からクライアントへ生成UIをストリームする（例: streamUI）</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="利用シーン" class="level2">
+<h2 class="anchored" data-anchor-id="利用シーン">利用シーン</h2>
+<p>私はコンサルティングファームでAIエンジニアとして働いており、クライアントの要望に応じて様々なAIアプリケーションを開発しています。特に、提案段階で短期間でデモアプリを作成することがよくあります。</p>
+<p>簡単なアプリであれば、Vercel AI SDKのCore機能を使って、Next.js内で直接モデルを初期化し、すぐにコールすることができます。</p>
+<p>しかし、より複雑なアプリを作成する場合、通常はWebアプリ開発とAI開発が別々の担当者によって行われます。特にAI側では、PythonのLangChainを使うケースが多いです。そんな時に役立つのが、LangserveとVercel AI SDKを組み合わせたクイックな開発手法です。</p>
+</section>
+<section id="実例" class="level2">
+<h2 class="anchored" data-anchor-id="実例">実例</h2>
+<section id="langchainで作ったagent" class="level3">
+<h3 class="anchored" data-anchor-id="langchainで作ったagent">LangChainで作ったAgent</h3>
+<p>例えば、以下のような掛け算ツール<code>multiply</code>を持つAgentを構築しました。</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1"></a><span class="im">import</span> os</span>
+<span id="cb1-2"><a href="#cb1-2"></a></span>
+<span id="cb1-3"><a href="#cb1-3"></a><span class="im">from</span> langchain_openai <span class="im">import</span> ChatOpenAI</span>
+<span id="cb1-4"><a href="#cb1-4"></a></span>
+<span id="cb1-5"><a href="#cb1-5"></a><span class="im">from</span> langchain <span class="im">import</span> hub</span>
+<span id="cb1-6"><a href="#cb1-6"></a><span class="im">from</span> langchain.agents <span class="im">import</span> AgentExecutor, create_tool_calling_agent</span>
+<span id="cb1-7"><a href="#cb1-7"></a><span class="im">from</span> langchain.tools <span class="im">import</span> tool</span>
+<span id="cb1-8"><a href="#cb1-8"></a></span>
+<span id="cb1-9"><a href="#cb1-9"></a></span>
+<span id="cb1-10"><a href="#cb1-10"></a><span class="at">@tool</span></span>
+<span id="cb1-11"><a href="#cb1-11"></a><span class="kw">def</span> multiply(a: <span class="bu">float</span>, b: <span class="bu">float</span>) <span class="op">-&gt;</span> <span class="bu">float</span>:</span>
+<span id="cb1-12"><a href="#cb1-12"></a>    <span class="co">"""Multiply two numbers.</span></span>
+<span id="cb1-13"><a href="#cb1-13"></a></span>
+<span id="cb1-14"><a href="#cb1-14"></a><span class="co">    Args:</span></span>
+<span id="cb1-15"><a href="#cb1-15"></a><span class="co">        a (float): The first number</span></span>
+<span id="cb1-16"><a href="#cb1-16"></a><span class="co">        b (float): The second number</span></span>
+<span id="cb1-17"><a href="#cb1-17"></a></span>
+<span id="cb1-18"><a href="#cb1-18"></a><span class="co">    Returns:</span></span>
+<span id="cb1-19"><a href="#cb1-19"></a><span class="co">        float: The result of multiplying</span></span>
+<span id="cb1-20"><a href="#cb1-20"></a><span class="co">    """</span></span>
+<span id="cb1-21"><a href="#cb1-21"></a>    <span class="cf">return</span> a <span class="op">*</span> b</span>
+<span id="cb1-22"><a href="#cb1-22"></a></span>
+<span id="cb1-23"><a href="#cb1-23"></a></span>
+<span id="cb1-24"><a href="#cb1-24"></a><span class="kw">def</span> create_agent():</span>
+<span id="cb1-25"><a href="#cb1-25"></a>    llm <span class="op">=</span> ChatOpenAI(</span>
+<span id="cb1-26"><a href="#cb1-26"></a>        model<span class="op">=</span><span class="st">'gpt-4o-mini'</span>, temperature<span class="op">=</span><span class="dv">0</span>, api_key<span class="op">=</span>os.getenv(<span class="st">'OPENAI_API_KEY'</span>)</span>
+<span id="cb1-27"><a href="#cb1-27"></a>    )</span>
+<span id="cb1-28"><a href="#cb1-28"></a></span>
+<span id="cb1-29"><a href="#cb1-29"></a>    prompt <span class="op">=</span> hub.pull(<span class="st">'hwchase17/openai-functions-agent'</span>)</span>
+<span id="cb1-30"><a href="#cb1-30"></a>    prompt.messages</span>
+<span id="cb1-31"><a href="#cb1-31"></a>    prompt.messages[<span class="dv">0</span>].prompt.template <span class="op">=</span> <span class="st">"""</span></span>
+<span id="cb1-32"><a href="#cb1-32"></a><span class="st">    You are a helpful assistant. But you are not good at calculate math.</span></span>
+<span id="cb1-33"><a href="#cb1-33"></a><span class="st">    If you are asked to calculate math, you **must** use the tools that are available to you.</span></span>
+<span id="cb1-34"><a href="#cb1-34"></a><span class="st">    Do not try to calculate math on your own.</span></span>
+<span id="cb1-35"><a href="#cb1-35"></a><span class="st">    """</span></span>
+<span id="cb1-36"><a href="#cb1-36"></a>    tools <span class="op">=</span> [multiply]</span>
+<span id="cb1-37"><a href="#cb1-37"></a>    agent <span class="op">=</span> create_tool_calling_agent(llm, tools, prompt)</span>
+<span id="cb1-38"><a href="#cb1-38"></a>    agent_executor <span class="op">=</span> AgentExecutor(agent<span class="op">=</span>agent, tools<span class="op">=</span>tools, verbose<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb1-39"><a href="#cb1-39"></a>    <span class="cf">return</span> agent_executor</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>このAgentは、ユーザーの質問に対してツールを利用して回答します。</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1"></a>agent <span class="op">=</span> create_agent()</span>
+<span id="cb2-2"><a href="#cb2-2"></a>agent.invoke({<span class="st">"input"</span>:<span class="st">"2*10"</span>})</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<pre><code>&gt; Entering new AgentExecutor chain...
+
+Invoking: `multiply` with `{'a': 2, 'b': 10}`
+
+20.0
+
+The result of \( 2 \times 10 \) is 20.
+
+&gt; Finished chain.
+{'input': '2*10', 'output': 'The result of \\( 2 \\times 10 \\) is 20.'}</code></pre>
+</section>
+<section id="langserveでagentをwebサーバー化する" class="level3">
+<h3 class="anchored" data-anchor-id="langserveでagentをwebサーバー化する">LangServeでAgentをWebサーバー化する</h3>
+<p>LangServeは、LangChainで作成したChainやAgentをREST APIとしてデプロイするのを支援するライブラリです。FastAPIとpydanticを使用してデータのチェックを行います。</p>
+<p>以下のコマンドでLangServeをインストールできます。</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode numberSource bash number-lines code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1"></a><span class="ex">pip</span> install <span class="st">"langserve[all]"</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>次に、<code>agent.py</code>と同じフォルダに以下の<code>app.py</code>を配置します。</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1"></a><span class="im">from</span> agent <span class="im">import</span> create_agent</span>
+<span id="cb5-2"><a href="#cb5-2"></a><span class="im">from</span> dotenv <span class="im">import</span> load_dotenv</span>
+<span id="cb5-3"><a href="#cb5-3"></a><span class="im">from</span> fastapi <span class="im">import</span> FastAPI</span>
+<span id="cb5-4"><a href="#cb5-4"></a><span class="im">from</span> langserve <span class="im">import</span> add_routes</span>
+<span id="cb5-5"><a href="#cb5-5"></a><span class="im">from</span> pydantic <span class="im">import</span> BaseModel</span>
+<span id="cb5-6"><a href="#cb5-6"></a></span>
+<span id="cb5-7"><a href="#cb5-7"></a>load_dotenv(<span class="st">'../.env.local'</span>)</span>
+<span id="cb5-8"><a href="#cb5-8"></a></span>
+<span id="cb5-9"><a href="#cb5-9"></a></span>
+<span id="cb5-10"><a href="#cb5-10"></a><span class="kw">class</span> Input(BaseModel):</span>
+<span id="cb5-11"><a href="#cb5-11"></a>    <span class="bu">input</span>: <span class="bu">str</span></span>
+<span id="cb5-12"><a href="#cb5-12"></a></span>
+<span id="cb5-13"><a href="#cb5-13"></a></span>
+<span id="cb5-14"><a href="#cb5-14"></a><span class="kw">class</span> Output(BaseModel):</span>
+<span id="cb5-15"><a href="#cb5-15"></a>    output: <span class="bu">str</span></span>
+<span id="cb5-16"><a href="#cb5-16"></a></span>
+<span id="cb5-17"><a href="#cb5-17"></a></span>
+<span id="cb5-18"><a href="#cb5-18"></a>app <span class="op">=</span> FastAPI(</span>
+<span id="cb5-19"><a href="#cb5-19"></a>    title<span class="op">=</span><span class="st">'LangChain Server'</span>,</span>
+<span id="cb5-20"><a href="#cb5-20"></a>    version<span class="op">=</span><span class="st">'1.0'</span>,</span>
+<span id="cb5-21"><a href="#cb5-21"></a>)</span>
+<span id="cb5-22"><a href="#cb5-22"></a>agent <span class="op">=</span> create_agent()</span>
+<span id="cb5-23"><a href="#cb5-23"></a></span>
+<span id="cb5-24"><a href="#cb5-24"></a>add_routes(</span>
+<span id="cb5-25"><a href="#cb5-25"></a>    app,</span>
+<span id="cb5-26"><a href="#cb5-26"></a>    agent.with_types(input_type<span class="op">=</span>Input, output_type<span class="op">=</span>Output),</span>
+<span id="cb5-27"><a href="#cb5-27"></a>)</span>
+<span id="cb5-28"><a href="#cb5-28"></a></span>
+<span id="cb5-29"><a href="#cb5-29"></a><span class="cf">if</span> <span class="va">__name__</span> <span class="op">==</span> <span class="st">'__main__'</span>:</span>
+<span id="cb5-30"><a href="#cb5-30"></a>    <span class="im">import</span> uvicorn</span>
+<span id="cb5-31"><a href="#cb5-31"></a></span>
+<span id="cb5-32"><a href="#cb5-32"></a>    uvicorn.run(app, host<span class="op">=</span><span class="st">'localhost'</span>, port<span class="op">=</span><span class="dv">8000</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>これで、コマンドラインで<code>python app.py</code>を実行すれば、APIサーバーが<a href="http://localhost:8000"><code>http://localhost:8000</code></a>に立ち上がります。</p>
+<p>APIをコールしてみましょう。</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode numberSource bash number-lines code-with-copy"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1"></a><span class="ex">curl</span> <span class="at">--location</span> <span class="at">--request</span> POST <span class="st">'http://localhost:8000/invoke'</span> <span class="dt">\</span></span>
+<span id="cb6-2"><a href="#cb6-2"></a>    <span class="at">--header</span> <span class="st">'Content-Type: application/json'</span> <span class="dt">\</span></span>
+<span id="cb6-3"><a href="#cb6-3"></a>    <span class="at">--data-raw</span> <span class="st">'{</span></span>
+<span id="cb6-4"><a href="#cb6-4"></a><span class="st">        "input": {</span></span>
+<span id="cb6-5"><a href="#cb6-5"></a><span class="st">            "input": "2*2"</span></span>
+<span id="cb6-6"><a href="#cb6-6"></a><span class="st">        }</span></span>
+<span id="cb6-7"><a href="#cb6-7"></a><span class="st">    }'</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>結果は以下の通りです。</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode numberSource json number-lines code-with-copy"><code class="sourceCode json"><span id="cb7-1"><a href="#cb7-1"></a><span class="fu">{</span></span>
+<span id="cb7-2"><a href="#cb7-2"></a>    <span class="er">'output'</span><span class="fu">:</span> <span class="fu">{</span><span class="er">'output'</span><span class="fu">:</span> <span class="er">'The</span> <span class="er">result</span> <span class="er">of</span> <span class="er">\\(</span> <span class="dv">2</span> <span class="er">\\times</span> <span class="dv">2</span> <span class="er">\\)</span> <span class="er">is</span> <span class="dv">4</span><span class="er">.'</span><span class="fu">},</span></span>
+<span id="cb7-3"><a href="#cb7-3"></a>    <span class="er">'metadata'</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb7-4"><a href="#cb7-4"></a>        <span class="er">'run_id'</span><span class="fu">:</span> <span class="er">'</span><span class="dv">770</span><span class="er">fc929</span><span class="dv">-6</span><span class="er">cbe</span><span class="dv">-4779</span><span class="er">-b3a1</span><span class="dv">-8</span><span class="er">aa4e5f5ca64'</span><span class="fu">,</span></span>
+<span id="cb7-5"><a href="#cb7-5"></a>        <span class="er">'feedback_tokens'</span><span class="fu">:</span> <span class="ot">[]</span><span class="fu">,</span></span>
+<span id="cb7-6"><a href="#cb7-6"></a>    <span class="fu">},</span></span>
+<span id="cb7-7"><a href="#cb7-7"></a><span class="fu">}</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>他の利用方法については、<a href="http://localhost:8000/docs#/"><code>http://localhost:8000/docs/</code></a>で確認できます。</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="images/paste-1.png" class="img-fluid figure-img" alt="doc" width="252"></p>
+</figure>
+</div>
+</section>
+<section id="vercel-ai-sdkでwebアプリを作成" class="level3">
+<h3 class="anchored" data-anchor-id="vercel-ai-sdkでwebアプリを作成">Vercel AI SDKでWebアプリを作成</h3>
+<p>次に、Webアプリを作成します。</p>
+<p>まず、Next.jsのアプリを初期化します。選択肢はすべてデフォルトで進めます。</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode numberSource bash number-lines code-with-copy"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1"></a><span class="ex">npx</span> create-next-app@latest ai-agent</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>次に、必要なライブラリをインストールします。</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode numberSource bash number-lines code-with-copy"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1"></a><span class="ex">npm</span> install ai @ai-sdk/openai langchain</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>次に、Next.jsの<code>RSC</code>を使ってアプリを構築します。</p>
+<p><code>/app/actions.tsx</code>を新しく作成し、以下の内容を追加します。<code>runAgent</code>関数にインプットが渡されると、以下の処理が行われます。</p>
+<ol type="1">
+<li>AI SDKでストリーミングデータ通信を行う<code>stream</code>を初期化。</li>
+<li>Langchain.JSを使って、<a href="http://localhost:8000/"><code>http://localhost:8000/</code></a>のAPIとやり取りする<code>RemoteRunnable</code>を初期化。</li>
+<li><code>processStreamingEvents()</code>でインプットをAPIに入力し、結果を受け取り、<code>stream</code>の値を更新。</li>
+<li><code>stream</code>の値をクライアント側に返す。</li>
+</ol>
+<div class="sourceCode" id="cb10"><pre class="sourceCode numberSource javascript number-lines code-with-copy"><code class="sourceCode javascript"><span id="cb10-1"><a href="#cb10-1"></a><span class="st">"use server"</span><span class="op">;</span></span>
+<span id="cb10-2"><a href="#cb10-2"></a></span>
+<span id="cb10-3"><a href="#cb10-3"></a><span class="im">import</span> { createStreamableValue } <span class="im">from</span> <span class="st">"ai/rsc"</span><span class="op">;</span></span>
+<span id="cb10-4"><a href="#cb10-4"></a><span class="im">import</span> { RemoteRunnable } <span class="im">from</span> <span class="st">"@langchain/core/runnables/remote"</span><span class="op">;</span></span>
+<span id="cb10-5"><a href="#cb10-5"></a></span>
+<span id="cb10-6"><a href="#cb10-6"></a><span class="im">export</span> <span class="kw">async</span> <span class="kw">function</span> <span class="fu">runAgent</span>(input<span class="op">:</span> string) {</span>
+<span id="cb10-7"><a href="#cb10-7"></a>    <span class="bu">console</span><span class="op">.</span><span class="fu">log</span>(<span class="st">"input"</span><span class="op">,</span> input)<span class="op">;</span></span>
+<span id="cb10-8"><a href="#cb10-8"></a>    <span class="kw">const</span> stream <span class="op">=</span> <span class="fu">createStreamableValue</span>()<span class="op">;</span></span>
+<span id="cb10-9"><a href="#cb10-9"></a>    <span class="kw">const</span> chain <span class="op">=</span> <span class="kw">new</span> <span class="fu">RemoteRunnable</span>({</span>
+<span id="cb10-10"><a href="#cb10-10"></a>        <span class="dt">url</span><span class="op">:</span> <span class="vs">`http://localhost:8000/`</span><span class="op">,</span></span>
+<span id="cb10-11"><a href="#cb10-11"></a>    })<span class="op">;</span></span>
+<span id="cb10-12"><a href="#cb10-12"></a></span>
+<span id="cb10-13"><a href="#cb10-13"></a>    <span class="kw">async</span> <span class="kw">function</span> <span class="fu">processStreamingEvents</span>() {</span>
+<span id="cb10-14"><a href="#cb10-14"></a>        <span class="kw">const</span> streamingEvents <span class="op">=</span> chain<span class="op">.</span><span class="fu">streamEvents</span>(</span>
+<span id="cb10-15"><a href="#cb10-15"></a>            { input }<span class="op">,</span></span>
+<span id="cb10-16"><a href="#cb10-16"></a>            { <span class="dt">version</span><span class="op">:</span> <span class="st">"v2"</span> }</span>
+<span id="cb10-17"><a href="#cb10-17"></a>        )<span class="op">;</span></span>
+<span id="cb10-18"><a href="#cb10-18"></a></span>
+<span id="cb10-19"><a href="#cb10-19"></a>        <span class="cf">for</span> <span class="cf">await</span> (<span class="kw">const</span> item <span class="kw">of</span> streamingEvents) {</span>
+<span id="cb10-20"><a href="#cb10-20"></a>            <span class="kw">const</span> formattedItem <span class="op">=</span> <span class="bu">JSON</span><span class="op">.</span><span class="fu">parse</span>(<span class="bu">JSON</span><span class="op">.</span><span class="fu">stringify</span>(item<span class="op">,</span> <span class="kw">null</span><span class="op">,</span> <span class="dv">2</span>))<span class="op">;</span></span>
+<span id="cb10-21"><a href="#cb10-21"></a>            stream<span class="op">.</span><span class="fu">update</span>(formattedItem)<span class="op">;</span></span>
+<span id="cb10-22"><a href="#cb10-22"></a>        }</span>
+<span id="cb10-23"><a href="#cb10-23"></a></span>
+<span id="cb10-24"><a href="#cb10-24"></a>        stream<span class="op">.</span><span class="fu">done</span>()<span class="op">;</span></span>
+<span id="cb10-25"><a href="#cb10-25"></a>    }</span>
+<span id="cb10-26"><a href="#cb10-26"></a></span>
+<span id="cb10-27"><a href="#cb10-27"></a>    <span class="co">// Start processing the streaming events</span></span>
+<span id="cb10-28"><a href="#cb10-28"></a>    <span class="fu">processStreamingEvents</span>()<span class="op">;</span></span>
+<span id="cb10-29"><a href="#cb10-29"></a></span>
+<span id="cb10-30"><a href="#cb10-30"></a>    <span class="cf">return</span> { <span class="dt">streamData</span><span class="op">:</span> stream<span class="op">.</span><span class="at">value</span> }<span class="op">;</span></span>
+<span id="cb10-31"><a href="#cb10-31"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>次に、画面に表示するために、<code>app/page.tsx</code>のコードを以下のように変更します。</p>
+<p>ここでは、<code>./actions</code>から定義した<code>runAgent</code>をインポートし、ユーザーからのインプットを渡して、Agentの各操作の詳細をストリーミングイベントで取得し、それを逐次表示します。</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode numberSource js number-lines code-with-copy"><code class="sourceCode javascript"><span id="cb11-1"><a href="#cb11-1"></a><span class="st">"use client"</span><span class="op">;</span></span>
+<span id="cb11-2"><a href="#cb11-2"></a></span>
+<span id="cb11-3"><a href="#cb11-3"></a><span class="im">import</span> React<span class="op">,</span> { useState } <span class="im">from</span> <span class="st">"react"</span><span class="op">;</span></span>
+<span id="cb11-4"><a href="#cb11-4"></a><span class="im">import</span> { readStreamableValue } <span class="im">from</span> <span class="st">"ai/rsc"</span><span class="op">;</span></span>
+<span id="cb11-5"><a href="#cb11-5"></a><span class="im">import</span> { runAgent } <span class="im">from</span> <span class="st">"./actions"</span><span class="op">;</span></span>
+<span id="cb11-6"><a href="#cb11-6"></a><span class="im">import</span> { StreamEvent } <span class="im">from</span> <span class="st">"@langchain/core/tracers/log_stream"</span><span class="op">;</span></span>
+<span id="cb11-7"><a href="#cb11-7"></a></span>
+<span id="cb11-8"><a href="#cb11-8"></a></span>
+<span id="cb11-9"><a href="#cb11-9"></a><span class="im">export</span> <span class="im">default</span> <span class="kw">function</span> <span class="fu">Page</span>() {</span>
+<span id="cb11-10"><a href="#cb11-10"></a>    <span class="kw">const</span> [input<span class="op">,</span> setInput] <span class="op">=</span> <span class="fu">useState</span>(<span class="st">""</span>)<span class="op">;</span></span>
+<span id="cb11-11"><a href="#cb11-11"></a>    <span class="kw">const</span> [data<span class="op">,</span> setData] <span class="op">=</span> useState<span class="op">&lt;</span>StreamEvent[]<span class="op">&gt;</span>([])<span class="op">;</span></span>
+<span id="cb11-12"><a href="#cb11-12"></a></span>
+<span id="cb11-13"><a href="#cb11-13"></a>    <span class="kw">async</span> <span class="kw">function</span> <span class="fu">handleSubmit</span>(<span class="dt">e</span><span class="op">:</span> React<span class="op">.</span><span class="at">FormEvent</span>) {</span>
+<span id="cb11-14"><a href="#cb11-14"></a>        e<span class="op">.</span><span class="fu">preventDefault</span>()<span class="op">;</span></span>
+<span id="cb11-15"><a href="#cb11-15"></a>        <span class="cf">if</span> (<span class="op">!</span>input) <span class="cf">return</span><span class="op">;</span></span>
+<span id="cb11-16"><a href="#cb11-16"></a>        <span class="kw">const</span> { streamData } <span class="op">=</span> <span class="cf">await</span> <span class="fu">runAgent</span>(input)<span class="op">;</span></span>
+<span id="cb11-17"><a href="#cb11-17"></a>        <span class="cf">for</span> <span class="cf">await</span> (<span class="kw">const</span> item <span class="kw">of</span> <span class="fu">readStreamableValue</span>(streamData)) {</span>
+<span id="cb11-18"><a href="#cb11-18"></a>            <span class="fu">setData</span>((prev) <span class="kw">=&gt;</span> [<span class="op">...</span>prev<span class="op">,</span> item])<span class="op">;</span></span>
+<span id="cb11-19"><a href="#cb11-19"></a>        }</span>
+<span id="cb11-20"><a href="#cb11-20"></a>    }</span>
+<span id="cb11-21"><a href="#cb11-21"></a></span>
+<span id="cb11-22"><a href="#cb11-22"></a>    <span class="cf">return</span> (</span>
+<span id="cb11-23"><a href="#cb11-23"></a>        <span class="op">&lt;</span>div<span class="op">&gt;</span></span>
+<span id="cb11-24"><a href="#cb11-24"></a>            <span class="op">&lt;</span>form onSubmit<span class="op">=</span>{handleSubmit}<span class="op">&gt;</span></span>
+<span id="cb11-25"><a href="#cb11-25"></a>                <span class="op">&lt;</span>input</span>
+<span id="cb11-26"><a href="#cb11-26"></a>                    type<span class="op">=</span><span class="st">"text"</span></span>
+<span id="cb11-27"><a href="#cb11-27"></a>                    value<span class="op">=</span>{input}</span>
+<span id="cb11-28"><a href="#cb11-28"></a>                    onChange<span class="op">=</span>{(e) <span class="kw">=&gt;</span> <span class="fu">setInput</span>(e<span class="op">.</span><span class="at">target</span><span class="op">.</span><span class="at">value</span>)}</span>
+<span id="cb11-29"><a href="#cb11-29"></a>                    className<span class="op">=</span><span class="st">"border border-gray-300 rounded-md p-2 mr-2"</span></span>
+<span id="cb11-30"><a href="#cb11-30"></a>                <span class="op">/&gt;</span></span>
+<span id="cb11-31"><a href="#cb11-31"></a>                <span class="op">&lt;</span>button</span>
+<span id="cb11-32"><a href="#cb11-32"></a>                    type<span class="op">=</span><span class="st">"submit"</span></span>
+<span id="cb11-33"><a href="#cb11-33"></a>                    className<span class="op">=</span><span class="st">"bg-blue-500 text-white px-4 py-2 rounded-md"</span></span>
+<span id="cb11-34"><a href="#cb11-34"></a>                <span class="op">&gt;</span></span>
+<span id="cb11-35"><a href="#cb11-35"></a>                    Run</span>
+<span id="cb11-36"><a href="#cb11-36"></a>                <span class="op">&lt;/</span>button<span class="op">&gt;</span></span>
+<span id="cb11-37"><a href="#cb11-37"></a>            <span class="op">&lt;/</span>form<span class="op">&gt;</span></span>
+<span id="cb11-38"><a href="#cb11-38"></a>            <span class="op">&lt;</span>div className<span class="op">=</span><span class="st">"h-200px overflow-y-scroll"</span><span class="op">&gt;</span></span>
+<span id="cb11-39"><a href="#cb11-39"></a>                {data<span class="op">.</span><span class="fu">map</span>((item<span class="op">,</span> i) <span class="kw">=&gt;</span> (</span>
+<span id="cb11-40"><a href="#cb11-40"></a>                    <span class="op">&lt;&gt;</span></span>
+<span id="cb11-41"><a href="#cb11-41"></a>                        <span class="op">&lt;</span>div key<span class="op">=</span>{i} className<span class="op">=</span><span class="st">"bg-slate-300"</span><span class="op">&gt;</span></span>
+<span id="cb11-42"><a href="#cb11-42"></a>                            {item<span class="op">.</span><span class="at">event</span>}</span>
+<span id="cb11-43"><a href="#cb11-43"></a>                        <span class="op">&lt;/</span>div<span class="op">&gt;</span></span>
+<span id="cb11-44"><a href="#cb11-44"></a>                        <span class="op">&lt;</span>div key<span class="op">=</span>{i} className<span class="op">=</span><span class="st">""</span><span class="op">&gt;</span></span>
+<span id="cb11-45"><a href="#cb11-45"></a>                            {<span class="bu">JSON</span><span class="op">.</span><span class="fu">stringify</span>(item<span class="op">.</span><span class="at">data</span>)}</span>
+<span id="cb11-46"><a href="#cb11-46"></a>                        <span class="op">&lt;/</span>div<span class="op">&gt;</span></span>
+<span id="cb11-47"><a href="#cb11-47"></a>                    <span class="op">&lt;/&gt;</span></span>
+<span id="cb11-48"><a href="#cb11-48"></a>                ))}</span>
+<span id="cb11-49"><a href="#cb11-49"></a>            <span class="op">&lt;/</span>div<span class="op">&gt;</span></span>
+<span id="cb11-50"><a href="#cb11-50"></a>        <span class="op">&lt;/</span>div<span class="op">&gt;</span></span>
+<span id="cb11-51"><a href="#cb11-51"></a>    )<span class="op">;</span></span>
+<span id="cb11-52"><a href="#cb11-52"></a>}</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>実際にインプットしてみると、以下のような結果が得られます。</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="images/paste-2.png" class="img-fluid figure-img" alt="result" width="448"></p>
+</figure>
+</div>
+<p>これで、簡単にLangChainとVercel AI SDKを使ったデモアプリが完成しました。今はシンプルなフォーマットで表示していますが、すべてのデータを取得できているので、これを基にさらに多彩な表示や機能を追加することが可能です。</p>
+<p>例えば、ツールのインプット・アウトプットやAgentのメッセージをストリーミング形式で表示することもできます。</p>
+<center>
+<video src="images/demo.webm" class="img-fluid" width="500" controls=""><a href="images/demo.webm">Video</a></video>
+</center>
+<p><code>app/page.tsx</code>のソースコードは長いので、<a href="https://github.com/DayuanJiang/langserve-ai-sdk/blob/187f710099866b4a325cc7eeb37badbd2fc404e6/app/page.tsx">Github</a>で確認してください。</p>
+<hr>
+<p>このブログポストでは、LangserveとVercel AI SDKを使って、短期間で強力なGenAIデモアプリを作成する方法を紹介しました。これを活用すれば、クライアントへの提案やプロトタイプ作成が一層スムーズに進むことでしょう。ぜひ試してみてください！</p>
+
+
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+<script src="https://utteranc.es/client.js" repo="AlbertRapp/blogComments" issue-term="pathname" theme="github-light" crossorigin="anonymous" async="">
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>

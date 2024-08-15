@@ -10,7 +10,996 @@
 <atom:link href="https://jiang.jp/index.xml" rel="self" type="application/rss+xml"/>
 <description></description>
 <generator>quarto-1.3.340</generator>
-<lastBuildDate>Thu, 22 Feb 2024 15:00:00 GMT</lastBuildDate>
+<lastBuildDate>Wed, 14 Aug 2024 15:00:00 GMT</lastBuildDate>
+<item>
+  <title>LangserveとVercel AI SDKを使ってGenAIデモアプリをクイックに作る</title>
+  <link>https://jiang.jp/posts/20240815_ai_sdk/index.html</link>
+  <description><![CDATA[ 
+
+
+
+<section id="vercel-ai-sdkとは" class="level2">
+<h2 class="anchored" data-anchor-id="vercel-ai-sdkとは">Vercel AI SDKとは？</h2>
+<p>Vercel AI SDKは、Vercel社が提供するAIアプリケーション開発のための強力なフレームワークです。これを使えば、AIアプリケーションの開発が驚くほど簡単になります。</p>
+<p>Vercel AI SDKは、以下の3つの主要なコンポーネントで構成されています。</p>
+<table class="table">
+<colgroup>
+<col style="width: 35%">
+<col style="width: 64%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>ライブラリ</th>
+<th>機能</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>AI SDK Core</td>
+<td>統一されたAPIで任意のLLMを呼び出す（例: generateText、generateObject）</td>
+</tr>
+<tr class="even">
+<td>AI SDK UI</td>
+<td>API経由でストリーミングチャットや生成UIを構築する（例: useChat）</td>
+</tr>
+<tr class="odd">
+<td>AI SDK RSC</td>
+<td>React Server Components (RSC) からクライアントへ生成UIをストリームする（例: streamUI）</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="利用シーン" class="level2">
+<h2 class="anchored" data-anchor-id="利用シーン">利用シーン</h2>
+<p>私はコンサルティングファームでAIエンジニアとして働いており、クライアントの要望に応じて様々なAIアプリケーションを開発しています。特に、提案段階で短期間でデモアプリを作成することがよくあります。</p>
+<p>簡単なアプリであれば、Vercel AI SDKのCore機能を使って、Next.js内で直接モデルを初期化し、すぐにコールすることができます。</p>
+<p>しかし、より複雑なアプリを作成する場合、通常はWebアプリ開発とAI開発が別々の担当者によって行われます。特にAI側では、PythonのLangChainを使うケースが多いです。そんな時に役立つのが、LangserveとVercel AI SDKを組み合わせたクイックな開発手法です。</p>
+</section>
+<section id="実例" class="level2">
+<h2 class="anchored" data-anchor-id="実例">実例</h2>
+<section id="langchainで作ったagent" class="level3">
+<h3 class="anchored" data-anchor-id="langchainで作ったagent">LangChainで作ったAgent</h3>
+<p>例えば、以下のような掛け算ツール<code>multiply</code>を持つAgentを構築しました。</p>
+<div class="sourceCode" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb1-1"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> os</span>
+<span id="cb1-2"></span>
+<span id="cb1-3"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain_openai <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> ChatOpenAI</span>
+<span id="cb1-4"></span>
+<span id="cb1-5"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> hub</span>
+<span id="cb1-6"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.agents <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> AgentExecutor, create_tool_calling_agent</span>
+<span id="cb1-7"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langchain.tools <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> tool</span>
+<span id="cb1-8"></span>
+<span id="cb1-9"></span>
+<span id="cb1-10"><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">@tool</span></span>
+<span id="cb1-11"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">def</span> multiply(a: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span>, b: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span>) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-&gt;</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">float</span>:</span>
+<span id="cb1-12">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""Multiply two numbers.</span></span>
+<span id="cb1-13"></span>
+<span id="cb1-14"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    Args:</span></span>
+<span id="cb1-15"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">        a (float): The first number</span></span>
+<span id="cb1-16"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">        b (float): The second number</span></span>
+<span id="cb1-17"></span>
+<span id="cb1-18"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    Returns:</span></span>
+<span id="cb1-19"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">        float: The result of multiplying</span></span>
+<span id="cb1-20"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    """</span></span>
+<span id="cb1-21">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">return</span> a <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> b</span>
+<span id="cb1-22"></span>
+<span id="cb1-23"></span>
+<span id="cb1-24"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">def</span> create_agent():</span>
+<span id="cb1-25">    llm <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> ChatOpenAI(</span>
+<span id="cb1-26">        model<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'gpt-4o-mini'</span>, temperature<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>, api_key<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>os.getenv(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'OPENAI_API_KEY'</span>)</span>
+<span id="cb1-27">    )</span>
+<span id="cb1-28"></span>
+<span id="cb1-29">    prompt <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> hub.pull(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'hwchase17/openai-functions-agent'</span>)</span>
+<span id="cb1-30">    prompt.messages</span>
+<span id="cb1-31">    prompt.messages[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>].prompt.template <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"""</span></span>
+<span id="cb1-32"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">    You are a helpful assistant. But you are not good at calculate math.</span></span>
+<span id="cb1-33"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">    If you are asked to calculate math, you **must** use the tools that are available to you.</span></span>
+<span id="cb1-34"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">    Do not try to calculate math on your own.</span></span>
+<span id="cb1-35"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">    """</span></span>
+<span id="cb1-36">    tools <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [multiply]</span>
+<span id="cb1-37">    agent <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> create_tool_calling_agent(llm, tools, prompt)</span>
+<span id="cb1-38">    agent_executor <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> AgentExecutor(agent<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>agent, tools<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>tools, verbose<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>)</span>
+<span id="cb1-39">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">return</span> agent_executor</span></code></pre></div>
+<p>このAgentは、ユーザーの質問に対してツールを利用して回答します。</p>
+<div class="sourceCode" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb2-1">agent <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> create_agent()</span>
+<span id="cb2-2">agent.invoke({<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"input"</span>:<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"2*10"</span>})</span></code></pre></div>
+<pre><code>&gt; Entering new AgentExecutor chain...
+
+Invoking: `multiply` with `{'a': 2, 'b': 10}`
+
+20.0
+
+The result of \( 2 \times 10 \) is 20.
+
+&gt; Finished chain.
+{'input': '2*10', 'output': 'The result of \\( 2 \\times 10 \\) is 20.'}</code></pre>
+</section>
+<section id="langserveでagentをwebサーバー化する" class="level3">
+<h3 class="anchored" data-anchor-id="langserveでagentをwebサーバー化する">LangServeでAgentをWebサーバー化する</h3>
+<p>LangServeは、LangChainで作成したChainやAgentをREST APIとしてデプロイするのを支援するライブラリです。FastAPIとpydanticを使用してデータのチェックを行います。</p>
+<p>以下のコマンドでLangServeをインストールできます。</p>
+<div class="sourceCode" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode numberSource bash number-lines code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><span class="ex" style="color: null;
+background-color: null;
+font-style: inherit;">pip</span> install <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"langserve[all]"</span></span></code></pre></div>
+<p>次に、<code>agent.py</code>と同じフォルダに以下の<code>app.py</code>を配置します。</p>
+<div class="sourceCode" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb5-1"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> agent <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> create_agent</span>
+<span id="cb5-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> dotenv <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> load_dotenv</span>
+<span id="cb5-3"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> fastapi <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> FastAPI</span>
+<span id="cb5-4"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> langserve <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> add_routes</span>
+<span id="cb5-5"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> pydantic <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> BaseModel</span>
+<span id="cb5-6"></span>
+<span id="cb5-7">load_dotenv(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'../.env.local'</span>)</span>
+<span id="cb5-8"></span>
+<span id="cb5-9"></span>
+<span id="cb5-10"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">class</span> Input(BaseModel):</span>
+<span id="cb5-11">    <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">input</span>: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">str</span></span>
+<span id="cb5-12"></span>
+<span id="cb5-13"></span>
+<span id="cb5-14"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">class</span> Output(BaseModel):</span>
+<span id="cb5-15">    output: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">str</span></span>
+<span id="cb5-16"></span>
+<span id="cb5-17"></span>
+<span id="cb5-18">app <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> FastAPI(</span>
+<span id="cb5-19">    title<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'LangChain Server'</span>,</span>
+<span id="cb5-20">    version<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'1.0'</span>,</span>
+<span id="cb5-21">)</span>
+<span id="cb5-22">agent <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> create_agent()</span>
+<span id="cb5-23"></span>
+<span id="cb5-24">add_routes(</span>
+<span id="cb5-25">    app,</span>
+<span id="cb5-26">    agent.with_types(input_type<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>Input, output_type<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>Output),</span>
+<span id="cb5-27">)</span>
+<span id="cb5-28"></span>
+<span id="cb5-29"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">if</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">__name__</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'__main__'</span>:</span>
+<span id="cb5-30">    <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> uvicorn</span>
+<span id="cb5-31"></span>
+<span id="cb5-32">    uvicorn.run(app, host<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'localhost'</span>, port<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">8000</span>)</span></code></pre></div>
+<p>これで、コマンドラインで<code>python app.py</code>を実行すれば、APIサーバーが<a href="http://localhost:8000"><code>http://localhost:8000</code></a>に立ち上がります。</p>
+<p>APIをコールしてみましょう。</p>
+<div class="sourceCode" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode numberSource bash number-lines code-with-copy"><code class="sourceCode bash"><span id="cb6-1"><span class="ex" style="color: null;
+background-color: null;
+font-style: inherit;">curl</span> <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">--location</span> <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">--request</span> POST <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'http://localhost:8000/invoke'</span> <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">\</span></span>
+<span id="cb6-2">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">--header</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'Content-Type: application/json'</span> <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">\</span></span>
+<span id="cb6-3">    <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">--data-raw</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'{</span></span>
+<span id="cb6-4"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">        "input": {</span></span>
+<span id="cb6-5"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">            "input": "2*2"</span></span>
+<span id="cb6-6"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">        }</span></span>
+<span id="cb6-7"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">    }'</span></span></code></pre></div>
+<p>結果は以下の通りです。</p>
+<div class="sourceCode" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode numberSource json number-lines code-with-copy"><code class="sourceCode json"><span id="cb7-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">{</span></span>
+<span id="cb7-2">    <span class="er" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">'output'</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">:</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">{</span><span class="er" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">'output'</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">:</span> <span class="er" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">'The</span> <span class="er" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">result</span> <span class="er" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">of</span> <span class="er" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">\\(</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span> <span class="er" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">\\times</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span> <span class="er" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">\\)</span> <span class="er" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">is</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">4</span><span class="er" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">.'</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">},</span></span>
+<span id="cb7-3">    <span class="er" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">'metadata'</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">:</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">{</span></span>
+<span id="cb7-4">        <span class="er" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">'run_id'</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">:</span> <span class="er" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">'</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">770</span><span class="er" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">fc929</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">-6</span><span class="er" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">cbe</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">-4779</span><span class="er" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">-b3a1</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">-8</span><span class="er" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">aa4e5f5ca64'</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">,</span></span>
+<span id="cb7-5">        <span class="er" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">'feedback_tokens'</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">:</span> <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">[]</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">,</span></span>
+<span id="cb7-6">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">},</span></span>
+<span id="cb7-7"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">}</span></span></code></pre></div>
+<p>他の利用方法については、<a href="http://localhost:8000/docs#/"><code>http://localhost:8000/docs/</code></a>で確認できます。</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://jiang.jp/posts/20240815_ai_sdk/images/paste-1.png" class="img-fluid figure-img" alt="doc" width="252"></p>
+</figure>
+</div>
+</section>
+<section id="vercel-ai-sdkでwebアプリを作成" class="level3">
+<h3 class="anchored" data-anchor-id="vercel-ai-sdkでwebアプリを作成">Vercel AI SDKでWebアプリを作成</h3>
+<p>次に、Webアプリを作成します。</p>
+<p>まず、Next.jsのアプリを初期化します。選択肢はすべてデフォルトで進めます。</p>
+<div class="sourceCode" id="cb8" style="background: #f1f3f5;"><pre class="sourceCode numberSource bash number-lines code-with-copy"><code class="sourceCode bash"><span id="cb8-1"><span class="ex" style="color: null;
+background-color: null;
+font-style: inherit;">npx</span> create-next-app@latest ai-agent</span></code></pre></div>
+<p>次に、必要なライブラリをインストールします。</p>
+<div class="sourceCode" id="cb9" style="background: #f1f3f5;"><pre class="sourceCode numberSource bash number-lines code-with-copy"><code class="sourceCode bash"><span id="cb9-1"><span class="ex" style="color: null;
+background-color: null;
+font-style: inherit;">npm</span> install ai @ai-sdk/openai langchain</span></code></pre></div>
+<p>次に、Next.jsの<code>RSC</code>を使ってアプリを構築します。</p>
+<p><code>/app/actions.tsx</code>を新しく作成し、以下の内容を追加します。<code>runAgent</code>関数にインプットが渡されると、以下の処理が行われます。</p>
+<ol type="1">
+<li>AI SDKでストリーミングデータ通信を行う<code>stream</code>を初期化。</li>
+<li>Langchain.JSを使って、<a href="http://localhost:8000/"><code>http://localhost:8000/</code></a>のAPIとやり取りする<code>RemoteRunnable</code>を初期化。</li>
+<li><code>processStreamingEvents()</code>でインプットをAPIに入力し、結果を受け取り、<code>stream</code>の値を更新。</li>
+<li><code>stream</code>の値をクライアント側に返す。</li>
+</ol>
+<div class="sourceCode" id="cb10" style="background: #f1f3f5;"><pre class="sourceCode numberSource javascript number-lines code-with-copy"><code class="sourceCode javascript"><span id="cb10-1"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"use server"</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb10-2"></span>
+<span id="cb10-3"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> { createStreamableValue } <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"ai/rsc"</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb10-4"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> { RemoteRunnable } <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"@langchain/core/runnables/remote"</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb10-5"></span>
+<span id="cb10-6"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">export</span> <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">async</span> <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">function</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">runAgent</span>(input<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:</span> string) {</span>
+<span id="cb10-7">    <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">console</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">log</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"input"</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> input)<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb10-8">    <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">const</span> stream <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">createStreamableValue</span>()<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb10-9">    <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">const</span> chain <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">new</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">RemoteRunnable</span>({</span>
+<span id="cb10-10">        <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">url</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:</span> <span class="vs" style="color: #20794D;
+background-color: null;
+font-style: inherit;">`http://localhost:8000/`</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span></span>
+<span id="cb10-11">    })<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb10-12"></span>
+<span id="cb10-13">    <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">async</span> <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">function</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">processStreamingEvents</span>() {</span>
+<span id="cb10-14">        <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">const</span> streamingEvents <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> chain<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">streamEvents</span>(</span>
+<span id="cb10-15">            { input }<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span></span>
+<span id="cb10-16">            { <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">version</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"v2"</span> }</span>
+<span id="cb10-17">        )<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb10-18"></span>
+<span id="cb10-19">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">await</span> (<span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">const</span> item <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">of</span> streamingEvents) {</span>
+<span id="cb10-20">            <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">const</span> formattedItem <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">JSON</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">parse</span>(<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">JSON</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">stringify</span>(item<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">null</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span>))<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb10-21">            stream<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">update</span>(formattedItem)<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb10-22">        }</span>
+<span id="cb10-23"></span>
+<span id="cb10-24">        stream<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">done</span>()<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb10-25">    }</span>
+<span id="cb10-26"></span>
+<span id="cb10-27">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">// Start processing the streaming events</span></span>
+<span id="cb10-28">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">processStreamingEvents</span>()<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb10-29"></span>
+<span id="cb10-30">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">return</span> { <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">streamData</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:</span> stream<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">value</span> }<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb10-31">}</span></code></pre></div>
+<p>次に、画面に表示するために、<code>app/page.tsx</code>のコードを以下のように変更します。</p>
+<p>ここでは、<code>./actions</code>から定義した<code>runAgent</code>をインポートし、ユーザーからのインプットを渡して、Agentの各操作の詳細をストリーミングイベントで取得し、それを逐次表示します。</p>
+<div class="sourceCode" id="cb11" style="background: #f1f3f5;"><pre class="sourceCode numberSource js number-lines code-with-copy"><code class="sourceCode javascript"><span id="cb11-1"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"use client"</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb11-2"></span>
+<span id="cb11-3"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> React<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> { useState } <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"react"</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb11-4"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> { readStreamableValue } <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"ai/rsc"</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb11-5"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> { runAgent } <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"./actions"</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb11-6"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> { StreamEvent } <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"@langchain/core/tracers/log_stream"</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb11-7"></span>
+<span id="cb11-8"></span>
+<span id="cb11-9"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">export</span> <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">default</span> <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">function</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">Page</span>() {</span>
+<span id="cb11-10">    <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">const</span> [input<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> setInput] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">useState</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">""</span>)<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb11-11">    <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">const</span> [data<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> setData] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> useState<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;</span>StreamEvent[]<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span>([])<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb11-12"></span>
+<span id="cb11-13">    <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">async</span> <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">function</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">handleSubmit</span>(<span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">e</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:</span> React<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">FormEvent</span>) {</span>
+<span id="cb11-14">        e<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">preventDefault</span>()<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb11-15">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">if</span> (<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">!</span>input) <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">return</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb11-16">        <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">const</span> { streamData } <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">await</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">runAgent</span>(input)<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb11-17">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">await</span> (<span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">const</span> item <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">of</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">readStreamableValue</span>(streamData)) {</span>
+<span id="cb11-18">            <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">setData</span>((prev) <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=&gt;</span> [<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">...</span>prev<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> item])<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb11-19">        }</span>
+<span id="cb11-20">    }</span>
+<span id="cb11-21"></span>
+<span id="cb11-22">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">return</span> (</span>
+<span id="cb11-23">        <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;</span>div<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span></span>
+<span id="cb11-24">            <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;</span>form onSubmit<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>{handleSubmit}<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span></span>
+<span id="cb11-25">                <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;</span>input</span>
+<span id="cb11-26">                    type<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"text"</span></span>
+<span id="cb11-27">                    value<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>{input}</span>
+<span id="cb11-28">                    onChange<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>{(e) <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=&gt;</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">setInput</span>(e<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">target</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">value</span>)}</span>
+<span id="cb11-29">                    className<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"border border-gray-300 rounded-md p-2 mr-2"</span></span>
+<span id="cb11-30">                <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/&gt;</span></span>
+<span id="cb11-31">                <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;</span>button</span>
+<span id="cb11-32">                    type<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"submit"</span></span>
+<span id="cb11-33">                    className<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"bg-blue-500 text-white px-4 py-2 rounded-md"</span></span>
+<span id="cb11-34">                <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span></span>
+<span id="cb11-35">                    Run</span>
+<span id="cb11-36">                <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;/</span>button<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span></span>
+<span id="cb11-37">            <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;/</span>form<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span></span>
+<span id="cb11-38">            <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;</span>div className<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"h-200px overflow-y-scroll"</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span></span>
+<span id="cb11-39">                {data<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">map</span>((item<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">,</span> i) <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">=&gt;</span> (</span>
+<span id="cb11-40">                    <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;&gt;</span></span>
+<span id="cb11-41">                        <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;</span>div key<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>{i} className<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"bg-slate-300"</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span></span>
+<span id="cb11-42">                            {item<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">event</span>}</span>
+<span id="cb11-43">                        <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;/</span>div<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span></span>
+<span id="cb11-44">                        <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;</span>div key<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>{i} className<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">""</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span></span>
+<span id="cb11-45">                            {<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">JSON</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">stringify</span>(item<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">.</span><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">data</span>)}</span>
+<span id="cb11-46">                        <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;/</span>div<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span></span>
+<span id="cb11-47">                    <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;/&gt;</span></span>
+<span id="cb11-48">                ))}</span>
+<span id="cb11-49">            <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;/</span>div<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span></span>
+<span id="cb11-50">        <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;/</span>div<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span></span>
+<span id="cb11-51">    )<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">;</span></span>
+<span id="cb11-52">}</span></code></pre></div>
+<p>実際にインプットしてみると、以下のような結果が得られます。</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://jiang.jp/posts/20240815_ai_sdk/images/paste-2.png" class="img-fluid figure-img" alt="result" width="448"></p>
+</figure>
+</div>
+<p>これで、簡単にLangChainとVercel AI SDKを使ったデモアプリが完成しました。今はシンプルなフォーマットで表示していますが、すべてのデータを取得できているので、これを基にさらに多彩な表示や機能を追加することが可能です。</p>
+<p>例えば、ツールのインプット・アウトプットやAgentのメッセージをストリーミング形式で表示することもできます。</p>
+<center>
+<video src="images/demo.webm" class="img-fluid" width="500" controls=""><a href="images/demo.webm">Video</a></video>
+</center>
+<p><code>app/page.tsx</code>のソースコードは長いので、<a href="https://github.com/DayuanJiang/langserve-ai-sdk/blob/187f710099866b4a325cc7eeb37badbd2fc404e6/app/page.tsx">Github</a>で確認してください。</p>
+<hr>
+<p>このブログポストでは、LangserveとVercel AI SDKを使って、短期間で強力なGenAIデモアプリを作成する方法を紹介しました。これを活用すれば、クライアントへの提案やプロトタイプ作成が一層スムーズに進むことでしょう。ぜひ試してみてください！</p>
+
+
+</section>
+</section>
+
+ ]]></description>
+  <category>LLM</category>
+  <category>Web</category>
+  <guid>https://jiang.jp/posts/20240815_ai_sdk/index.html</guid>
+  <pubDate>Wed, 14 Aug 2024 15:00:00 GMT</pubDate>
+</item>
 <item>
   <title>LLM版のPyTorchーDSPyの紹介</title>
   <link>https://jiang.jp/posts/20240223_dspy_introduce/index.html</link>
@@ -10225,124 +11214,6 @@ font-style: inherit;"> Read the passage and generate a query.'</span></span></co
   <category>Information_retrieval</category>
   <category>paper</category>
   <guid>https://jiang.jp/posts/20230429_promptagator/index.html</guid>
-  <pubDate>Fri, 28 Apr 2023 15:00:00 GMT</pubDate>
-</item>
-<item>
-  <title>InPars 論文解読</title>
-  <link>https://jiang.jp/posts/20230428_inpars/index.html</link>
-  <description><![CDATA[ 
-
-
-
-<p>InPars論文では、擬似データ（Pseudo data）生成によるランキングモデル学習手法を提案。LLMを用いて擬似データを生成し、それを使ってモデルを学習させることで、情報検索（IR）の精度を向上させる。実験では、生成された擬似データでMonoT5をFine-tuningし、結果として従来のUnsupervisedモデルより優れた性能を示した。</p>
-<p>論文URL：<a href="https://arxiv.org/abs/2202.05144" class="uri">https://arxiv.org/abs/2202.05144</a></p>
-<section id="introduction" class="level2">
-<h2 class="anchored" data-anchor-id="introduction">1. Introduction</h2>
-<p>LLMは高性能を誇るものの、情報検索（IR）への応用が制限されている理由として、大規模な計算量が必要であることと、コストが高いことが挙げられる。GPT-3の埋め込みサービスを利用する場合、すべてのテキストを少なくとも1回は処理する必要があり、件数が多い場合、コストが膨大になることが問題となる。</p>
-<p>また、学習データにも課題が存在し、現存するデータが商用利用に適さないものが多く、また、既存のデータを用いて学習したモデルが他の領域に汎用性を持たないという問題がある。</p>
-<p>この論文では、検索推論にLLMを直接使用するのではなく、LLMを用いて擬似データ（Pseudo data）を生成し、そのデータを使ってランキングモデルを学習する手法を提案している。</p>
-</section>
-<section id="related-work" class="level2">
-<h2 class="anchored" data-anchor-id="related-work">2. Related work</h2>
-<p>これまで情報検索（IR）領域におけるデータ生成の研究では、BM25を用いて類似度が高いドキュメントをペアとしてモデルを学習する研究が存在する。また、教師ありのモデルでテキストからQueryを生成し、それとテキストのペアを学習データとする研究もあった。</p>
-<p>この研究の特徴として、モデルを学習させなく、LLMからFew-shotでデータを生成したこと（ちょっと新奇性が足りていない気がする）。</p>
-</section>
-<section id="our-method-inpars" class="level2">
-<h2 class="anchored" data-anchor-id="our-method-inpars">3. Our Method: InPars</h2>
-<p>以下はInParsのステップ：</p>
-<ol type="1">
-<li><p>複数のドキュメントとクエリーのペアが存在すると仮定する。それを例として、Few-shotでLLMでドキュメントに関連するクエリーを生成してもらう。(</p>
-<p>詳細は4.2で紹介する）</p></li>
-<li><p>生成したドキュメントとクエリーのペアについて、LLMが出力する際に出している結果のLog probabilityが上位のものを選択する。ちなみに、このステップが大きく精度を改善した。</p></li>
-<li><p>生成したqとdのペアを学習データとしてRerankのモデルをFine-tuningする。（詳細は4.3で紹介する）</p></li>
-</ol>
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="https://jiang.jp/posts/20230428_inpars/images/paste-1.png" class="img-fluid figure-img" alt="InPars "></p>
-<figcaption class="figure-caption">InPars</figcaption>
-</figure>
-</div>
-</section>
-<section id="experimental-setup" class="level2">
-<h2 class="anchored" data-anchor-id="experimental-setup">4. Experimental Setup</h2>
-<section id="datasets" class="level3">
-<h3 class="anchored" data-anchor-id="datasets">4.1 Datasets</h3>
-<p>今回使用したデータセットは以下：</p>
-<ul>
-<li><p>MS MARCO：Microsoftが出したBingの実際のユーザログをベースとした大型データセット。880万のドキュメントと50万のドキュメントとクエリーのペアがある。各クエリーが平均的に1ドキュメントに対応する。</p></li>
-<li><p>TREC-DL：MS MARCOと同じドキュメントを持っているが、クエリーは54件のみである。また、各クエリーについてアノテーションしたドキュメントが多い。</p></li>
-<li><p>Robust04：新聞領域のデータセット。52万のドキュメントがあり、249クエリーがある。各クエリーに対して、平均的に1250件のドキュメントをアノテーションした。</p></li>
-<li><p>Natural Questions：260万件のWikipediaテキストをベースとしたQuestion Answer データセット。QuestionはGoogleの検索エンジンのログから作ったもの。</p></li>
-<li><p>TREC-COVID：コロナの情報に関するデータセット</p></li>
-</ul>
-</section>
-<section id="training-data-generation" class="level3">
-<h3 class="anchored" data-anchor-id="training-data-generation">4.2 Training Data Generation</h3>
-<p>各学習データは（Query, Positive document, Negative document）のTripleによって構成させる。その生成のステップは以下：</p>
-<ul>
-<li><p>10万のドキュメントをサンプリングし、GPT3のCurieでQueryを生成させる。</p></li>
-<li><p>最終的にLog probabilityが上位の1万件のペアのみ学習データとして使う。</p></li>
-<li><p>BM25で検索した1000件の中でランダムに1件を抽出し、それをNegative Documentとする。（このやり方で多くのノイズを入れてしまうのでは？）</p></li>
-</ul>
-<p>以下は２点の補足：</p>
-<ul>
-<li><p>生成する際に温度とTopーPのパラメータ設定は結果に有意の影響しない。</p></li>
-<li><p>長さが300文字のドキュメントは捨てられる。</p></li>
-</ul>
-<p>Query生成する際にPromptの書き方は2つを利用した（Figure２)：</p>
-<ol type="1">
-<li>一般方法（Vanilla)：MS MARCOからランダムに3つのデータを抽出し、それを例として、FewーshotでQueryを生成させる。</li>
-<li>GBQ（Guided by Bad Questions）：一般方法と同じように、MS MARCOからランダムに3つのデータを抽出する。しかし、MS MARCOのQueryが漠然すぎるため、それをBad questionとして提示する。Documentを読んで、より関連するGood Questionを手動で作った。（Document, Good Question, Bad Question)で例を提示し、生成したGood QuestionをQueryとする。</li>
-</ol>
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="https://jiang.jp/posts/20230428_inpars/images/paste-2.png" class="img-fluid figure-img" alt="Prompt example"></p>
-<figcaption class="figure-caption">Prompt example</figcaption>
-</figure>
-</div>
-</section>
-<section id="retrieval-methods" class="level3">
-<h3 class="anchored" data-anchor-id="retrieval-methods">4.3 Retrieval Methods</h3>
-<p>２段階の検索を採用している。まずBM25で上位1000のドキュメントを取り出す。その次、MonoT5を使ってRerankingをする。</p>
-<p>MonoT5はTransformerのEncoderとDecoder両方とも使っているモデルで、Cross-Encoderモデルである。今回の実験では、サイズは220Mと3Bのモデルでテストした。</p>
-<p>各データセットにおいて作成された擬似データでMonoT5をFine-tuningした。</p>
-</section>
-</section>
-<section id="results" class="level2">
-<h2 class="anchored" data-anchor-id="results">5 Results</h2>
-<p><img src="https://jiang.jp/posts/20230428_inpars/images/Snipaste_2023-05-01_09-49-20.png" class="img-fluid"></p>
-<p>7,8行目を見ると、BM25やContriever等の以前のUnsupervised結果より優れていることがわかる。また、16行目はMS MARCOでFine-tuningした後さらに擬似データでFine-tuningした結果。幾つかのデータセットで単純にMS MARCOでFine-tuningするより良い結果が出ている。</p>
-</section>
-<section id="ablation-study-and-analysis" class="level2">
-<h2 class="anchored" data-anchor-id="ablation-study-and-analysis">6 Ablation Study and Analysis</h2>
-<p>6.1 Prompt Selection and Source Corpus</p>
-<p>比較対象が混乱のため、何が言いたいかがわからなかった。</p>
-<p>6.2 Model Size Impact on IR Metrics</p>
-<p>当たり前だけど、Questionを生成するモデルのサイズが大きいほど結果がよくなる。</p>
-<p>6.3 Filtering by the Most Likely Questions</p>
-<p>Top1万件のデータを利用することにより精度が向上した。</p>
-<p>6.4 Was GPT-3 Trained on Supervised IR Data?</p>
-<p>生成したQuestionがどのぐらい実際のMS MARCOデータにあるかで、GPT3の学習データにMS MARCOのデータを含まれているかを検証した。結果としては多くても10％前後のため影響がない。（検証のやり方が正しいかが疑問）</p>
-</section>
-<section id="conclusion-and-future-work" class="level2">
-<h2 class="anchored" data-anchor-id="conclusion-and-future-work">7 Conclusion and Future Work</h2>
-<p>本文は、LLMを利用してQueryを生成して、生成したQueryとドキュメントのペアを学習データでモデルを学習する手法を提案した。</p>
-<p>今後の改善点としては、</p>
-<ol type="1">
-<li>擬似データでDense RetrieverをFine-tuningする（今回はRerankerのみ）</li>
-<li>データを生成する際に作った”BAD question”をNegative exampleとして使用する</li>
-<li>擬似データの数を増やす</li>
-<li>（Query, Document)のペアを探すもっと良い手法を開発する</li>
-</ol>
-
-
-</section>
-
- ]]></description>
-  <category>NLP</category>
-  <category>Information_retrieval</category>
-  <category>paper</category>
-  <guid>https://jiang.jp/posts/20230428_inpars/index.html</guid>
   <pubDate>Fri, 28 Apr 2023 15:00:00 GMT</pubDate>
 </item>
 </channel>
