@@ -198,3 +198,7 @@ $$
 本文では、なぜGPUが弱小なMacBookでもLLMがちゃんと動作するのかについて、計算力とメモリスピードの観点から解説しました。LLMの計算パワーとメモリの速度という、普段はあまり気にしない2つの視点で、LLMの世界を少しだけ覗いてみました。高性能スポーツカーを前にして、馬力だけじゃなくタイヤのグリップや路面との摩擦まで気にしてしまうような、ちょっとマニアックな話だったかもしれません。
 
 しかし、今DeepSeek-R1のようなOSSかつ高性能なモデルが出ているので、これからローカルでLLMを動かすことがますます増えると思います。その際に、この文章が役に立つでしょう。
+
+## 参考文献
+1. [How is LLaMa.cpp possible?](https://www.artfintel.com/p/how-is-llamacpp-possible)
+2. [Transformer Inference Arithmetic](https://kipp.ly/transformer-inference-arithmetic)
