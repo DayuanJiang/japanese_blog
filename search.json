@@ -917,6 +917,13 @@
     "text": "まとめ\n本文では、なぜGPUが弱小なMacBookでもLLMがちゃんと動作するのかについて、計算力とメモリスピードの観点から解説しました。LLMの計算パワーとメモリの速度という、普段はあまり気にしない2つの視点で、LLMの世界を少しだけ覗いてみました。高性能スポーツカーを前にして、馬力だけじゃなくタイヤのグリップや路面との摩擦まで気にしてしまうような、ちょっとマニアックな話だったかもしれません。\nしかし、今DeepSeek-R1のようなOSSかつ高性能なモデルが出ているので、これからローカルでLLMを動かすことがますます増えると思います。その際に、この文章が役に立つでしょう。"
   },
   {
+    "objectID": "posts/20250124_LLM_efficiency/index.html#参考文献",
+    "href": "posts/20250124_LLM_efficiency/index.html#参考文献",
+    "title": "なぜLLMはMacBookでも動くのか？計算力とメモリから見るその仕組み",
+    "section": "参考文献",
+    "text": "参考文献\n\nHow is LLaMa.cpp possible?\nTransformer Inference Arithmetic"
+  },
+  {
     "objectID": "posts/20231013_cs224n_lecture_2/index.html",
     "href": "posts/20231013_cs224n_lecture_2/index.html",
     "title": "Stanford CS224N 深層学習による自然言語処理 Lecture 2 まとめ",
