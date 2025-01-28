@@ -240,18 +240,18 @@ gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
 <span id="cb1-9"><a href="#cb1-9"></a></span>
 <span id="cb1-10"><a href="#cb1-10"></a><span class="co"># create 3 documents and its summaries</span></span>
 <span id="cb1-11"><a href="#cb1-11"></a>docs <span class="op">=</span> [</span>
-<span id="cb1-12"><a href="#cb1-12"></a>    Document(page_content<span class="op">=</span><span class="st">"doc"</span> <span class="op">+</span> <span class="bu">str</span>(i), metadata<span class="op">=</span>{<span class="st">"doc_id"</span>: <span class="st">"doc"</span> <span class="op">+</span> <span class="bu">str</span>(i)})</span>
+<span id="cb1-12"><a href="#cb1-12"></a>    Document(page_content<span class="op">=</span><span class="st">'doc'</span> <span class="op">+</span> <span class="bu">str</span>(i), metadata<span class="op">=</span>{<span class="st">'doc_id'</span>: <span class="st">'doc'</span> <span class="op">+</span> <span class="bu">str</span>(i)})</span>
 <span id="cb1-13"><a href="#cb1-13"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, <span class="dv">4</span>)</span>
-<span id="cb1-14"><a href="#cb1-14"></a>] </span>
+<span id="cb1-14"><a href="#cb1-14"></a>]</span>
 <span id="cb1-15"><a href="#cb1-15"></a></span>
 <span id="cb1-16"><a href="#cb1-16"></a>summarys <span class="op">=</span> [</span>
-<span id="cb1-17"><a href="#cb1-17"></a>    Document(page_content<span class="op">=</span><span class="st">"summary"</span> <span class="op">+</span> <span class="bu">str</span>(i), metadata<span class="op">=</span>{<span class="st">"doc_id"</span>: <span class="st">"doc"</span> <span class="op">+</span> <span class="bu">str</span>(i)})</span>
+<span id="cb1-17"><a href="#cb1-17"></a>    Document(page_content<span class="op">=</span><span class="st">'summary'</span> <span class="op">+</span> <span class="bu">str</span>(i), metadata<span class="op">=</span>{<span class="st">'doc_id'</span>: <span class="st">'doc'</span> <span class="op">+</span> <span class="bu">str</span>(i)})</span>
 <span id="cb1-18"><a href="#cb1-18"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, <span class="dv">4</span>)</span>
 <span id="cb1-19"><a href="#cb1-19"></a>]</span>
 <span id="cb1-20"><a href="#cb1-20"></a></span>
 <span id="cb1-21"><a href="#cb1-21"></a><span class="co"># initialize docstore</span></span>
 <span id="cb1-22"><a href="#cb1-22"></a>docstore <span class="op">=</span> InMemoryStore()</span>
-<span id="cb1-23"><a href="#cb1-23"></a>docstore.mset(<span class="bu">list</span>(<span class="bu">zip</span>([<span class="st">"doc"</span> <span class="op">+</span> <span class="bu">str</span>(i) <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, <span class="dv">4</span>)], docs)))</span>
+<span id="cb1-23"><a href="#cb1-23"></a>docstore.mset(<span class="bu">list</span>(<span class="bu">zip</span>([<span class="st">'doc'</span> <span class="op">+</span> <span class="bu">str</span>(i) <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, <span class="dv">4</span>)], docs)))</span>
 <span id="cb1-24"><a href="#cb1-24"></a></span>
 <span id="cb1-25"><a href="#cb1-25"></a><span class="co"># put documents and summaries in the vector store</span></span>
 <span id="cb1-26"><a href="#cb1-26"></a>multi_vector_vectorstore <span class="op">=</span> FAISS.from_documents(docs <span class="op">+</span> summarys, OpenAIEmbeddings())</span>
@@ -260,8 +260,8 @@ gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
 <span id="cb1-29"><a href="#cb1-29"></a>sample_retriever <span class="op">=</span> MultiVectorRetriever(</span>
 <span id="cb1-30"><a href="#cb1-30"></a>    vectorstore<span class="op">=</span>multi_vector_vectorstore,</span>
 <span id="cb1-31"><a href="#cb1-31"></a>    docstore<span class="op">=</span>docstore,</span>
-<span id="cb1-32"><a href="#cb1-32"></a>    id_key<span class="op">=</span><span class="st">"doc_id"</span>,</span>
-<span id="cb1-33"><a href="#cb1-33"></a>    search_kwargs<span class="op">=</span>{<span class="st">"k"</span>: <span class="dv">4</span>},</span>
+<span id="cb1-32"><a href="#cb1-32"></a>    id_key<span class="op">=</span><span class="st">'doc_id'</span>,</span>
+<span id="cb1-33"><a href="#cb1-33"></a>    search_kwargs<span class="op">=</span>{<span class="st">'k'</span>: <span class="dv">4</span>},</span>
 <span id="cb1-34"><a href="#cb1-34"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
@@ -276,7 +276,7 @@ gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
 </figure>
 </div>
 <div class="cell" data-execution_count="2">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1"></a>sample_retriever.get_relevant_documents(<span class="st">"doc1"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1"></a>sample_retriever.get_relevant_documents(<span class="st">'doc1'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="2">
 <pre><code>[Document(page_content='doc1', metadata={'doc_id': 'doc1'}),
  Document(page_content='doc2', metadata={'doc_id': 'doc2'}),
@@ -303,22 +303,23 @@ gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
 <summary>実験用コード</summary>
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
 <span id="cb4-2"><a href="#cb4-2"></a><span class="im">import</span> html2text</span>
-<span id="cb4-3"><a href="#cb4-3"></a><span class="co"># https://zenodo.org/record/2783642</span></span>
-<span id="cb4-4"><a href="#cb4-4"></a>q_df <span class="op">=</span> pd.read_csv(<span class="st">"https://zenodo.org/record/2783642/files/Questions.csv"</span>)</span>
-<span id="cb4-5"><a href="#cb4-5"></a>a_df <span class="op">=</span> pd.read_csv(<span class="st">"https://zenodo.org/record/2783642/files/Answers.csv"</span>)</span>
-<span id="cb4-6"><a href="#cb4-6"></a><span class="bu">print</span>(<span class="st">"q_df.shape:"</span>, q_df.shape)</span>
-<span id="cb4-7"><a href="#cb4-7"></a><span class="bu">print</span>(<span class="st">"a_df.shape:"</span>, a_df.shape)</span>
-<span id="cb4-8"><a href="#cb4-8"></a>q_df.columns <span class="op">=</span> [c.strip() <span class="cf">for</span> c <span class="kw">in</span> q_df.columns]</span>
-<span id="cb4-9"><a href="#cb4-9"></a>a_df.columns <span class="op">=</span> [c.strip() <span class="cf">for</span> c <span class="kw">in</span> a_df.columns]</span>
-<span id="cb4-10"><a href="#cb4-10"></a>a_df[<span class="st">"Text"</span>] <span class="op">=</span> a_df[<span class="st">"Text"</span>].<span class="bu">apply</span>(<span class="kw">lambda</span> x: html2text.html2text(x))</span>
-<span id="cb4-11"><a href="#cb4-11"></a>df <span class="op">=</span> q_df.merge(a_df, on<span class="op">=</span><span class="st">"AID"</span>)</span>
-<span id="cb4-12"><a href="#cb4-12"></a>df.columns <span class="op">=</span> [<span class="st">"query"</span>, <span class="st">"AID"</span>, <span class="st">"document"</span>]</span>
-<span id="cb4-13"><a href="#cb4-13"></a></span>
-<span id="cb4-14"><a href="#cb4-14"></a>metadata <span class="op">=</span> a_df[[<span class="st">"AID"</span>]].to_dict(orient<span class="op">=</span><span class="st">"records"</span>)</span>
-<span id="cb4-15"><a href="#cb4-15"></a>documents <span class="op">=</span> a_df[<span class="st">"Text"</span>].tolist()</span>
-<span id="cb4-16"><a href="#cb4-16"></a>query_list <span class="op">=</span> <span class="bu">list</span>(<span class="bu">zip</span>(q_df[<span class="st">"Text"</span>], q_df[<span class="st">"AID"</span>]))</span>
-<span id="cb4-17"><a href="#cb4-17"></a>display(q_df.head(<span class="dv">3</span>))</span>
-<span id="cb4-18"><a href="#cb4-18"></a>display(a_df.head(<span class="dv">3</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb4-3"><a href="#cb4-3"></a></span>
+<span id="cb4-4"><a href="#cb4-4"></a><span class="co"># https://zenodo.org/record/2783642</span></span>
+<span id="cb4-5"><a href="#cb4-5"></a>q_df <span class="op">=</span> pd.read_csv(<span class="st">'https://zenodo.org/record/2783642/files/Questions.csv'</span>)</span>
+<span id="cb4-6"><a href="#cb4-6"></a>a_df <span class="op">=</span> pd.read_csv(<span class="st">'https://zenodo.org/record/2783642/files/Answers.csv'</span>)</span>
+<span id="cb4-7"><a href="#cb4-7"></a><span class="bu">print</span>(<span class="st">'q_df.shape:'</span>, q_df.shape)</span>
+<span id="cb4-8"><a href="#cb4-8"></a><span class="bu">print</span>(<span class="st">'a_df.shape:'</span>, a_df.shape)</span>
+<span id="cb4-9"><a href="#cb4-9"></a>q_df.columns <span class="op">=</span> [c.strip() <span class="cf">for</span> c <span class="kw">in</span> q_df.columns]</span>
+<span id="cb4-10"><a href="#cb4-10"></a>a_df.columns <span class="op">=</span> [c.strip() <span class="cf">for</span> c <span class="kw">in</span> a_df.columns]</span>
+<span id="cb4-11"><a href="#cb4-11"></a>a_df[<span class="st">'Text'</span>] <span class="op">=</span> a_df[<span class="st">'Text'</span>].<span class="bu">apply</span>(<span class="kw">lambda</span> x: html2text.html2text(x))</span>
+<span id="cb4-12"><a href="#cb4-12"></a>df <span class="op">=</span> q_df.merge(a_df, on<span class="op">=</span><span class="st">'AID'</span>)</span>
+<span id="cb4-13"><a href="#cb4-13"></a>df.columns <span class="op">=</span> [<span class="st">'query'</span>, <span class="st">'AID'</span>, <span class="st">'document'</span>]</span>
+<span id="cb4-14"><a href="#cb4-14"></a></span>
+<span id="cb4-15"><a href="#cb4-15"></a>metadata <span class="op">=</span> a_df[[<span class="st">'AID'</span>]].to_dict(orient<span class="op">=</span><span class="st">'records'</span>)</span>
+<span id="cb4-16"><a href="#cb4-16"></a>documents <span class="op">=</span> a_df[<span class="st">'Text'</span>].tolist()</span>
+<span id="cb4-17"><a href="#cb4-17"></a>query_list <span class="op">=</span> <span class="bu">list</span>(<span class="bu">zip</span>(q_df[<span class="st">'Text'</span>], q_df[<span class="st">'AID'</span>]))</span>
+<span id="cb4-18"><a href="#cb4-18"></a>display(q_df.head(<span class="dv">3</span>))</span>
+<span id="cb4-19"><a href="#cb4-19"></a>display(a_df.head(<span class="dv">3</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>q_df.shape: (427, 2)
@@ -462,23 +463,23 @@ a_df.shape: (79, 2)</code></pre>
 <summary>実験用コード</summary>
 <div class="sourceCode cell-code" id="cb6"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1"></a><span class="im">import</span> sys</span>
 <span id="cb6-2"><a href="#cb6-2"></a></span>
-<span id="cb6-3"><a href="#cb6-3"></a>sys.path.append(<span class="st">"../"</span>)</span>
+<span id="cb6-3"><a href="#cb6-3"></a>sys.path.append(<span class="st">'../'</span>)</span>
 <span id="cb6-4"><a href="#cb6-4"></a><span class="im">from</span> src.parallel <span class="im">import</span> parallelize_function</span>
 <span id="cb6-5"><a href="#cb6-5"></a><span class="im">from</span> dataclasses <span class="im">import</span> dataclass</span>
 <span id="cb6-6"><a href="#cb6-6"></a></span>
 <span id="cb6-7"><a href="#cb6-7"></a>DOC_NUM <span class="op">=</span> <span class="bu">len</span>(a_df)</span>
 <span id="cb6-8"><a href="#cb6-8"></a></span>
-<span id="cb6-9"><a href="#cb6-9"></a><span class="at">@dataclass</span></span>
-<span id="cb6-10"><a href="#cb6-10"></a><span class="kw">class</span> EvaluationResults:</span>
-<span id="cb6-11"><a href="#cb6-11"></a>    result_df: pd.DataFrame</span>
-<span id="cb6-12"><a href="#cb6-12"></a>    mrr: <span class="bu">float</span></span>
-<span id="cb6-13"><a href="#cb6-13"></a>    recall_at_1: <span class="bu">float</span></span>
-<span id="cb6-14"><a href="#cb6-14"></a>    recall_at_5: <span class="bu">float</span></span>
-<span id="cb6-15"><a href="#cb6-15"></a></span>
+<span id="cb6-9"><a href="#cb6-9"></a></span>
+<span id="cb6-10"><a href="#cb6-10"></a><span class="at">@dataclass</span></span>
+<span id="cb6-11"><a href="#cb6-11"></a><span class="kw">class</span> EvaluationResults:</span>
+<span id="cb6-12"><a href="#cb6-12"></a>    result_df: pd.DataFrame</span>
+<span id="cb6-13"><a href="#cb6-13"></a>    mrr: <span class="bu">float</span></span>
+<span id="cb6-14"><a href="#cb6-14"></a>    recall_at_1: <span class="bu">float</span></span>
+<span id="cb6-15"><a href="#cb6-15"></a>    recall_at_5: <span class="bu">float</span></span>
 <span id="cb6-16"><a href="#cb6-16"></a></span>
-<span id="cb6-17"><a href="#cb6-17"></a><span class="kw">def</span> mrr(rank_array):</span>
-<span id="cb6-18"><a href="#cb6-18"></a>    <span class="cf">return</span> (<span class="dv">1</span> <span class="op">/</span> rank_array).mean()</span>
-<span id="cb6-19"><a href="#cb6-19"></a></span>
+<span id="cb6-17"><a href="#cb6-17"></a></span>
+<span id="cb6-18"><a href="#cb6-18"></a><span class="kw">def</span> mrr(rank_array):</span>
+<span id="cb6-19"><a href="#cb6-19"></a>    <span class="cf">return</span> (<span class="dv">1</span> <span class="op">/</span> rank_array).mean()</span>
 <span id="cb6-20"><a href="#cb6-20"></a></span>
 <span id="cb6-21"><a href="#cb6-21"></a></span>
 <span id="cb6-22"><a href="#cb6-22"></a><span class="kw">def</span> recall_at_k(rank_array, k):</span>
@@ -491,7 +492,7 @@ a_df.shape: (79, 2)</code></pre>
 <span id="cb6-29"><a href="#cb6-29"></a>    search_result <span class="op">=</span> search_func(query)</span>
 <span id="cb6-30"><a href="#cb6-30"></a>    aid_list <span class="op">=</span> []</span>
 <span id="cb6-31"><a href="#cb6-31"></a>    <span class="cf">for</span> doc <span class="kw">in</span> search_result:</span>
-<span id="cb6-32"><a href="#cb6-32"></a>        aid_list.append(doc.metadata[<span class="st">"doc_id"</span>])</span>
+<span id="cb6-32"><a href="#cb6-32"></a>        aid_list.append(doc.metadata[<span class="st">'doc_id'</span>])</span>
 <span id="cb6-33"><a href="#cb6-33"></a>    <span class="cf">if</span> aid <span class="kw">not</span> <span class="kw">in</span> aid_list:</span>
 <span id="cb6-34"><a href="#cb6-34"></a>        rank <span class="op">=</span> doc_num <span class="op">+</span> <span class="dv">1</span></span>
 <span id="cb6-35"><a href="#cb6-35"></a>    <span class="cf">else</span>:</span>
@@ -500,30 +501,26 @@ a_df.shape: (79, 2)</code></pre>
 <span id="cb6-38"><a href="#cb6-38"></a></span>
 <span id="cb6-39"><a href="#cb6-39"></a></span>
 <span id="cb6-40"><a href="#cb6-40"></a><span class="co"># Parallelized evaluate function</span></span>
-<span id="cb6-41"><a href="#cb6-41"></a><span class="kw">def</span> parallel_evaluate(</span>
-<span id="cb6-42"><a href="#cb6-42"></a>    query_list, search_func, max_workers<span class="op">=</span><span class="dv">20</span>, doc_num<span class="op">=</span>DOC_NUM</span>
-<span id="cb6-43"><a href="#cb6-43"></a>):</span>
-<span id="cb6-44"><a href="#cb6-44"></a>    <span class="co"># Prepare arguments for parallel execution</span></span>
-<span id="cb6-45"><a href="#cb6-45"></a>    args_list <span class="op">=</span> [</span>
-<span id="cb6-46"><a href="#cb6-46"></a>        (query_aid, search_func, doc_num) <span class="cf">for</span> query_aid <span class="kw">in</span> query_list</span>
-<span id="cb6-47"><a href="#cb6-47"></a>    ]</span>
-<span id="cb6-48"><a href="#cb6-48"></a></span>
-<span id="cb6-49"><a href="#cb6-49"></a>    <span class="co"># Execute the evaluate_single_query function in parallel</span></span>
-<span id="cb6-50"><a href="#cb6-50"></a>    results <span class="op">=</span> parallelize_function(</span>
-<span id="cb6-51"><a href="#cb6-51"></a>        evaluate_single_query, args_list, max_workers<span class="op">=</span>max_workers</span>
-<span id="cb6-52"><a href="#cb6-52"></a>    )</span>
+<span id="cb6-41"><a href="#cb6-41"></a><span class="kw">def</span> parallel_evaluate(query_list, search_func, max_workers<span class="op">=</span><span class="dv">20</span>, doc_num<span class="op">=</span>DOC_NUM):</span>
+<span id="cb6-42"><a href="#cb6-42"></a>    <span class="co"># Prepare arguments for parallel execution</span></span>
+<span id="cb6-43"><a href="#cb6-43"></a>    args_list <span class="op">=</span> [(query_aid, search_func, doc_num) <span class="cf">for</span> query_aid <span class="kw">in</span> query_list]</span>
+<span id="cb6-44"><a href="#cb6-44"></a></span>
+<span id="cb6-45"><a href="#cb6-45"></a>    <span class="co"># Execute the evaluate_single_query function in parallel</span></span>
+<span id="cb6-46"><a href="#cb6-46"></a>    results <span class="op">=</span> parallelize_function(</span>
+<span id="cb6-47"><a href="#cb6-47"></a>        evaluate_single_query, args_list, max_workers<span class="op">=</span>max_workers</span>
+<span id="cb6-48"><a href="#cb6-48"></a>    )</span>
+<span id="cb6-49"><a href="#cb6-49"></a></span>
+<span id="cb6-50"><a href="#cb6-50"></a>    <span class="co"># Process results and create a DataFrame</span></span>
+<span id="cb6-51"><a href="#cb6-51"></a>    result_list <span class="op">=</span> [result <span class="cf">for</span> result <span class="kw">in</span> results <span class="cf">if</span> <span class="kw">not</span> <span class="bu">isinstance</span>(result, <span class="pp">Exception</span>)]</span>
+<span id="cb6-52"><a href="#cb6-52"></a>    result_df <span class="op">=</span> pd.DataFrame(result_list, columns<span class="op">=</span>[<span class="st">'query'</span>, <span class="st">'rank'</span>, <span class="st">'rank_result'</span>])</span>
 <span id="cb6-53"><a href="#cb6-53"></a></span>
-<span id="cb6-54"><a href="#cb6-54"></a>    <span class="co"># Process results and create a DataFrame</span></span>
-<span id="cb6-55"><a href="#cb6-55"></a>    result_list <span class="op">=</span> [result <span class="cf">for</span> result <span class="kw">in</span> results <span class="cf">if</span> <span class="kw">not</span> <span class="bu">isinstance</span>(result, <span class="pp">Exception</span>)]</span>
-<span id="cb6-56"><a href="#cb6-56"></a>    result_df <span class="op">=</span> pd.DataFrame(result_list, columns<span class="op">=</span>[<span class="st">"query"</span>, <span class="st">"rank"</span>, <span class="st">"rank_result"</span>])</span>
-<span id="cb6-57"><a href="#cb6-57"></a></span>
-<span id="cb6-58"><a href="#cb6-58"></a>    <span class="co"># Calculate evaluation metrics</span></span>
-<span id="cb6-59"><a href="#cb6-59"></a>    <span class="cf">return</span> EvaluationResults(</span>
-<span id="cb6-60"><a href="#cb6-60"></a>        result_df,</span>
-<span id="cb6-61"><a href="#cb6-61"></a>        mrr(result_df[<span class="st">"rank"</span>]),</span>
-<span id="cb6-62"><a href="#cb6-62"></a>        recall_at_k(result_df[<span class="st">"rank"</span>], <span class="dv">1</span>),</span>
-<span id="cb6-63"><a href="#cb6-63"></a>        recall_at_k(result_df[<span class="st">"rank"</span>], <span class="dv">5</span>),</span>
-<span id="cb6-64"><a href="#cb6-64"></a>    )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb6-54"><a href="#cb6-54"></a>    <span class="co"># Calculate evaluation metrics</span></span>
+<span id="cb6-55"><a href="#cb6-55"></a>    <span class="cf">return</span> EvaluationResults(</span>
+<span id="cb6-56"><a href="#cb6-56"></a>        result_df,</span>
+<span id="cb6-57"><a href="#cb6-57"></a>        mrr(result_df[<span class="st">'rank'</span>]),</span>
+<span id="cb6-58"><a href="#cb6-58"></a>        recall_at_k(result_df[<span class="st">'rank'</span>], <span class="dv">1</span>),</span>
+<span id="cb6-59"><a href="#cb6-59"></a>        recall_at_k(result_df[<span class="st">'rank'</span>], <span class="dv">5</span>),</span>
+<span id="cb6-60"><a href="#cb6-60"></a>    )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 <div class="callout callout-style-default callout-note callout-titled">
@@ -614,28 +611,31 @@ a_df.shape: (79, 2)</code></pre>
 <span id="cb8-6"><a href="#cb8-6"></a></span>
 <span id="cb8-7"><a href="#cb8-7"></a>_ <span class="op">=</span> load_dotenv()</span>
 <span id="cb8-8"><a href="#cb8-8"></a></span>
-<span id="cb8-9"><a href="#cb8-9"></a>llm <span class="op">=</span> ChatOpenAI(temperature<span class="op">=</span><span class="dv">0</span>, model<span class="op">=</span><span class="st">"gpt-3.5-turbo"</span>, request_timeout<span class="op">=</span><span class="dv">20</span>)</span>
+<span id="cb8-9"><a href="#cb8-9"></a>llm <span class="op">=</span> ChatOpenAI(temperature<span class="op">=</span><span class="dv">0</span>, model<span class="op">=</span><span class="st">'gpt-3.5-turbo'</span>, request_timeout<span class="op">=</span><span class="dv">20</span>)</span>
 <span id="cb8-10"><a href="#cb8-10"></a></span>
-<span id="cb8-11"><a href="#cb8-11"></a><span class="kw">def</span> generate_metadata(msg, text_list, save_path):</span>
-<span id="cb8-12"><a href="#cb8-12"></a>    metadata <span class="op">=</span> []</span>
-<span id="cb8-13"><a href="#cb8-13"></a>    <span class="cf">for</span> txt <span class="kw">in</span> tqdm(text_list):</span>
-<span id="cb8-14"><a href="#cb8-14"></a>        result <span class="op">=</span> llm([HumanMessage(content<span class="op">=</span>msg.<span class="bu">format</span>(doc<span class="op">=</span>txt))]).content.replace(<span class="st">"</span><span class="ch">\n</span><span class="st">"</span>, <span class="st">" "</span>)</span>
-<span id="cb8-15"><a href="#cb8-15"></a>        metadata.append(result)</span>
-<span id="cb8-16"><a href="#cb8-16"></a></span>
-<span id="cb8-17"><a href="#cb8-17"></a>    <span class="cf">with</span> <span class="bu">open</span>(save_path, <span class="st">"w"</span>) <span class="im">as</span> f:</span>
-<span id="cb8-18"><a href="#cb8-18"></a>        f.write(<span class="st">"</span><span class="ch">\n</span><span class="st">"</span>.join(metadata))</span>
+<span id="cb8-11"><a href="#cb8-11"></a></span>
+<span id="cb8-12"><a href="#cb8-12"></a><span class="kw">def</span> generate_metadata(msg, text_list, save_path):</span>
+<span id="cb8-13"><a href="#cb8-13"></a>    metadata <span class="op">=</span> []</span>
+<span id="cb8-14"><a href="#cb8-14"></a>    <span class="cf">for</span> txt <span class="kw">in</span> tqdm(text_list):</span>
+<span id="cb8-15"><a href="#cb8-15"></a>        result <span class="op">=</span> llm([HumanMessage(content<span class="op">=</span>msg.<span class="bu">format</span>(doc<span class="op">=</span>txt))]).content.replace(</span>
+<span id="cb8-16"><a href="#cb8-16"></a>            <span class="st">'</span><span class="ch">\n</span><span class="st">'</span>, <span class="st">' '</span></span>
+<span id="cb8-17"><a href="#cb8-17"></a>        )</span>
+<span id="cb8-18"><a href="#cb8-18"></a>        metadata.append(result)</span>
 <span id="cb8-19"><a href="#cb8-19"></a></span>
-<span id="cb8-20"><a href="#cb8-20"></a></span>
-<span id="cb8-21"><a href="#cb8-21"></a>msg <span class="op">=</span> <span class="st">"""</span></span>
-<span id="cb8-22"><a href="#cb8-22"></a><span class="st">次のドキュメントを50字以内にサマリーしてください。</span></span>
-<span id="cb8-23"><a href="#cb8-23"></a><span class="st">===ドキュメント===</span></span>
-<span id="cb8-24"><a href="#cb8-24"></a><span class="sc">{doc}</span></span>
-<span id="cb8-25"><a href="#cb8-25"></a><span class="st">"""</span></span>
-<span id="cb8-26"><a href="#cb8-26"></a>text_list <span class="op">=</span> a_df.Text.to_list()</span>
-<span id="cb8-27"><a href="#cb8-27"></a>generate_metadata(msg, text_list, <span class="st">"./3.5_turbo_summaries.txt"</span>)</span>
-<span id="cb8-28"><a href="#cb8-28"></a></span>
-<span id="cb8-29"><a href="#cb8-29"></a><span class="cf">with</span> <span class="bu">open</span>(<span class="st">"3.5_turbo_summaries.txt"</span>, <span class="st">"r"</span>) <span class="im">as</span> f:</span>
-<span id="cb8-30"><a href="#cb8-30"></a>    summaries <span class="op">=</span> f.read().split(<span class="st">"</span><span class="ch">\n</span><span class="st">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb8-20"><a href="#cb8-20"></a>    <span class="cf">with</span> <span class="bu">open</span>(save_path, <span class="st">'w'</span>) <span class="im">as</span> f:</span>
+<span id="cb8-21"><a href="#cb8-21"></a>        f.write(<span class="st">'</span><span class="ch">\n</span><span class="st">'</span>.join(metadata))</span>
+<span id="cb8-22"><a href="#cb8-22"></a></span>
+<span id="cb8-23"><a href="#cb8-23"></a></span>
+<span id="cb8-24"><a href="#cb8-24"></a>msg <span class="op">=</span> <span class="st">"""</span></span>
+<span id="cb8-25"><a href="#cb8-25"></a><span class="st">次のドキュメントを50字以内にサマリーしてください。</span></span>
+<span id="cb8-26"><a href="#cb8-26"></a><span class="st">===ドキュメント===</span></span>
+<span id="cb8-27"><a href="#cb8-27"></a><span class="sc">{doc}</span></span>
+<span id="cb8-28"><a href="#cb8-28"></a><span class="st">"""</span></span>
+<span id="cb8-29"><a href="#cb8-29"></a>text_list <span class="op">=</span> a_df.Text.to_list()</span>
+<span id="cb8-30"><a href="#cb8-30"></a>generate_metadata(msg, text_list, <span class="st">'./3.5_turbo_summaries.txt'</span>)</span>
+<span id="cb8-31"><a href="#cb8-31"></a></span>
+<span id="cb8-32"><a href="#cb8-32"></a><span class="cf">with</span> <span class="bu">open</span>(<span class="st">'3.5_turbo_summaries.txt'</span>, <span class="st">'r'</span>) <span class="im">as</span> f:</span>
+<span id="cb8-33"><a href="#cb8-33"></a>    summaries <span class="op">=</span> f.read().split(<span class="st">'</span><span class="ch">\n</span><span class="st">'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 <p>出力したデータのサンプルをお見せします。</p>
@@ -647,29 +647,32 @@ a_df.shape: (79, 2)</code></pre>
 </div>
 <p>次に直接ドキュメントに追加した場合とMulti-Vector Retrieverを使う場合の検索精度をみます。</p>
 <div class="cell" data-execution_count="7">
-<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1"></a><span class="im">from</span> langchain.retrievers.multi_vector <span class="im">import</span> MultiVectorRetriever, ParentDocumentRetriever</span>
-<span id="cb11-2"><a href="#cb11-2"></a><span class="im">from</span> langchain.schema.document <span class="im">import</span> Document</span>
-<span id="cb11-3"><a href="#cb11-3"></a><span class="im">from</span> langchain.storage <span class="im">import</span> InMemoryStore</span>
-<span id="cb11-4"><a href="#cb11-4"></a><span class="im">from</span> langchain.vectorstores <span class="im">import</span> FAISS</span>
-<span id="cb11-5"><a href="#cb11-5"></a></span>
-<span id="cb11-6"><a href="#cb11-6"></a>docs <span class="op">=</span> [</span>
-<span id="cb11-7"><a href="#cb11-7"></a>    Document(page_content<span class="op">=</span>s, metadata<span class="op">=</span>{<span class="st">"doc_id"</span>: a_df.AID[i]})</span>
-<span id="cb11-8"><a href="#cb11-8"></a>    <span class="cf">for</span> i, s <span class="kw">in</span> <span class="bu">enumerate</span>(a_df.Text.tolist())</span>
-<span id="cb11-9"><a href="#cb11-9"></a>]</span>
-<span id="cb11-10"><a href="#cb11-10"></a></span>
-<span id="cb11-11"><a href="#cb11-11"></a>summarys <span class="op">=</span> [</span>
-<span id="cb11-12"><a href="#cb11-12"></a>    Document(page_content<span class="op">=</span>summaries[i], metadata<span class="op">=</span>{<span class="st">"doc_id"</span>: a_df.AID[i]})</span>
-<span id="cb11-13"><a href="#cb11-13"></a>    <span class="cf">for</span> i, s <span class="kw">in</span> <span class="bu">enumerate</span>(a_df.Text.tolist())</span>
-<span id="cb11-14"><a href="#cb11-14"></a>]</span>
-<span id="cb11-15"><a href="#cb11-15"></a></span>
-<span id="cb11-16"><a href="#cb11-16"></a></span>
-<span id="cb11-17"><a href="#cb11-17"></a>doc_summarys <span class="op">=</span> [</span>
-<span id="cb11-18"><a href="#cb11-18"></a>    Document(</span>
-<span id="cb11-19"><a href="#cb11-19"></a>        page_content<span class="op">=</span><span class="ss">f"summary: </span><span class="sc">{</span>summaries[i]<span class="sc">}</span><span class="ss"> </span><span class="ch">\n</span><span class="ss"> text: </span><span class="sc">{</span>a_df<span class="sc">.</span>Text[i]<span class="sc">}</span><span class="ss">"</span>,</span>
-<span id="cb11-20"><a href="#cb11-20"></a>        metadata<span class="op">=</span>{<span class="st">"doc_id"</span>: a_df.AID[i]},</span>
-<span id="cb11-21"><a href="#cb11-21"></a>    )</span>
-<span id="cb11-22"><a href="#cb11-22"></a>    <span class="cf">for</span> i, s <span class="kw">in</span> <span class="bu">enumerate</span>(a_df.Text.tolist())</span>
-<span id="cb11-23"><a href="#cb11-23"></a>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1"></a><span class="im">from</span> langchain.retrievers.multi_vector <span class="im">import</span> (</span>
+<span id="cb11-2"><a href="#cb11-2"></a>    MultiVectorRetriever,</span>
+<span id="cb11-3"><a href="#cb11-3"></a>    ParentDocumentRetriever,</span>
+<span id="cb11-4"><a href="#cb11-4"></a>)</span>
+<span id="cb11-5"><a href="#cb11-5"></a><span class="im">from</span> langchain.schema.document <span class="im">import</span> Document</span>
+<span id="cb11-6"><a href="#cb11-6"></a><span class="im">from</span> langchain.storage <span class="im">import</span> InMemoryStore</span>
+<span id="cb11-7"><a href="#cb11-7"></a><span class="im">from</span> langchain.vectorstores <span class="im">import</span> FAISS</span>
+<span id="cb11-8"><a href="#cb11-8"></a></span>
+<span id="cb11-9"><a href="#cb11-9"></a>docs <span class="op">=</span> [</span>
+<span id="cb11-10"><a href="#cb11-10"></a>    Document(page_content<span class="op">=</span>s, metadata<span class="op">=</span>{<span class="st">'doc_id'</span>: a_df.AID[i]})</span>
+<span id="cb11-11"><a href="#cb11-11"></a>    <span class="cf">for</span> i, s <span class="kw">in</span> <span class="bu">enumerate</span>(a_df.Text.tolist())</span>
+<span id="cb11-12"><a href="#cb11-12"></a>]</span>
+<span id="cb11-13"><a href="#cb11-13"></a></span>
+<span id="cb11-14"><a href="#cb11-14"></a>summarys <span class="op">=</span> [</span>
+<span id="cb11-15"><a href="#cb11-15"></a>    Document(page_content<span class="op">=</span>summaries[i], metadata<span class="op">=</span>{<span class="st">'doc_id'</span>: a_df.AID[i]})</span>
+<span id="cb11-16"><a href="#cb11-16"></a>    <span class="cf">for</span> i, s <span class="kw">in</span> <span class="bu">enumerate</span>(a_df.Text.tolist())</span>
+<span id="cb11-17"><a href="#cb11-17"></a>]</span>
+<span id="cb11-18"><a href="#cb11-18"></a></span>
+<span id="cb11-19"><a href="#cb11-19"></a></span>
+<span id="cb11-20"><a href="#cb11-20"></a>doc_summarys <span class="op">=</span> [</span>
+<span id="cb11-21"><a href="#cb11-21"></a>    Document(</span>
+<span id="cb11-22"><a href="#cb11-22"></a>        page_content<span class="op">=</span><span class="ss">f'summary: </span><span class="sc">{</span>summaries[i]<span class="sc">}</span><span class="ss"> </span><span class="ch">\n</span><span class="ss"> text: </span><span class="sc">{</span>a_df<span class="sc">.</span>Text[i]<span class="sc">}</span><span class="ss">'</span>,</span>
+<span id="cb11-23"><a href="#cb11-23"></a>        metadata<span class="op">=</span>{<span class="st">'doc_id'</span>: a_df.AID[i]},</span>
+<span id="cb11-24"><a href="#cb11-24"></a>    )</span>
+<span id="cb11-25"><a href="#cb11-25"></a>    <span class="cf">for</span> i, s <span class="kw">in</span> <span class="bu">enumerate</span>(a_df.Text.tolist())</span>
+<span id="cb11-26"><a href="#cb11-26"></a>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb12"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1"></a>vectorstore_doc <span class="op">=</span> FAISS.from_documents(docs, OpenAIEmbeddings())</span>
@@ -720,13 +723,23 @@ a_df.shape: (79, 2)</code></pre>
 <div class="cell" data-execution_count="52">
 <div class="sourceCode cell-code" id="cb14"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1"></a>result_df <span class="op">=</span> pd.DataFrame(</span>
 <span id="cb14-2"><a href="#cb14-2"></a>    [</span>
-<span id="cb14-3"><a href="#cb14-3"></a>        [<span class="st">"only_doc"</span>, doc_result.mrr, doc_result.recall_at_1, doc_result.recall_at_5],</span>
-<span id="cb14-4"><a href="#cb14-4"></a>        [<span class="st">"summary"</span>, summary_result.mrr, summary_result.recall_at_1, summary_result.recall_at_5],</span>
-<span id="cb14-5"><a href="#cb14-5"></a>        [<span class="st">"doc_summary"</span>, doc_summary_result.mrr, doc_summary_result.recall_at_1, doc_summary_result.recall_at_5],</span>
-<span id="cb14-6"><a href="#cb14-6"></a>        ],</span>
-<span id="cb14-7"><a href="#cb14-7"></a>    columns <span class="op">=</span> [<span class="st">"model_id"</span>,<span class="st">"mrr"</span>,<span class="st">"recall_at_1"</span>,<span class="st">"recall_at_5"</span>]</span>
-<span id="cb14-8"><a href="#cb14-8"></a>    ).sort_values(<span class="st">"mrr"</span>, ascending<span class="op">=</span><span class="va">False</span>)</span>
-<span id="cb14-9"><a href="#cb14-9"></a>result_df.<span class="bu">round</span>(<span class="dv">4</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb14-3"><a href="#cb14-3"></a>        [<span class="st">'only_doc'</span>, doc_result.mrr, doc_result.recall_at_1, doc_result.recall_at_5],</span>
+<span id="cb14-4"><a href="#cb14-4"></a>        [</span>
+<span id="cb14-5"><a href="#cb14-5"></a>            <span class="st">'summary'</span>,</span>
+<span id="cb14-6"><a href="#cb14-6"></a>            summary_result.mrr,</span>
+<span id="cb14-7"><a href="#cb14-7"></a>            summary_result.recall_at_1,</span>
+<span id="cb14-8"><a href="#cb14-8"></a>            summary_result.recall_at_5,</span>
+<span id="cb14-9"><a href="#cb14-9"></a>        ],</span>
+<span id="cb14-10"><a href="#cb14-10"></a>        [</span>
+<span id="cb14-11"><a href="#cb14-11"></a>            <span class="st">'doc_summary'</span>,</span>
+<span id="cb14-12"><a href="#cb14-12"></a>            doc_summary_result.mrr,</span>
+<span id="cb14-13"><a href="#cb14-13"></a>            doc_summary_result.recall_at_1,</span>
+<span id="cb14-14"><a href="#cb14-14"></a>            doc_summary_result.recall_at_5,</span>
+<span id="cb14-15"><a href="#cb14-15"></a>        ],</span>
+<span id="cb14-16"><a href="#cb14-16"></a>    ],</span>
+<span id="cb14-17"><a href="#cb14-17"></a>    columns<span class="op">=</span>[<span class="st">'model_id'</span>, <span class="st">'mrr'</span>, <span class="st">'recall_at_1'</span>, <span class="st">'recall_at_5'</span>],</span>
+<span id="cb14-18"><a href="#cb14-18"></a>).sort_values(<span class="st">'mrr'</span>, ascending<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb14-19"><a href="#cb14-19"></a>result_df.<span class="bu">round</span>(<span class="dv">4</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="52">
 <div>
 
@@ -779,8 +792,8 @@ a_df.shape: (79, 2)</code></pre>
 <span id="cb15-5"><a href="#cb15-5"></a>multi_vector_retriever <span class="op">=</span> MultiVectorRetriever(</span>
 <span id="cb15-6"><a href="#cb15-6"></a>    vectorstore<span class="op">=</span>multi_vector_vectorstore,</span>
 <span id="cb15-7"><a href="#cb15-7"></a>    docstore<span class="op">=</span>store,</span>
-<span id="cb15-8"><a href="#cb15-8"></a>    id_key<span class="op">=</span><span class="st">"doc_id"</span>,</span>
-<span id="cb15-9"><a href="#cb15-9"></a>    search_kwargs<span class="op">=</span>{<span class="st">"k"</span>: <span class="dv">1000</span>},</span>
+<span id="cb15-8"><a href="#cb15-8"></a>    id_key<span class="op">=</span><span class="st">'doc_id'</span>,</span>
+<span id="cb15-9"><a href="#cb15-9"></a>    search_kwargs<span class="op">=</span>{<span class="st">'k'</span>: <span class="dv">1000</span>},</span>
 <span id="cb15-10"><a href="#cb15-10"></a>)</span>
 <span id="cb15-11"><a href="#cb15-11"></a>multi_vector_retriever.docstore.mset(<span class="bu">list</span>(<span class="bu">zip</span>(a_df.AID.tolist(), docs)))</span>
 <span id="cb15-12"><a href="#cb15-12"></a>multi_vectore_result <span class="op">=</span> parallel_evaluate(</span>
@@ -793,15 +806,17 @@ a_df.shape: (79, 2)</code></pre>
 </div>
 </div>
 <div class="cell" data-execution_count="53">
-<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1"></a><span class="co"># add the result to the dataframe as a row </span></span>
-<span id="cb16-2"><a href="#cb16-2"></a>new_row <span class="op">=</span> {</span>
-<span id="cb16-3"><a href="#cb16-3"></a>        <span class="st">"model_id"</span>: <span class="st">"multi_vector"</span>,</span>
-<span id="cb16-4"><a href="#cb16-4"></a>        <span class="st">"mrr"</span>: multi_vectore_result.mrr,</span>
-<span id="cb16-5"><a href="#cb16-5"></a>        <span class="st">"recall_at_1"</span>: multi_vectore_result.recall_at_1,</span>
-<span id="cb16-6"><a href="#cb16-6"></a>        <span class="st">"recall_at_5"</span>: multi_vectore_result.recall_at_5,</span>
-<span id="cb16-7"><a href="#cb16-7"></a>    },</span>
-<span id="cb16-8"><a href="#cb16-8"></a>result_df <span class="op">=</span> pd.concat([result_df, pd.DataFrame(new_row)], ignore_index<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb16-9"><a href="#cb16-9"></a>result_df.<span class="bu">round</span>(<span class="dv">4</span>).sort_values(<span class="st">"mrr"</span>, ascending<span class="op">=</span><span class="va">False</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1"></a><span class="co"># add the result to the dataframe as a row</span></span>
+<span id="cb16-2"><a href="#cb16-2"></a>new_row <span class="op">=</span> (</span>
+<span id="cb16-3"><a href="#cb16-3"></a>    {</span>
+<span id="cb16-4"><a href="#cb16-4"></a>        <span class="st">'model_id'</span>: <span class="st">'multi_vector'</span>,</span>
+<span id="cb16-5"><a href="#cb16-5"></a>        <span class="st">'mrr'</span>: multi_vectore_result.mrr,</span>
+<span id="cb16-6"><a href="#cb16-6"></a>        <span class="st">'recall_at_1'</span>: multi_vectore_result.recall_at_1,</span>
+<span id="cb16-7"><a href="#cb16-7"></a>        <span class="st">'recall_at_5'</span>: multi_vectore_result.recall_at_5,</span>
+<span id="cb16-8"><a href="#cb16-8"></a>    },</span>
+<span id="cb16-9"><a href="#cb16-9"></a>)</span>
+<span id="cb16-10"><a href="#cb16-10"></a>result_df <span class="op">=</span> pd.concat([result_df, pd.DataFrame(new_row)], ignore_index<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb16-11"><a href="#cb16-11"></a>result_df.<span class="bu">round</span>(<span class="dv">4</span>).sort_values(<span class="st">'mrr'</span>, ascending<span class="op">=</span><span class="va">False</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="53">
 <div>
 
@@ -857,9 +872,9 @@ a_df.shape: (79, 2)</code></pre>
 <p>次にドキュメントを文単位に切り、文単位で検索を行います。</p>
 <div class="cell" data-execution_count="40">
 <div class="sourceCode cell-code" id="cb17"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1"></a>sentences <span class="op">=</span> [</span>
-<span id="cb17-2"><a href="#cb17-2"></a>    Document(page_content<span class="op">=</span>sent, metadata<span class="op">=</span>{<span class="st">"doc_id"</span>: a_df.AID[i]})</span>
+<span id="cb17-2"><a href="#cb17-2"></a>    Document(page_content<span class="op">=</span>sent, metadata<span class="op">=</span>{<span class="st">'doc_id'</span>: a_df.AID[i]})</span>
 <span id="cb17-3"><a href="#cb17-3"></a>    <span class="cf">for</span> i, s <span class="kw">in</span> <span class="bu">enumerate</span>(a_df.Text.tolist())</span>
-<span id="cb17-4"><a href="#cb17-4"></a>    <span class="cf">for</span> sent <span class="kw">in</span> s.split(<span class="st">"</span><span class="ch">\n</span><span class="st">"</span>)</span>
+<span id="cb17-4"><a href="#cb17-4"></a>    <span class="cf">for</span> sent <span class="kw">in</span> s.split(<span class="st">'</span><span class="ch">\n</span><span class="st">'</span>)</span>
 <span id="cb17-5"><a href="#cb17-5"></a>]</span>
 <span id="cb17-6"><a href="#cb17-6"></a><span class="bu">print</span>(<span class="bu">len</span>(sentences))</span>
 <span id="cb17-7"><a href="#cb17-7"></a>multi_vector_vectorstore_sent <span class="op">=</span> FAISS.from_documents(sentences, OpenAIEmbeddings())</span>
@@ -869,8 +884,8 @@ a_df.shape: (79, 2)</code></pre>
 <span id="cb17-11"><a href="#cb17-11"></a>multi_vector_retriever_sent <span class="op">=</span> MultiVectorRetriever(</span>
 <span id="cb17-12"><a href="#cb17-12"></a>    vectorstore<span class="op">=</span>multi_vector_vectorstore_sent,</span>
 <span id="cb17-13"><a href="#cb17-13"></a>    docstore<span class="op">=</span>store,</span>
-<span id="cb17-14"><a href="#cb17-14"></a>    id_key<span class="op">=</span><span class="st">"doc_id"</span>,</span>
-<span id="cb17-15"><a href="#cb17-15"></a>    search_kwargs<span class="op">=</span>{<span class="st">"k"</span>: <span class="dv">1000</span>},</span>
+<span id="cb17-14"><a href="#cb17-14"></a>    id_key<span class="op">=</span><span class="st">'doc_id'</span>,</span>
+<span id="cb17-15"><a href="#cb17-15"></a>    search_kwargs<span class="op">=</span>{<span class="st">'k'</span>: <span class="dv">1000</span>},</span>
 <span id="cb17-16"><a href="#cb17-16"></a>)</span>
 <span id="cb17-17"><a href="#cb17-17"></a>multi_vector_retriever_sent.docstore.mset(<span class="bu">list</span>(<span class="bu">zip</span>(a_df.AID.tolist(), docs)))</span>
 <span id="cb17-18"><a href="#cb17-18"></a>multi_vector_retriever_sent_result <span class="op">=</span> parallel_evaluate(</span>
@@ -896,14 +911,16 @@ a_df.shape: (79, 2)</code></pre>
 </div>
 </div>
 <div class="cell" data-execution_count="55">
-<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1"></a>new_row <span class="op">=</span> {</span>
-<span id="cb20-2"><a href="#cb20-2"></a>        <span class="st">"model_id"</span>: <span class="st">"multi_vector_sent"</span>,</span>
-<span id="cb20-3"><a href="#cb20-3"></a>        <span class="st">"mrr"</span>: multi_vector_retriever_sent_result.mrr,</span>
-<span id="cb20-4"><a href="#cb20-4"></a>        <span class="st">"recall_at_1"</span>: multi_vector_retriever_sent_result.recall_at_1,</span>
-<span id="cb20-5"><a href="#cb20-5"></a>        <span class="st">"recall_at_5"</span>: multi_vector_retriever_sent_result.recall_at_5,</span>
-<span id="cb20-6"><a href="#cb20-6"></a>    },</span>
-<span id="cb20-7"><a href="#cb20-7"></a>result_df <span class="op">=</span> pd.concat([result_df, pd.DataFrame(new_row)], ignore_index<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb20-8"><a href="#cb20-8"></a>result_df.<span class="bu">round</span>(<span class="dv">4</span>).sort_values(<span class="st">"mrr"</span>, ascending<span class="op">=</span><span class="va">False</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1"></a>new_row <span class="op">=</span> (</span>
+<span id="cb20-2"><a href="#cb20-2"></a>    {</span>
+<span id="cb20-3"><a href="#cb20-3"></a>        <span class="st">'model_id'</span>: <span class="st">'multi_vector_sent'</span>,</span>
+<span id="cb20-4"><a href="#cb20-4"></a>        <span class="st">'mrr'</span>: multi_vector_retriever_sent_result.mrr,</span>
+<span id="cb20-5"><a href="#cb20-5"></a>        <span class="st">'recall_at_1'</span>: multi_vector_retriever_sent_result.recall_at_1,</span>
+<span id="cb20-6"><a href="#cb20-6"></a>        <span class="st">'recall_at_5'</span>: multi_vector_retriever_sent_result.recall_at_5,</span>
+<span id="cb20-7"><a href="#cb20-7"></a>    },</span>
+<span id="cb20-8"><a href="#cb20-8"></a>)</span>
+<span id="cb20-9"><a href="#cb20-9"></a>result_df <span class="op">=</span> pd.concat([result_df, pd.DataFrame(new_row)], ignore_index<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb20-10"><a href="#cb20-10"></a>result_df.<span class="bu">round</span>(<span class="dv">4</span>).sort_values(<span class="st">'mrr'</span>, ascending<span class="op">=</span><span class="va">False</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="55">
 <div>
 

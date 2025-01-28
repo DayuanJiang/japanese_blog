@@ -10,7 +10,309 @@
 <atom:link href="https://jiang.jp/index.xml" rel="self" type="application/rss+xml"/>
 <description></description>
 <generator>quarto-1.3.340</generator>
-<lastBuildDate>Wed, 14 Aug 2024 15:00:00 GMT</lastBuildDate>
+<lastBuildDate>Thu, 23 Jan 2025 15:00:00 GMT</lastBuildDate>
+<item>
+  <title>なぜLLMはMacBookでも動くのか？計算力とメモリから見るその仕組み</title>
+  <link>https://jiang.jp/posts/20250124_LLM_efficiency/index.html</link>
+  <description><![CDATA[ 
+
+
+
+<section id="macbookでも意外にllmを動かすことができる" class="level2">
+<h2 class="anchored" data-anchor-id="macbookでも意外にllmを動かすことができる">Macbookでも意外にLLMを動かすことができる</h2>
+<p>最近、OpenAIのO1レベルのOSSモデル、DeepSeek-R1が出ました。そして、XではM4 64GBのMac miniを8台繋いでクラスターにして、671Bのモデルを動かしたスレッドがありました。</p>
+<blockquote class="twitter-tweet blockquote" data-media-max-width="560">
+<p lang="en" dir="ltr">
+</p><p>Running DeepSeek-V3 on M4 Mac Mini AI Cluster<br><br>671B MoE model distributed across 8 M4 Pro 64GB Mac Minis.<br><br>Apple Silicon with unified memory is a great fit for MoE. <a href="https://t.co/FmeARutaxq">pic.twitter.com/FmeARutaxq</a></p>
+<p></p>
+<p>— EXO Labs (<span class="citation" data-cites="exolabs">@exolabs</span>) <a href="https://twitter.com/exolabs/status/1872444906851229814?ref_src=twsrc%5Etfw">December 27, 2024</a></p>
+</blockquote>
+<script async="" src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+<p>スレッドを見た時、「嘘だろう、671BのモデルをMac miniで動かせるの？」というのが最初の感想でした。色々調べた後、LLMを動かす際には、制限として主に「計算スピード」と「メモリのスピード」の2つがあることがわかりました。バッチサイズが1で推論する場合は、だいたい計算スピードではなく、メモリのスピードで足が引っ張られています。</p>
+<p>例えば、<code>int4</code> で量子化したモデルで推論する場合、A100とMac mini M4を比較してみると、</p>
+<table class="table">
+<thead>
+<tr class="header">
+<th style="text-align: center;">デバイス</th>
+<th style="text-align: right;">メモリスピード</th>
+<th style="text-align: right;">計算力</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">A100</td>
+<td style="text-align: right;">1935 GB/s</td>
+<td style="text-align: right;">1248 TOPS</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">Mac mini M4</td>
+<td style="text-align: right;">120 GB/s</td>
+<td style="text-align: right;">38 TOPS</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">A100/ Macmini</td>
+<td style="text-align: right;">16x</td>
+<td style="text-align: right;">32x</td>
+</tr>
+</tbody>
+</table>
+<p>A100の計算力はMac miniの32倍ですが、メモリスピードは16倍しかありません。なので理論上は、Mac miniはA100の1/16のスピードで出力することができます。</p>
+<p>これからは、この話をさらに展開して原理までわかるようにします。</p>
+</section>
+<section id="gpuの仕組みを理解する" class="level2">
+<h2 class="anchored" data-anchor-id="gpuの仕組みを理解する">GPUの仕組みを理解する</h2>
+<p>CPU の構造とよく似ていて、GPUにもキャッシュがあります。下図でメモリのアーキテクチャを示しています。</p>
+<p><img src="https://jiang.jp/posts/20250124_LLM_efficiency/images/paste-4.png" class="img-fluid" width="456"></p>
+<ul>
+<li><p><strong>GPU SRAM：</strong> GPUの計算ユニット内蔵のメモリ。最速だが、最も容量が小さい（19TB/s、20MB）。</p></li>
+<li><p><strong>GPU HBM：</strong> GPUのメインメモリ。中間の速度と容量（1.5TB/s、40GB）。</p></li>
+<li><p><strong>メインメモリ DRAM：</strong> 最も低速だが、最も容量が大きい（12.8GB/s、&gt;1TB）。</p></li>
+</ul>
+<p>計算する前に、まずモデルのパラメータをCPUのメモリからGPU HBMに送る必要があります。<code>model.to("cuda")</code>はこの処理を行っています。計算する際に、必要なデータをHBMからGPUチップに内蔵されているSRAMに転送し、そこで計算を行います。計算が終わっていても、次のデータがまだ来ていない場合は、計算を止めて、データの転送を待たなければいけません。バッチサイズが小さい場合は、計算量が少ないため、データの転送を待つことになり、これがいわゆる「メモリバンド」です。</p>
+</section>
+<section id="実際に推論スピードを概算してみる" class="level2">
+<h2 class="anchored" data-anchor-id="実際に推論スピードを概算してみる">実際に推論スピードを概算してみる</h2>
+<section id="概算方法" class="level3">
+<h3 class="anchored" data-anchor-id="概算方法">概算方法</h3>
+<p>まず、概算するための式を示します。</p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Ctext%7Blatency%7D_%5Ctext%7Bmemory%7D%20:=%20%5Cdfrac%7BP%5Ccdot%20n_%7B%5Ctext%7Bbytes%7D%7D%7D%7Bn_%7B%5Ctext%7Bmemory%20bandwidth%7D%7D%7D%0A"></p>
+<p><img src="https://latex.codecogs.com/png.latex?%0A%5Ctext%7Blatency%7D_%5Ctext%7Bcompute%7D%20:=%20%5Cdfrac%7B2%20%5Ccdot%20P%20%5Ccdot%20B%7D%7Bn_%7B%5Ctext%7Bflops%7D%7D%7D%0A"></p>
+<p>この中で、</p>
+<ul>
+<li><p><img src="https://latex.codecogs.com/png.latex?P">はモデルのパラメータ数。</p></li>
+<li><p><img src="https://latex.codecogs.com/png.latex?n_%7B%5Ctext%7Bbytes%7D%7D">はデータタイプに必要なバイト数。例えば、デフォルトのfp32を使う場合は4バイト、fp16の場合は2バイト、int4の場合は0.5バイト。</p></li>
+<li><p><img src="https://latex.codecogs.com/png.latex?n_%7B%5Ctext%7Bmemory%20bandwidth%7D%7D">は名前の通り、メモリ帯域幅のこと。</p></li>
+<li><p><img src="https://latex.codecogs.com/png.latex?B">はバッチサイズ。</p></li>
+<li><p><img src="https://latex.codecogs.com/png.latex?n_%7B%5Ctext%7Bflops%7D%7D">は計算スピード</p></li>
+</ul>
+<p>メモリのレイテンシーは比較的わかりやすいです。分子は1トークンを計算するために計算ユニットのメモリ(SRAM)に送るデータ量のことです。それをメモリ帯域幅で割ると、データ転送の時間を概算することができます。</p>
+<p>計算のレイテンシーは少しややこしいです。概算する際には、経験則で1トークンにかかる計算量を<img src="https://latex.codecogs.com/png.latex?2P">とします(この後で詳細に計算してみます)。それをバッチサイズ<img src="https://latex.codecogs.com/png.latex?B">に掛けると、<img src="https://latex.codecogs.com/png.latex?B">個のトークンを計算するために必要な計算量になります。それを計算スピードで割ると、計算の時間を概算することができます。</p>
+</section>
+<section id="a100とmac-mini-m4を比較する" class="level3">
+<h3 class="anchored" data-anchor-id="a100とmac-mini-m4を比較する">A100とMac mini M4を比較する</h3>
+<p>これで、計算スピードとメモリスピードの比較ができるようになりました。表にある内容を式に代入して、A100とMac mini M4を実際に比較してみます。 ここでの前提条件としては、7Bのモデルをint4で推論する場合です。</p>
+<table class="table">
+<colgroup>
+<col style="width: 38%">
+<col style="width: 35%">
+<col style="width: 26%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: center;">デバイス</th>
+<th style="text-align: right;">メモリ観点で<br>1秒処理できるトークン数</th>
+<th style="text-align: right;">計算力観点で<br>1秒処理できるトークン数</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">A100</td>
+<td style="text-align: right;">552</td>
+<td style="text-align: right;">89,142</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">Mac mini M4</td>
+<td style="text-align: right;">34</td>
+<td style="text-align: right;">2,714</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">A100/ Macmini</td>
+<td style="text-align: right;">16x</td>
+<td style="text-align: right;">32x</td>
+</tr>
+</tbody>
+</table>
+<p>まず、デバイスごとに見ると、A100とMac mini M4の両方ともメモリスピードで足が引っ張られています。例えば、A100の場合は、計算力で概算すると、1秒に89,142トークンを処理できるのに対して、メモリスピードで概算すると、552トークンしか処理できません。Mac Mini M4も同じ状況です。</p>
+<p>また、Mac Mini M4でも、一秒に34トークンを処理することができます。もし、Mac Mini M4 Proにすると、帯域幅が倍の273になり、処理できるトークン数も倍になります。</p>
+<p>実際のテスト結果として、Mac Mini M4の計算スピードは大体<a href="https://github.com/ggerganov/llama.cpp/discussions/4167">24 tokens/sec</a>です。これは、概算の34 tokens/secと近いです。</p>
+<p>計算のコードは以下です。</p>
+<div class="sourceCode" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb1-1">P <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">7e9</span>  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># 7Bモデル</span></span>
+<span id="cb1-2">n_bytes <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0.5</span>  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># int4</span></span>
+<span id="cb1-3">n_memory_bandwidth_A100 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1935e9</span></span>
+<span id="cb1-4">n_memory_bandwidth_Macmini <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">120e9</span></span>
+<span id="cb1-5"></span>
+<span id="cb1-6">n_tops_A100 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1248e12</span></span>
+<span id="cb1-7">n_tops_Macmini <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="fl" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">38e12</span></span>
+<span id="cb1-8"></span>
+<span id="cb1-9"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">def</span> memory_latency(n_bytes, n_memory_bandwidth, P):</span>
+<span id="cb1-10">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">return</span> P <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> n_bytes <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> n_memory_bandwidth</span>
+<span id="cb1-11"></span>
+<span id="cb1-12"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">def</span> compute_latency(n_tops, P, B<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>):</span>
+<span id="cb1-13">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">return</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> P <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">*</span> B <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> n_tops</span>
+<span id="cb1-14"></span>
+<span id="cb1-15">memory_latency_A100 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> memory_latency(n_bytes, n_memory_bandwidth_A100, P)</span>
+<span id="cb1-16">memory_latency_Macmini <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> memory_latency(n_bytes, n_memory_bandwidth_Macmini, P)</span>
+<span id="cb1-17"></span>
+<span id="cb1-18">compute_latency_A100 <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> compute_latency(n_tops_A100, P)</span>
+<span id="cb1-19">compute_latency_Macmini <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> compute_latency(n_tops_Macmini, P)</span>
+<span id="cb1-20"></span>
+<span id="cb1-21"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'1/memory_bandwidth_A100: '</span>, <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">int</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> memory_latency_A100))</span>
+<span id="cb1-22"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'1/memory_bandwidth_Macmini: '</span>, <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">int</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> memory_latency_Macmini))</span>
+<span id="cb1-23"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'1/compute_A100: '</span>, <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">int</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> compute_latency_A100))</span>
+<span id="cb1-24"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'1/compute_Macmini: '</span>, <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">int</span>(<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> compute_latency_Macmini))</span>
+<span id="cb1-25"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'A100/Macmini memory: '</span>, <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">int</span>(memory_latency_Macmini <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> memory_latency_A100))</span>
+<span id="cb1-26"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'A100/Macmini compute: '</span>, <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">int</span>(compute_latency_Macmini <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> compute_latency_A100))</span></code></pre></div>
+</section>
+</section>
+<section id="pの由来" class="level2">
+<h2 class="anchored" data-anchor-id="pの由来">2Pの由来</h2>
+<p>最後に、なぜ<img src="https://latex.codecogs.com/png.latex?2P">という計算量を使ったのかを説明します。簡単に言うと、LLMが推論する時、メインとなる処理は行列間の<code>matmul</code>です。<code>matmul</code>を一回することで、掛け算と足し算の2つの計算が行われます。そのため、1トークンを計算するためには、<img src="https://latex.codecogs.com/png.latex?2P">の計算が必要です。</p>
+<p>この<img src="https://latex.codecogs.com/png.latex?2P">の経験則が本当に合理かを実際に計算してみましょう。</p>
+<p>まず、そもそもTransformerのDecoderのアーキテクチャを復習しましょう。</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://jiang.jp/posts/20250124_LLM_efficiency/images/paste-5.png" class="img-fluid figure-img" width="171"></p>
+<figcaption class="figure-caption">GPT Architecture</figcaption>
+</figure>
+</div>
+<p>トークンを生成する際に、計算のほとんどが全部真ん中のN個の灰色のブロックの中にあります。その中で、特に行列間の掛け算が計算量を多く消費する部分です。さらに詳細にいうと、<img src="https://latex.codecogs.com/png.latex?d_%7B%5Ctext%7Bmodel%7D%7D">はモデルの隠れ層の次元数とすると、計算量が<img src="https://latex.codecogs.com/png.latex?d_%7B%5Ctext%7Bmodel%7D%7D%5E2">の部分に主導されます。アルゴリズムの性能を把握する際に使うBig-O記法で言うと、<img src="https://latex.codecogs.com/png.latex?O(d_%7B%5Ctext%7Bmodel%7D%7D%5E2)">です。</p>
+<p>これからは、TransformerのDecoderの灰色のブロックの中の計算量をステップごとに概算してみます。<a href="https://github.com/karpathy/nanoGPT/blob/master/model.py">nanoGPTのソースコード</a>と一緒に見ればもっと理解しやすいです。</p>
+<ol type="1">
+<li><img src="https://latex.codecogs.com/png.latex?qkv">の計算<br>
+Self-Attentionを計算する際に、まずは、インプットしてきたトークンのベクトル<img src="https://latex.codecogs.com/png.latex?t_e"> と ウェイト <img src="https://latex.codecogs.com/png.latex?W_q,%20W_k,%20W_v"> それぞれ掛け算する必要があります。 <img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Baligned%7D%0Aq%20&amp;=%20t_e%20%5Ccdot%20W_q%20%5C%5C%0Ak%20&amp;=%20t_e%20%5Ccdot%20W_k%20%5C%5C%0Av%20&amp;=%20t_e%20%5Ccdot%20W_v%0A%5Cend%7Baligned%7D%0A"> ここでは、<img src="https://latex.codecogs.com/png.latex?t_e%20%5Cin%20%5Cmathbb%7BR%7D%5E%7B1%20%5Ctimes%20d_%7B%5Ctext%7Bmodel%7D%7D%7D">、<img src="https://latex.codecogs.com/png.latex?W_q,%20W_k,%20W_v%20%5Cin%20%5Cmathbb%7BR%7D%5E%7Bd_%7B%5Ctext%7Bmodel%7D%7D%20%5Ctimes%20d_%7B%5Ctext%7Bmodel%7D%7D%7D">です。<br>
+これで、この計算に必要なFlopsは、<img src="https://latex.codecogs.com/png.latex?2%20%5Ccdot%203%20%5Ccdot%20d_%7B%5Ctext%7Bmodel%7D%7D%5E2">です。 <img src="https://latex.codecogs.com/png.latex?2">は1回の掛け算に必要な計算量、<img src="https://latex.codecogs.com/png.latex?3">は<img src="https://latex.codecogs.com/png.latex?W_q,%20W_k,%20W_v">の3つの行列を掛ける必要があるためです。</li>
+<li>Attentionの計算<br>
+次に、できた<img src="https://latex.codecogs.com/png.latex?q,%20k,%20v">を使って、Attentionを計算します。 <img src="https://latex.codecogs.com/png.latex?%5Ctext%7Bsoftmax%7D((q%20%5Ccdot%20k)%20%5Cdiv%20%5Csqrt%7Bd_%7B%5Ctext%7Bhead%7D%7D%7D)%20%5Ccdot%20v%20=%20z"> このなかで、<img src="https://latex.codecogs.com/png.latex?q,%20k,%20v%20%5Cin%20%5Cmathbb%7BR%7D%5E%7B1%20%5Ctimes%20d_%7B%5Ctext%7Bmodel%7D%7D%7D">。<img src="https://latex.codecogs.com/png.latex?q,%20k,%20v">が全部ベクトルのため、計算量は<img src="https://latex.codecogs.com/png.latex?d_%7B%5Ctext%7Bmodel%7D%7D%20+%20d_%7B%5Ctext%7Bmodel%7D%7D">で、無視できます。</li>
+<li>Attentionの出力を計算<br>
+次にAttentionの出力を計算します。 <img src="https://latex.codecogs.com/png.latex?out%20=%20z%20%5Ccdot%20W_o"> この中で、<img src="https://latex.codecogs.com/png.latex?z%20%5Cin%20%5Cmathbb%7BR%7D%5E%7B1%20%5Ctimes%20d_%7B%5Ctext%7Bmodel%7D%7D%7D">、<img src="https://latex.codecogs.com/png.latex?W_o%20%5Cin%20%5Cmathbb%7BR%7D%5E%7Bd_%7B%5Ctext%7Bmodel%7D%7D%20%5Ctimes%20d_%7B%5Ctext%7Bmodel%7D%7D%7D">。計算量は<img src="https://latex.codecogs.com/png.latex?2%20%5Ccdot%20d_%7B%5Ctext%7Bmodel%7D%7D%5E2">です。</li>
+<li>Feed-Forwardの計算<br>
+最後に、Feed-Forwardを計算します。式は以下です。 <img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Baligned%7D%0Aout_1%20&amp;=%20out%20%5Ccdot%20W_1%20%5C%5C%0Aout_1%20&amp;=%20%5Ctext%7BReLU%7D(out_1)%20%5C%5C%0Aout_2%20&amp;=%20out_1%20%5Ccdot%20W_2%0A%5Cend%7Baligned%7D%0A"> 1行目について、<img src="https://latex.codecogs.com/png.latex?W_1%20%5Cin%20%5Cmathbb%7BR%7D%5E%7Bd_%7B%5Ctext%7Bmodel%7D%7D%20%5Ctimes%204d_%7B%5Ctext%7Bmodel%7D%7D%7D">、<img src="https://latex.codecogs.com/png.latex?out_1%20%5Cin%20%5Cmathbb%7BR%7D%5E%7B1%20%5Ctimes%204d_%7B%5Ctext%7Bmodel%7D%7D%7D"> のため、計算量は<img src="https://latex.codecogs.com/png.latex?2%20%5Ccdot%204%20%5Ccdot%20d_%7B%5Ctext%7Bmodel%7D%7D%5E2">です。<br>
+2行目はReLUの計算なので、無視できます。<br>
+3行目について<img src="https://latex.codecogs.com/png.latex?W_2%20%5Cin%20%5Cmathbb%7BR%7D%5E%7B4d_%7B%5Ctext%7Bmodel%7D%7D%20%5Ctimes%20d_%7B%5Ctext%7Bmodel%7D%7D%7D">、<img src="https://latex.codecogs.com/png.latex?out_2%20%5Cin%20%5Cmathbb%7BR%7D%5E%7B1%20%5Ctimes%20d_%7B%5Ctext%7Bmodel%7D%7D%7D">で、計算量は一行目と同じ<img src="https://latex.codecogs.com/png.latex?2%20%5Ccdot%204%20%5Ccdot%20d_%7B%5Ctext%7Bmodel%7D%7D%5E2">です。</li>
+</ol>
+<p>以上の計算を合計すると、1トークンを計算するためにレイヤー一層の計算量がわかります。 <img src="https://latex.codecogs.com/png.latex?%0A%5Cbegin%7Balign*%7D%0A&amp;2%20%5Ccdot%203%20%5Ccdot%20d_%7B%5Ctext%7Bmodel%7D%7D%5E2%20+%202%20%5Ccdot%20d_%7B%5Ctext%7Bmodel%7D%7D%5E2%20+%202%20%5Ccdot%204%20%5Ccdot%20d_%7B%5Ctext%7Bmodel%7D%7D%5E2%20+%202%20%5Ccdot%204%20%5Ccdot%20d_%7B%5Ctext%7Bmodel%7D%7D%5E2%20%5C%5C%0A&amp;=%206%20%5Ccdot%20d_%7B%5Ctext%7Bmodel%7D%7D%5E2%20+%202%20%5Ccdot%20d_%7B%5Ctext%7Bmodel%7D%7D%5E2%20+%208%20%5Ccdot%20d_%7B%5Ctext%7Bmodel%7D%7D%5E2%20+%208%20%5Ccdot%20d_%7B%5Ctext%7Bmodel%7D%7D%5E2%20%5C%5C%0A&amp;=%20(6%20+%202%20+%208%20+%208)%20%5Ccdot%20d_%7B%5Ctext%7Bmodel%7D%7D%5E2%20%5C%5C%0A&amp;=%2024%20%5Ccdot%20d_%7B%5Ctext%7Bmodel%7D%7D%5E2%20%5C%5C%0A%5Cend%7Balign*%7D%0A"> さらに、それを層数<img src="https://latex.codecogs.com/png.latex?N">で掛けると、<img src="https://latex.codecogs.com/png.latex?24%20%5Ccdot%20n_%7Blayers%7D%20%5Ccdot%20d_%7B%5Ctext%7Bmodel%7D%7D%5E2">になります。これが、1トークンを計算するために必要な計算量です。</p>
+<p>これを7Bのモデルで計算する場合、<img src="https://latex.codecogs.com/png.latex?d_%7B%5Ctext%7Bmodel%7D%7D%20=%204096">、<img src="https://latex.codecogs.com/png.latex?n_%7Blayers%7D%20=%2032">です。計算すると、<img src="https://latex.codecogs.com/png.latex?24%20%5Ccdot%2032%20%5Ccdot%204096%5E2%20=12.9%20%5Ctimes%2010%5E%7B9%7D">になります。7Bの2倍は14Bなので、約92%合っています。</p>
+</section>
+<section id="まとめ" class="level2">
+<h2 class="anchored" data-anchor-id="まとめ">まとめ</h2>
+<p>本文では、なぜGPUが弱小なMacBookでもLLMがちゃんと動作するのかについて、計算力とメモリスピードの観点から解説しました。LLMの計算パワーとメモリの速度という、普段はあまり気にしない2つの視点で、LLMの世界を少しだけ覗いてみました。高性能スポーツカーを前にして、馬力だけじゃなくタイヤのグリップや路面との摩擦まで気にしてしまうような、ちょっとマニアックな話だったかもしれません。</p>
+<p>しかし、今DeepSeek-R1のようなOSSかつ高性能なモデルが出ているので、これからローカルでLLMを動かすことがますます増えると思います。その際に、この文章が役に立つでしょう。</p>
+
+
+</section>
+
+ ]]></description>
+  <category>LLM</category>
+  <category>Web</category>
+  <guid>https://jiang.jp/posts/20250124_LLM_efficiency/index.html</guid>
+  <pubDate>Thu, 23 Jan 2025 15:00:00 GMT</pubDate>
+</item>
 <item>
   <title>LangserveとVercel AI SDKを使ってGenAIデモアプリをクイックに作る</title>
   <link>https://jiang.jp/posts/20240815_ai_sdk/index.html</link>
@@ -1792,7 +2094,7 @@ font-style: inherit;">=</span> [</span>
 background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"doc"</span> <span class="op" style="color: #5E5E5E;
+font-style: inherit;">'doc'</span> <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">+</span> <span class="bu" style="color: null;
 background-color: null;
@@ -1800,9 +2102,9 @@ font-style: inherit;">str</span>(i), metadata<span class="op" style="color: #5E5
 background-color: null;
 font-style: inherit;">=</span>{<span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"doc_id"</span>: <span class="st" style="color: #20794D;
+font-style: inherit;">'doc_id'</span>: <span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"doc"</span> <span class="op" style="color: #5E5E5E;
+font-style: inherit;">'doc'</span> <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">+</span> <span class="bu" style="color: null;
 background-color: null;
@@ -1818,7 +2120,7 @@ background-color: null;
 font-style: inherit;">1</span>, <span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">4</span>)</span>
-<span id="cb1-14">] </span>
+<span id="cb1-14">]</span>
 <span id="cb1-15"></span>
 <span id="cb1-16">summarys <span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -1827,7 +2129,7 @@ font-style: inherit;">=</span> [</span>
 background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"summary"</span> <span class="op" style="color: #5E5E5E;
+font-style: inherit;">'summary'</span> <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">+</span> <span class="bu" style="color: null;
 background-color: null;
@@ -1835,9 +2137,9 @@ font-style: inherit;">str</span>(i), metadata<span class="op" style="color: #5E5
 background-color: null;
 font-style: inherit;">=</span>{<span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"doc_id"</span>: <span class="st" style="color: #20794D;
+font-style: inherit;">'doc_id'</span>: <span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"doc"</span> <span class="op" style="color: #5E5E5E;
+font-style: inherit;">'doc'</span> <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">+</span> <span class="bu" style="color: null;
 background-color: null;
@@ -1867,7 +2169,7 @@ font-style: inherit;">list</span>(<span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">zip</span>([<span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"doc"</span> <span class="op" style="color: #5E5E5E;
+font-style: inherit;">'doc'</span> <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">+</span> <span class="bu" style="color: null;
 background-color: null;
@@ -1908,12 +2210,12 @@ font-style: inherit;">=</span>docstore,</span>
 background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"doc_id"</span>,</span>
+font-style: inherit;">'doc_id'</span>,</span>
 <span id="cb1-33">    search_kwargs<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>{<span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"k"</span>: <span class="dv" style="color: #AD0000;
+font-style: inherit;">'k'</span>: <span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">4</span>},</span>
 <span id="cb1-34">)</span></code></pre></div>
@@ -1932,7 +2234,7 @@ font-style: inherit;">4</span>},</span>
 <div class="cell" data-execution_count="2">
 <div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb2-1">sample_retriever.get_relevant_documents(<span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"doc1"</span>)</span></code></pre></div>
+font-style: inherit;">'doc1'</span>)</span></code></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="2">
 <pre><code>[Document(page_content='doc1', metadata={'doc_id': 'doc1'}),
  Document(page_content='doc2', metadata={'doc_id': 'doc2'}),
@@ -1965,86 +2267,87 @@ font-style: inherit;">as</span> pd</span>
 <span id="cb4-2"><span class="im" style="color: #00769E;
 background-color: null;
 font-style: inherit;">import</span> html2text</span>
-<span id="cb4-3"><span class="co" style="color: #5E5E5E;
+<span id="cb4-3"></span>
+<span id="cb4-4"><span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># https://zenodo.org/record/2783642</span></span>
-<span id="cb4-4">q_df <span class="op" style="color: #5E5E5E;
+<span id="cb4-5">q_df <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> pd.read_csv(<span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"https://zenodo.org/record/2783642/files/Questions.csv"</span>)</span>
-<span id="cb4-5">a_df <span class="op" style="color: #5E5E5E;
+font-style: inherit;">'https://zenodo.org/record/2783642/files/Questions.csv'</span>)</span>
+<span id="cb4-6">a_df <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> pd.read_csv(<span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"https://zenodo.org/record/2783642/files/Answers.csv"</span>)</span>
-<span id="cb4-6"><span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"q_df.shape:"</span>, q_df.shape)</span>
+font-style: inherit;">'https://zenodo.org/record/2783642/files/Answers.csv'</span>)</span>
 <span id="cb4-7"><span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"a_df.shape:"</span>, a_df.shape)</span>
-<span id="cb4-8">q_df.columns <span class="op" style="color: #5E5E5E;
+font-style: inherit;">'q_df.shape:'</span>, q_df.shape)</span>
+<span id="cb4-8"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'a_df.shape:'</span>, a_df.shape)</span>
+<span id="cb4-9">q_df.columns <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> [c.strip() <span class="cf" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">for</span> c <span class="kw" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">in</span> q_df.columns]</span>
-<span id="cb4-9">a_df.columns <span class="op" style="color: #5E5E5E;
+<span id="cb4-10">a_df.columns <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> [c.strip() <span class="cf" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">for</span> c <span class="kw" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">in</span> a_df.columns]</span>
-<span id="cb4-10">a_df[<span class="st" style="color: #20794D;
+<span id="cb4-11">a_df[<span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"Text"</span>] <span class="op" style="color: #5E5E5E;
+font-style: inherit;">'Text'</span>] <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> a_df[<span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"Text"</span>].<span class="bu" style="color: null;
+font-style: inherit;">'Text'</span>].<span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">apply</span>(<span class="kw" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">lambda</span> x: html2text.html2text(x))</span>
-<span id="cb4-11">df <span class="op" style="color: #5E5E5E;
+<span id="cb4-12">df <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> q_df.merge(a_df, on<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"AID"</span>)</span>
-<span id="cb4-12">df.columns <span class="op" style="color: #5E5E5E;
+font-style: inherit;">'AID'</span>)</span>
+<span id="cb4-13">df.columns <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> [<span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"query"</span>, <span class="st" style="color: #20794D;
+font-style: inherit;">'query'</span>, <span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"AID"</span>, <span class="st" style="color: #20794D;
+font-style: inherit;">'AID'</span>, <span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"document"</span>]</span>
-<span id="cb4-13"></span>
-<span id="cb4-14">metadata <span class="op" style="color: #5E5E5E;
+font-style: inherit;">'document'</span>]</span>
+<span id="cb4-14"></span>
+<span id="cb4-15">metadata <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> a_df[[<span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"AID"</span>]].to_dict(orient<span class="op" style="color: #5E5E5E;
+font-style: inherit;">'AID'</span>]].to_dict(orient<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"records"</span>)</span>
-<span id="cb4-15">documents <span class="op" style="color: #5E5E5E;
+font-style: inherit;">'records'</span>)</span>
+<span id="cb4-16">documents <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> a_df[<span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"Text"</span>].tolist()</span>
-<span id="cb4-16">query_list <span class="op" style="color: #5E5E5E;
+font-style: inherit;">'Text'</span>].tolist()</span>
+<span id="cb4-17">query_list <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> <span class="bu" style="color: null;
 background-color: null;
@@ -2052,13 +2355,13 @@ font-style: inherit;">list</span>(<span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">zip</span>(q_df[<span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"Text"</span>], q_df[<span class="st" style="color: #20794D;
+font-style: inherit;">'Text'</span>], q_df[<span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"AID"</span>]))</span>
-<span id="cb4-17">display(q_df.head(<span class="dv" style="color: #AD0000;
+font-style: inherit;">'AID'</span>]))</span>
+<span id="cb4-18">display(q_df.head(<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">3</span>))</span>
-<span id="cb4-18">display(a_df.head(<span class="dv" style="color: #AD0000;
+<span id="cb4-19">display(a_df.head(<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">3</span>))</span></code></pre></div>
 </details>
@@ -2208,7 +2511,7 @@ font-style: inherit;">import</span> sys</span>
 <span id="cb6-2"></span>
 <span id="cb6-3">sys.path.append(<span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"../"</span>)</span>
+font-style: inherit;">'../'</span>)</span>
 <span id="cb6-4"><span class="im" style="color: #00769E;
 background-color: null;
 font-style: inherit;">from</span> src.parallel <span class="im" style="color: #00769E;
@@ -2226,35 +2529,35 @@ font-style: inherit;">=</span> <span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">len</span>(a_df)</span>
 <span id="cb6-8"></span>
-<span id="cb6-9"><span class="at" style="color: #657422;
+<span id="cb6-9"></span>
+<span id="cb6-10"><span class="at" style="color: #657422;
 background-color: null;
 font-style: inherit;">@dataclass</span></span>
-<span id="cb6-10"><span class="kw" style="color: #003B4F;
+<span id="cb6-11"><span class="kw" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">class</span> EvaluationResults:</span>
-<span id="cb6-11">    result_df: pd.DataFrame</span>
-<span id="cb6-12">    mrr: <span class="bu" style="color: null;
+<span id="cb6-12">    result_df: pd.DataFrame</span>
+<span id="cb6-13">    mrr: <span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">float</span></span>
-<span id="cb6-13">    recall_at_1: <span class="bu" style="color: null;
+<span id="cb6-14">    recall_at_1: <span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">float</span></span>
-<span id="cb6-14">    recall_at_5: <span class="bu" style="color: null;
+<span id="cb6-15">    recall_at_5: <span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">float</span></span>
-<span id="cb6-15"></span>
 <span id="cb6-16"></span>
-<span id="cb6-17"><span class="kw" style="color: #003B4F;
+<span id="cb6-17"></span>
+<span id="cb6-18"><span class="kw" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">def</span> mrr(rank_array):</span>
-<span id="cb6-18">    <span class="cf" style="color: #003B4F;
+<span id="cb6-19">    <span class="cf" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">return</span> (<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1</span> <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">/</span> rank_array).mean()</span>
-<span id="cb6-19"></span>
 <span id="cb6-20"></span>
 <span id="cb6-21"></span>
 <span id="cb6-22"><span class="kw" style="color: #003B4F;
@@ -2289,7 +2592,7 @@ background-color: null;
 font-style: inherit;">in</span> search_result:</span>
 <span id="cb6-32">        aid_list.append(doc.metadata[<span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"doc_id"</span>])</span>
+font-style: inherit;">'doc_id'</span>])</span>
 <span id="cb6-33">    <span class="cf" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">if</span> aid <span class="kw" style="color: #003B4F;
@@ -2324,43 +2627,39 @@ background-color: null;
 font-style: inherit;"># Parallelized evaluate function</span></span>
 <span id="cb6-41"><span class="kw" style="color: #003B4F;
 background-color: null;
-font-style: inherit;">def</span> parallel_evaluate(</span>
-<span id="cb6-42">    query_list, search_func, max_workers<span class="op" style="color: #5E5E5E;
+font-style: inherit;">def</span> parallel_evaluate(query_list, search_func, max_workers<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">20</span>, doc_num<span class="op" style="color: #5E5E5E;
 background-color: null;
-font-style: inherit;">=</span>DOC_NUM</span>
-<span id="cb6-43">):</span>
-<span id="cb6-44">    <span class="co" style="color: #5E5E5E;
+font-style: inherit;">=</span>DOC_NUM):</span>
+<span id="cb6-42">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># Prepare arguments for parallel execution</span></span>
-<span id="cb6-45">    args_list <span class="op" style="color: #5E5E5E;
+<span id="cb6-43">    args_list <span class="op" style="color: #5E5E5E;
 background-color: null;
-font-style: inherit;">=</span> [</span>
-<span id="cb6-46">        (query_aid, search_func, doc_num) <span class="cf" style="color: #003B4F;
+font-style: inherit;">=</span> [(query_aid, search_func, doc_num) <span class="cf" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">for</span> query_aid <span class="kw" style="color: #003B4F;
 background-color: null;
-font-style: inherit;">in</span> query_list</span>
-<span id="cb6-47">    ]</span>
-<span id="cb6-48"></span>
-<span id="cb6-49">    <span class="co" style="color: #5E5E5E;
+font-style: inherit;">in</span> query_list]</span>
+<span id="cb6-44"></span>
+<span id="cb6-45">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># Execute the evaluate_single_query function in parallel</span></span>
-<span id="cb6-50">    results <span class="op" style="color: #5E5E5E;
+<span id="cb6-46">    results <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> parallelize_function(</span>
-<span id="cb6-51">        evaluate_single_query, args_list, max_workers<span class="op" style="color: #5E5E5E;
+<span id="cb6-47">        evaluate_single_query, args_list, max_workers<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>max_workers</span>
-<span id="cb6-52">    )</span>
-<span id="cb6-53"></span>
-<span id="cb6-54">    <span class="co" style="color: #5E5E5E;
+<span id="cb6-48">    )</span>
+<span id="cb6-49"></span>
+<span id="cb6-50">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># Process results and create a DataFrame</span></span>
-<span id="cb6-55">    result_list <span class="op" style="color: #5E5E5E;
+<span id="cb6-51">    result_list <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> [result <span class="cf" style="color: #003B4F;
 background-color: null;
@@ -2375,39 +2674,39 @@ background-color: null;
 font-style: inherit;">isinstance</span>(result, <span class="pp" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">Exception</span>)]</span>
-<span id="cb6-56">    result_df <span class="op" style="color: #5E5E5E;
+<span id="cb6-52">    result_df <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> pd.DataFrame(result_list, columns<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>[<span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"query"</span>, <span class="st" style="color: #20794D;
+font-style: inherit;">'query'</span>, <span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"rank"</span>, <span class="st" style="color: #20794D;
+font-style: inherit;">'rank'</span>, <span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"rank_result"</span>])</span>
-<span id="cb6-57"></span>
-<span id="cb6-58">    <span class="co" style="color: #5E5E5E;
+font-style: inherit;">'rank_result'</span>])</span>
+<span id="cb6-53"></span>
+<span id="cb6-54">    <span class="co" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;"># Calculate evaluation metrics</span></span>
-<span id="cb6-59">    <span class="cf" style="color: #003B4F;
+<span id="cb6-55">    <span class="cf" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">return</span> EvaluationResults(</span>
-<span id="cb6-60">        result_df,</span>
-<span id="cb6-61">        mrr(result_df[<span class="st" style="color: #20794D;
+<span id="cb6-56">        result_df,</span>
+<span id="cb6-57">        mrr(result_df[<span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"rank"</span>]),</span>
-<span id="cb6-62">        recall_at_k(result_df[<span class="st" style="color: #20794D;
+font-style: inherit;">'rank'</span>]),</span>
+<span id="cb6-58">        recall_at_k(result_df[<span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"rank"</span>], <span class="dv" style="color: #AD0000;
+font-style: inherit;">'rank'</span>], <span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1</span>),</span>
-<span id="cb6-63">        recall_at_k(result_df[<span class="st" style="color: #20794D;
+<span id="cb6-59">        recall_at_k(result_df[<span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"rank"</span>], <span class="dv" style="color: #AD0000;
+font-style: inherit;">'rank'</span>], <span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">5</span>),</span>
-<span id="cb6-64">    )</span></code></pre></div>
+<span id="cb6-60">    )</span></code></pre></div>
 </details>
 </div>
 <div class="callout callout-style-default callout-note callout-titled">
@@ -2742,24 +3041,25 @@ font-style: inherit;">0</span>, model<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"gpt-3.5-turbo"</span>, request_timeout<span class="op" style="color: #5E5E5E;
+font-style: inherit;">'gpt-3.5-turbo'</span>, request_timeout<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">20</span>)</span>
 <span id="cb8-10"></span>
-<span id="cb8-11"><span class="kw" style="color: #003B4F;
+<span id="cb8-11"></span>
+<span id="cb8-12"><span class="kw" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">def</span> generate_metadata(msg, text_list, save_path):</span>
-<span id="cb8-12">    metadata <span class="op" style="color: #5E5E5E;
+<span id="cb8-13">    metadata <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> []</span>
-<span id="cb8-13">    <span class="cf" style="color: #003B4F;
+<span id="cb8-14">    <span class="cf" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">for</span> txt <span class="kw" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">in</span> tqdm(text_list):</span>
-<span id="cb8-14">        result <span class="op" style="color: #5E5E5E;
+<span id="cb8-15">        result <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> llm([HumanMessage(content<span class="op" style="color: #5E5E5E;
 background-color: null;
@@ -2767,79 +3067,81 @@ font-style: inherit;">=</span>msg.<span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">format</span>(doc<span class="op" style="color: #5E5E5E;
 background-color: null;
-font-style: inherit;">=</span>txt))]).content.replace(<span class="st" style="color: #20794D;
+font-style: inherit;">=</span>txt))]).content.replace(</span>
+<span id="cb8-16">            <span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"</span><span class="ch" style="color: #20794D;
+font-style: inherit;">'</span><span class="ch" style="color: #20794D;
 background-color: null;
 font-style: inherit;">\n</span><span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"</span>, <span class="st" style="color: #20794D;
+font-style: inherit;">'</span>, <span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">" "</span>)</span>
-<span id="cb8-15">        metadata.append(result)</span>
-<span id="cb8-16"></span>
-<span id="cb8-17">    <span class="cf" style="color: #003B4F;
+font-style: inherit;">' '</span></span>
+<span id="cb8-17">        )</span>
+<span id="cb8-18">        metadata.append(result)</span>
+<span id="cb8-19"></span>
+<span id="cb8-20">    <span class="cf" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">with</span> <span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">open</span>(save_path, <span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"w"</span>) <span class="im" style="color: #00769E;
+font-style: inherit;">'w'</span>) <span class="im" style="color: #00769E;
 background-color: null;
 font-style: inherit;">as</span> f:</span>
-<span id="cb8-18">        f.write(<span class="st" style="color: #20794D;
+<span id="cb8-21">        f.write(<span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"</span><span class="ch" style="color: #20794D;
+font-style: inherit;">'</span><span class="ch" style="color: #20794D;
 background-color: null;
 font-style: inherit;">\n</span><span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"</span>.join(metadata))</span>
-<span id="cb8-19"></span>
-<span id="cb8-20"></span>
-<span id="cb8-21">msg <span class="op" style="color: #5E5E5E;
+font-style: inherit;">'</span>.join(metadata))</span>
+<span id="cb8-22"></span>
+<span id="cb8-23"></span>
+<span id="cb8-24">msg <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> <span class="st" style="color: #20794D;
 background-color: null;
 font-style: inherit;">"""</span></span>
-<span id="cb8-22"><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">次のドキュメントを50字以内にサマリーしてください。</span></span>
-<span id="cb8-23"><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">===ドキュメント===</span></span>
-<span id="cb8-24"><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{doc}</span></span>
 <span id="cb8-25"><span class="st" style="color: #20794D;
 background-color: null;
+font-style: inherit;">次のドキュメントを50字以内にサマリーしてください。</span></span>
+<span id="cb8-26"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">===ドキュメント===</span></span>
+<span id="cb8-27"><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{doc}</span></span>
+<span id="cb8-28"><span class="st" style="color: #20794D;
+background-color: null;
 font-style: inherit;">"""</span></span>
-<span id="cb8-26">text_list <span class="op" style="color: #5E5E5E;
+<span id="cb8-29">text_list <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> a_df.Text.to_list()</span>
-<span id="cb8-27">generate_metadata(msg, text_list, <span class="st" style="color: #20794D;
+<span id="cb8-30">generate_metadata(msg, text_list, <span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"./3.5_turbo_summaries.txt"</span>)</span>
-<span id="cb8-28"></span>
-<span id="cb8-29"><span class="cf" style="color: #003B4F;
+font-style: inherit;">'./3.5_turbo_summaries.txt'</span>)</span>
+<span id="cb8-31"></span>
+<span id="cb8-32"><span class="cf" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">with</span> <span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">open</span>(<span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"3.5_turbo_summaries.txt"</span>, <span class="st" style="color: #20794D;
+font-style: inherit;">'3.5_turbo_summaries.txt'</span>, <span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"r"</span>) <span class="im" style="color: #00769E;
+font-style: inherit;">'r'</span>) <span class="im" style="color: #00769E;
 background-color: null;
 font-style: inherit;">as</span> f:</span>
-<span id="cb8-30">    summaries <span class="op" style="color: #5E5E5E;
+<span id="cb8-33">    summaries <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> f.read().split(<span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"</span><span class="ch" style="color: #20794D;
+font-style: inherit;">'</span><span class="ch" style="color: #20794D;
 background-color: null;
 font-style: inherit;">\n</span><span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"</span>)</span></code></pre></div>
+font-style: inherit;">'</span>)</span></code></pre></div>
 </details>
 </div>
 <p>出力したデータのサンプルをお見せします。</p>
@@ -2859,71 +3161,74 @@ font-style: inherit;">0</span>])</span></code></pre></div>
 background-color: null;
 font-style: inherit;">from</span> langchain.retrievers.multi_vector <span class="im" style="color: #00769E;
 background-color: null;
-font-style: inherit;">import</span> MultiVectorRetriever, ParentDocumentRetriever</span>
-<span id="cb11-2"><span class="im" style="color: #00769E;
+font-style: inherit;">import</span> (</span>
+<span id="cb11-2">    MultiVectorRetriever,</span>
+<span id="cb11-3">    ParentDocumentRetriever,</span>
+<span id="cb11-4">)</span>
+<span id="cb11-5"><span class="im" style="color: #00769E;
 background-color: null;
 font-style: inherit;">from</span> langchain.schema.document <span class="im" style="color: #00769E;
 background-color: null;
 font-style: inherit;">import</span> Document</span>
-<span id="cb11-3"><span class="im" style="color: #00769E;
+<span id="cb11-6"><span class="im" style="color: #00769E;
 background-color: null;
 font-style: inherit;">from</span> langchain.storage <span class="im" style="color: #00769E;
 background-color: null;
 font-style: inherit;">import</span> InMemoryStore</span>
-<span id="cb11-4"><span class="im" style="color: #00769E;
+<span id="cb11-7"><span class="im" style="color: #00769E;
 background-color: null;
 font-style: inherit;">from</span> langchain.vectorstores <span class="im" style="color: #00769E;
 background-color: null;
 font-style: inherit;">import</span> FAISS</span>
-<span id="cb11-5"></span>
-<span id="cb11-6">docs <span class="op" style="color: #5E5E5E;
+<span id="cb11-8"></span>
+<span id="cb11-9">docs <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> [</span>
-<span id="cb11-7">    Document(page_content<span class="op" style="color: #5E5E5E;
+<span id="cb11-10">    Document(page_content<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>s, metadata<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>{<span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"doc_id"</span>: a_df.AID[i]})</span>
-<span id="cb11-8">    <span class="cf" style="color: #003B4F;
+font-style: inherit;">'doc_id'</span>: a_df.AID[i]})</span>
+<span id="cb11-11">    <span class="cf" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">for</span> i, s <span class="kw" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">in</span> <span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">enumerate</span>(a_df.Text.tolist())</span>
-<span id="cb11-9">]</span>
-<span id="cb11-10"></span>
-<span id="cb11-11">summarys <span class="op" style="color: #5E5E5E;
+<span id="cb11-12">]</span>
+<span id="cb11-13"></span>
+<span id="cb11-14">summarys <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> [</span>
-<span id="cb11-12">    Document(page_content<span class="op" style="color: #5E5E5E;
+<span id="cb11-15">    Document(page_content<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>summaries[i], metadata<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>{<span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"doc_id"</span>: a_df.AID[i]})</span>
-<span id="cb11-13">    <span class="cf" style="color: #003B4F;
+font-style: inherit;">'doc_id'</span>: a_df.AID[i]})</span>
+<span id="cb11-16">    <span class="cf" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">for</span> i, s <span class="kw" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">in</span> <span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">enumerate</span>(a_df.Text.tolist())</span>
-<span id="cb11-14">]</span>
-<span id="cb11-15"></span>
-<span id="cb11-16"></span>
-<span id="cb11-17">doc_summarys <span class="op" style="color: #5E5E5E;
+<span id="cb11-17">]</span>
+<span id="cb11-18"></span>
+<span id="cb11-19"></span>
+<span id="cb11-20">doc_summarys <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> [</span>
-<span id="cb11-18">    Document(</span>
-<span id="cb11-19">        page_content<span class="op" style="color: #5E5E5E;
+<span id="cb11-21">    Document(</span>
+<span id="cb11-22">        page_content<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="ss" style="color: #20794D;
 background-color: null;
-font-style: inherit;">f"summary: </span><span class="sc" style="color: #5E5E5E;
+font-style: inherit;">f'summary: </span><span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">{</span>summaries[i]<span class="sc" style="color: #5E5E5E;
 background-color: null;
@@ -2941,21 +3246,21 @@ font-style: inherit;">.</span>Text[i]<span class="sc" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">}</span><span class="ss" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"</span>,</span>
-<span id="cb11-20">        metadata<span class="op" style="color: #5E5E5E;
+font-style: inherit;">'</span>,</span>
+<span id="cb11-23">        metadata<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>{<span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"doc_id"</span>: a_df.AID[i]},</span>
-<span id="cb11-21">    )</span>
-<span id="cb11-22">    <span class="cf" style="color: #003B4F;
+font-style: inherit;">'doc_id'</span>: a_df.AID[i]},</span>
+<span id="cb11-24">    )</span>
+<span id="cb11-25">    <span class="cf" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">for</span> i, s <span class="kw" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">in</span> <span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">enumerate</span>(a_df.Text.tolist())</span>
-<span id="cb11-23">]</span></code></pre></div>
+<span id="cb11-26">]</span></code></pre></div>
 </div>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb12" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb12-1">vectorstore_doc <span class="op" style="color: #5E5E5E;
@@ -3034,33 +3339,43 @@ font-style: inherit;">=</span> pd.DataFrame(</span>
 <span id="cb14-2">    [</span>
 <span id="cb14-3">        [<span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"only_doc"</span>, doc_result.mrr, doc_result.recall_at_1, doc_result.recall_at_5],</span>
-<span id="cb14-4">        [<span class="st" style="color: #20794D;
+font-style: inherit;">'only_doc'</span>, doc_result.mrr, doc_result.recall_at_1, doc_result.recall_at_5],</span>
+<span id="cb14-4">        [</span>
+<span id="cb14-5">            <span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"summary"</span>, summary_result.mrr, summary_result.recall_at_1, summary_result.recall_at_5],</span>
-<span id="cb14-5">        [<span class="st" style="color: #20794D;
+font-style: inherit;">'summary'</span>,</span>
+<span id="cb14-6">            summary_result.mrr,</span>
+<span id="cb14-7">            summary_result.recall_at_1,</span>
+<span id="cb14-8">            summary_result.recall_at_5,</span>
+<span id="cb14-9">        ],</span>
+<span id="cb14-10">        [</span>
+<span id="cb14-11">            <span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"doc_summary"</span>, doc_summary_result.mrr, doc_summary_result.recall_at_1, doc_summary_result.recall_at_5],</span>
-<span id="cb14-6">        ],</span>
-<span id="cb14-7">    columns <span class="op" style="color: #5E5E5E;
+font-style: inherit;">'doc_summary'</span>,</span>
+<span id="cb14-12">            doc_summary_result.mrr,</span>
+<span id="cb14-13">            doc_summary_result.recall_at_1,</span>
+<span id="cb14-14">            doc_summary_result.recall_at_5,</span>
+<span id="cb14-15">        ],</span>
+<span id="cb14-16">    ],</span>
+<span id="cb14-17">    columns<span class="op" style="color: #5E5E5E;
 background-color: null;
-font-style: inherit;">=</span> [<span class="st" style="color: #20794D;
+font-style: inherit;">=</span>[<span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"model_id"</span>,<span class="st" style="color: #20794D;
+font-style: inherit;">'model_id'</span>, <span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"mrr"</span>,<span class="st" style="color: #20794D;
+font-style: inherit;">'mrr'</span>, <span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"recall_at_1"</span>,<span class="st" style="color: #20794D;
+font-style: inherit;">'recall_at_1'</span>, <span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"recall_at_5"</span>]</span>
-<span id="cb14-8">    ).sort_values(<span class="st" style="color: #20794D;
+font-style: inherit;">'recall_at_5'</span>],</span>
+<span id="cb14-18">).sort_values(<span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"mrr"</span>, ascending<span class="op" style="color: #5E5E5E;
+font-style: inherit;">'mrr'</span>, ascending<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="va" style="color: #111111;
 background-color: null;
 font-style: inherit;">False</span>)</span>
-<span id="cb14-9">result_df.<span class="bu" style="color: null;
+<span id="cb14-19">result_df.<span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">round</span>(<span class="dv" style="color: #AD0000;
 background-color: null;
@@ -3137,12 +3452,12 @@ font-style: inherit;">=</span>store,</span>
 background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"doc_id"</span>,</span>
+font-style: inherit;">'doc_id'</span>,</span>
 <span id="cb15-9">    search_kwargs<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>{<span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"k"</span>: <span class="dv" style="color: #AD0000;
+font-style: inherit;">'k'</span>: <span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1000</span>},</span>
 <span id="cb15-10">)</span>
@@ -3167,39 +3482,41 @@ font-style: inherit;">lambda</span> q: multi_vector_retriever.get_relevant_docum
 <div class="cell" data-execution_count="53">
 <div class="sourceCode cell-code" id="cb16" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb16-1"><span class="co" style="color: #5E5E5E;
 background-color: null;
-font-style: inherit;"># add the result to the dataframe as a row </span></span>
+font-style: inherit;"># add the result to the dataframe as a row</span></span>
 <span id="cb16-2">new_row <span class="op" style="color: #5E5E5E;
 background-color: null;
-font-style: inherit;">=</span> {</span>
-<span id="cb16-3">        <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"model_id"</span>: <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"multi_vector"</span>,</span>
+font-style: inherit;">=</span> (</span>
+<span id="cb16-3">    {</span>
 <span id="cb16-4">        <span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"mrr"</span>: multi_vectore_result.mrr,</span>
+font-style: inherit;">'model_id'</span>: <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'multi_vector'</span>,</span>
 <span id="cb16-5">        <span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"recall_at_1"</span>: multi_vectore_result.recall_at_1,</span>
+font-style: inherit;">'mrr'</span>: multi_vectore_result.mrr,</span>
 <span id="cb16-6">        <span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"recall_at_5"</span>: multi_vectore_result.recall_at_5,</span>
-<span id="cb16-7">    },</span>
-<span id="cb16-8">result_df <span class="op" style="color: #5E5E5E;
+font-style: inherit;">'recall_at_1'</span>: multi_vectore_result.recall_at_1,</span>
+<span id="cb16-7">        <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'recall_at_5'</span>: multi_vectore_result.recall_at_5,</span>
+<span id="cb16-8">    },</span>
+<span id="cb16-9">)</span>
+<span id="cb16-10">result_df <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> pd.concat([result_df, pd.DataFrame(new_row)], ignore_index<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="va" style="color: #111111;
 background-color: null;
 font-style: inherit;">True</span>)</span>
-<span id="cb16-9">result_df.<span class="bu" style="color: null;
+<span id="cb16-11">result_df.<span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">round</span>(<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">4</span>).sort_values(<span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"mrr"</span>, ascending<span class="op" style="color: #5E5E5E;
+font-style: inherit;">'mrr'</span>, ascending<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="va" style="color: #111111;
 background-color: null;
@@ -3267,7 +3584,7 @@ font-style: inherit;">=</span>sent, metadata<span class="op" style="color: #5E5E
 background-color: null;
 font-style: inherit;">=</span>{<span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"doc_id"</span>: a_df.AID[i]})</span>
+font-style: inherit;">'doc_id'</span>: a_df.AID[i]})</span>
 <span id="cb17-3">    <span class="cf" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">for</span> i, s <span class="kw" style="color: #003B4F;
@@ -3281,11 +3598,11 @@ font-style: inherit;">for</span> sent <span class="kw" style="color: #003B4F;
 background-color: null;
 font-style: inherit;">in</span> s.split(<span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"</span><span class="ch" style="color: #20794D;
+font-style: inherit;">'</span><span class="ch" style="color: #20794D;
 background-color: null;
 font-style: inherit;">\n</span><span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"</span>)</span>
+font-style: inherit;">'</span>)</span>
 <span id="cb17-5">]</span>
 <span id="cb17-6"><span class="bu" style="color: null;
 background-color: null;
@@ -3317,12 +3634,12 @@ font-style: inherit;">=</span>store,</span>
 background-color: null;
 font-style: inherit;">=</span><span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"doc_id"</span>,</span>
+font-style: inherit;">'doc_id'</span>,</span>
 <span id="cb17-15">    search_kwargs<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span>{<span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"k"</span>: <span class="dv" style="color: #AD0000;
+font-style: inherit;">'k'</span>: <span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">1000</span>},</span>
 <span id="cb17-16">)</span>
@@ -3364,36 +3681,38 @@ font-style: inherit;">lambda</span> q: multi_vector_retriever_sent.get_relevant_
 <div class="cell" data-execution_count="55">
 <div class="sourceCode cell-code" id="cb20" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb20-1">new_row <span class="op" style="color: #5E5E5E;
 background-color: null;
-font-style: inherit;">=</span> {</span>
-<span id="cb20-2">        <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"model_id"</span>: <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"multi_vector_sent"</span>,</span>
+font-style: inherit;">=</span> (</span>
+<span id="cb20-2">    {</span>
 <span id="cb20-3">        <span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"mrr"</span>: multi_vector_retriever_sent_result.mrr,</span>
+font-style: inherit;">'model_id'</span>: <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'multi_vector_sent'</span>,</span>
 <span id="cb20-4">        <span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"recall_at_1"</span>: multi_vector_retriever_sent_result.recall_at_1,</span>
+font-style: inherit;">'mrr'</span>: multi_vector_retriever_sent_result.mrr,</span>
 <span id="cb20-5">        <span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"recall_at_5"</span>: multi_vector_retriever_sent_result.recall_at_5,</span>
-<span id="cb20-6">    },</span>
-<span id="cb20-7">result_df <span class="op" style="color: #5E5E5E;
+font-style: inherit;">'recall_at_1'</span>: multi_vector_retriever_sent_result.recall_at_1,</span>
+<span id="cb20-6">        <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'recall_at_5'</span>: multi_vector_retriever_sent_result.recall_at_5,</span>
+<span id="cb20-7">    },</span>
+<span id="cb20-8">)</span>
+<span id="cb20-9">result_df <span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span> pd.concat([result_df, pd.DataFrame(new_row)], ignore_index<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="va" style="color: #111111;
 background-color: null;
 font-style: inherit;">True</span>)</span>
-<span id="cb20-8">result_df.<span class="bu" style="color: null;
+<span id="cb20-10">result_df.<span class="bu" style="color: null;
 background-color: null;
 font-style: inherit;">round</span>(<span class="dv" style="color: #AD0000;
 background-color: null;
 font-style: inherit;">4</span>).sort_values(<span class="st" style="color: #20794D;
 background-color: null;
-font-style: inherit;">"mrr"</span>, ascending<span class="op" style="color: #5E5E5E;
+font-style: inherit;">'mrr'</span>, ascending<span class="op" style="color: #5E5E5E;
 background-color: null;
 font-style: inherit;">=</span><span class="va" style="color: #111111;
 background-color: null;
@@ -11001,220 +11320,6 @@ font-style: inherit;">"Where is the Taj Mahal?"</span>)</span></code></pre></div
   <category>paper</category>
   <guid>https://jiang.jp/posts/20230430_HyDE/index.html</guid>
   <pubDate>Sat, 29 Apr 2023 15:00:00 GMT</pubDate>
-</item>
-<item>
-  <title>Promptagator 論文解読</title>
-  <link>https://jiang.jp/posts/20230429_promptagator/index.html</link>
-  <description><![CDATA[ 
-
-
-
-<p>Promptagator論文では、Few-shot Retrieval settingを提案し、異なる検索タスクに対応するために専用のPromptを作成してLLMでDocumentに関連するQueryを生成。生成されたQueryをフィルタリングし、Retrieverを学習させる。実験結果から、Promptagatorは既存の50万件以上の学習データを使ったモデルより高い精度を達成し、教師ありのRetrieverよりも優れていることが分かった。</p>
-<p>論文URL：<a href="https://arxiv.org/abs/2209.11755" class="uri">https://arxiv.org/abs/2209.11755</a></p>
-<section id="introduction" class="level1">
-<h1>1 Introduction</h1>
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="https://jiang.jp/posts/20230429_promptagator/images/paste-7.png" class="img-fluid figure-img" alt="Few-shot retrieval with PROMPTAGATOR" width="700"></p>
-<figcaption class="figure-caption">Few-shot retrieval with PROMPTAGATOR</figcaption>
-</figure>
-</div>
-<p>BEIRのような異なる種類のデータセットによって構成されるベンチマークがある。特定のデータセットで学習したモデルは他領域への汎化が難しい。その理由は主に2つある。</p>
-<p>まず、異なるタスクはそれぞれ検索意図が違う。例えば、図1の左側に示されているように、Dbpedia-Entityはクエリで言及されたエンティティを検索するタスクであり、FEVERは与えられた声明を支持または反証する証拠を検索するタスクである。</p>
-<p>また、検索意図が類似していても、データの分布が異なることがある。例えば、HotpotQAのように違う領域の質問もあるし、FiQAのようにファイナンシャル専門の質問もある。</p>
-<p>これまでに、情報検索領域でのLLMの活用に関する論文が複数ある。例えば、GPT3のEmbedingをDual encoderモデルに適用する論文がある。ただし、GPT3のEmbeddingの次元数が12ｋとなっており、推論時の計算コストが高い。また、以前紹介したGPT3でQueryを作って、T5のRerankerを学習したInParsもある。一方、その論文はRetrieverをBM25を使っている。</p>
-<p>この論文は以下の貢献がある：</p>
-<ol type="1">
-<li>異なる検索タスクの意図とQueryの分布を分析し、Few-shot Retrieval settingを提案した。</li>
-<li>Promptgatorを提案した。2~8個の例を使えば既往の50万以上の例で学習したモデルより高い精度を達成できている。</li>
-</ol>
-</section>
-<section id="few-shot-retrieval-task" class="level1">
-<h1>2 Few-shot retrieval task</h1>
-<p>この節でFew-shot retrievalを紹介した。</p>
-</section>
-<section id="promptagator" class="level1">
-<h1>3 Promptagator</h1>
-<p>Promptagatorは3つのステップで実現される。</p>
-<ol type="1">
-<li>各タスクに対して専用なPromptを作成し、LLMでDocumentに関連するQueryを作る</li>
-<li>Retrieverを用いて、生成したQueryと生成元のDocumentを検索できない場合は、それを除外する</li>
-<li>除外されていないQueryとDocumentのペアでRetrieverを学習させる。</li>
-</ol>
-<section id="prompt-base-query-generation" class="level2">
-<h2 class="anchored" data-anchor-id="prompt-base-query-generation">3.1 Prompt-base query generation</h2>
-<p>LLMはFLANを利用した。Promptの形式としては、HotpotQAを例として説明すると以下になる。</p>
-<div class="sourceCode" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode numberSource raw text number-lines code-with-copy"><code class="sourceCode"><span id="cb1-1">Evidence: passage 1 </span>
-<span id="cb1-2">Vexed question: query 1</span>
-<span id="cb1-3">...</span>
-<span id="cb1-4">Evidence: passage k</span>
-<span id="cb1-5">Vexed question: query k</span>
-<span id="cb1-6">Evidence: target passage</span></code></pre></div>
-<p>下表のようにタスクごとに違うPromptを設定した。（Promptの中の0と 1の意味が不明）</p>
-<p><img src="https://jiang.jp/posts/20230429_promptagator/images/paste-8.png" class="img-fluid" alt="Prompt template for each dataset"><br>
-Promptで使用した例は最大8個にし、例の長さによって調整している。文書が長い場合は、必要に応じて切断している。</p>
-<p>各コーパスから最大100万のドキュメントを抽出し、各ドキュメントで8個のQueryを生成している。LLMはFLAN137Bを使った。生成する際に0.7の温度を使った。</p>
-</section>
-<section id="consistency-filtering-using-only-generated-data" class="level2">
-<h2 class="anchored" data-anchor-id="consistency-filtering-using-only-generated-data">3.2 Consistency filtering using only generated data</h2>
-<p>生成したQueryに対して、生成元がその答案を含む必要がある。今までの研究で、その原則で生成したQueryをフィルタリングすることは重要であることがしめされている。</p>
-<p>過去の研究の中で外部の質問応答モデルを用いて実現していたが、この研究では生成したデータで初期のRetrieverを学習されている。各生成したQueryに対して、Retrieverが検索したTopKの中に生成元のドキュメントが含まれていない場合は、そのQueryを除外する。</p>
-</section>
-<section id="few-shot-promptagator-retriever" class="level2">
-<h2 class="anchored" data-anchor-id="few-shot-promptagator-retriever">3.3 Few-shot promptagator retriever</h2>
-<p>Dural EncoderのRetrieverを利用している。ベースモデルはT5で、それをC4（Common Crawlのweb crawlコーパス）データセットを使って、Contriverが使用したindependent cropping taskでさらに学習させた。（independent cropping taskとは、同じ文書の異なる部分のペアをPositive example、異なる文書のテキストのペアをNegative exampleとして、教師なしでRetrieverを学習する手法）</p>
-<p>その後、生成されたQueryとDocumentのペアを使って継続的に学習させる。学習時にBatch内のQueryとDocumentのペアをシャッフルしてNegative exampleとする。また、一定のStep数を学習した後、それを初期のRetrieverとして生成されたQueryのフィルタリングを行う。フィルタリングした後、継続的に学習させる。</p>
-<p>また、Promptagator++というRerankerも提案した。学習データがRetrieverと同じだが、モデルはもっと精度が高く、推論時間が長いCross-attention modelを使った。Retrieverから取得した上位の200件のDocumentから31個のDocumentをサンプリングして、Negative exampleとして使っている。</p>
-</section>
-<section id="zero-shot-promptagator-retriever" class="level2">
-<h2 class="anchored" data-anchor-id="zero-shot-promptagator-retriever">3.4 Zero-shot promptagator retriever</h2>
-<p>Zero-shotでQueryを生成する場合は以下の形式でPromptを書いた：</p>
-<div class="sourceCode" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb2-1"><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f'</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>d<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;"> Read the passage and generate a query.'</span></span></code></pre></div>
-</section>
-</section>
-<section id="experiments" class="level1">
-<h1>4 Experiments</h1>
-<section id="implementation" class="level2">
-<h2 class="anchored" data-anchor-id="implementation">4.1 Implementation</h2>
-<p>Queryを生成する際に温度を0.7にした。</p>
-<p>生成したQueryをフィルタリングする際にKを1にした。</p>
-<p>Dual Encodersは同じT5-base v1.1 のEncoder(110M)を使っている。Encoderのトップの層を平均し、768次元のEmbeddingへ投影した。</p>
-<p>Promptagator++のRerankerもT5-base v1.1 のEncoder(110M)を使っているが、Cross AttentionのEncoderにしている。</p>
-<p>Fine-tuningする際にの具体的なBatch sizeとStepsが下表の通り：</p>
-<table class="table">
-<thead>
-<tr class="header">
-<th>Model type</th>
-<th>Dataset size</th>
-<th>Batch size</th>
-<th>Fine tune steps</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>Dual encoder</td>
-<td>Big(&gt;500k)</td>
-<td>6k</td>
-<td>5k</td>
-</tr>
-<tr class="even">
-<td>Dual encoder</td>
-<td>Small(&lt;=500k)</td>
-<td>128</td>
-<td>1k</td>
-</tr>
-<tr class="odd">
-<td>Reranker</td>
-<td>Big(&gt;500k)</td>
-<td>64</td>
-<td>20k</td>
-</tr>
-<tr class="even">
-<td>Reranker</td>
-<td>Small(&lt;=500k)</td>
-<td>64</td>
-<td>5k</td>
-</tr>
-</tbody>
-</table>
-</section>
-<section id="main-results" class="level2">
-<h2 class="anchored" data-anchor-id="main-results">4.2 Main Results</h2>
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="https://jiang.jp/posts/20230429_promptagator/images/paste-9.png" class="img-fluid figure-img" alt="Main result"></p>
-<figcaption class="figure-caption">Main result</figcaption>
-</figure>
-</div>
-<p>表の前半ではRetrieverの比較が行われている。Zero-shotのPromptagatorはすでに大多数のMS MARCOでFine-tuningした教師ありのRetrieverと同等な精度を出している。Few-shotのPromptagatorはさらに教師ありのRetrieverより高い精度を出している。</p>
-<p>後半ではRetriever+Rerankerの組み合わせの比較になる。Retrieverと同じ傾向で、Zero-shotでかなり良い精度を出している。Few-shotになるとさらに更に精度が3%向上し、Sotaになっている。</p>
-<p>また、Promptagatorのもう一つ優れている点はモデルのサイズである。他のモデルは大体3Bの大きさだが、Promptagatorはわずか110Mのみである。</p>
-</section>
-<section id="abalation-study" class="level2">
-<h2 class="anchored" data-anchor-id="abalation-study">4.3 Abalation Study</h2>
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="https://jiang.jp/posts/20230429_promptagator/images/paste-10.png" class="img-fluid figure-img" alt="Abalation study"></p>
-<figcaption class="figure-caption">Abalation study</figcaption>
-</figure>
-</div>
-<p><strong>Queryフィルタリングの効果</strong> Figure2の左図は、Queryを一回フィルタリングした効果をしめしている。大多数のデータセットにとって、Queryフィルタリングが有効だが、逆効果のものも存在する。NFCorpus and SciFactは小さいデータセットなので、フィルタリングで過学習している可能性がある。</p>
-<p>また、詳細にフィルタリングされた例をみると、多くケースはQueryは一般化過ぎて多数のドキュメントにマッチングされていること、もしくは単純にQueryが間違っていることがわかる。</p>
-<p><strong>生成したQueryで人間のデータを代替することができるか？</strong> Figure2の真ん中の図は、8-shotのPromptagatorは5万件の人間がラベリングしたデータと同じ効果であることを示している。</p>
-<p><strong>PromptagatorのQuery生成が効いているか？</strong> Figure2の右図のGenQはBEIR論文の中で提案されたモデル、NQ-QGenはこの論文提案した方法でNQデータセット学習したモデル、NQ-QGenとGenQの違いはQuery生成の部分のみ。NQ-QGenの精度は2.7%高いため、提案したQuery生成の方法が有効だと言える。</p>
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="https://jiang.jp/posts/20230429_promptagator/images/paste-6.png" class="img-fluid figure-img" alt="Impact of FLAN"></p>
-<figcaption class="figure-caption">Impact of FLAN</figcaption>
-</figure>
-</div>
-<p><strong>FLANの影響</strong> PromptagatorのLLMはFLANを利用している。FLANの学習データの中にNQとQuaroデータが含まれいている。その影響を検証するため､それらを除いたデータセットでFLANを学習し、その結果を比較した(さすがGoogle Research、金ならあるの感じ)。その結果、精度は若干低下したが、以前の研究よりは高い精度を達成している。</p>
-</section>
-<section id="qualitative-analysis" class="level2">
-<h2 class="anchored" data-anchor-id="qualitative-analysis">4.4 Qualitative Analysis</h2>
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="https://jiang.jp/posts/20230429_promptagator/images/paste-5.png" class="img-fluid figure-img" alt="Top word distribution"></p>
-<figcaption class="figure-caption">Top word distribution</figcaption>
-</figure>
-</div>
-<p>Queryの最初のWordの分布を調査した。Few-shotが生成したQueryの分布は実際のQueryの分布と同じであることがわかる。</p>
-</section>
-</section>
-<section id="related-work" class="level1">
-<h1>5 Related Work</h1>
-<section id="neural-retrieval-models" class="level2">
-<h2 class="anchored" data-anchor-id="neural-retrieval-models"><strong>Neural retrieval models</strong></h2>
-<p>Neural retrieval modelはrepresentation based modelとinteraction based modelの2つに分類できる。</p>
-<p>Representation based modelはQueryとDocument両方とも分散表現に変換し、分散表現の類似度で相関性を測っている。最近の研究は以下のことにフォーカスしている：</p>
-<ol type="1">
-<li>より良い前学習するタスクやモデルのアーキテクチャを開発する</li>
-<li>Multi-Vectorでより分散表現の表現性能を向上させる</li>
-<li>よりよいNegative sample手法を開発する</li>
-<li>ドメイン横断での汎化性能を向上させる</li>
-</ol>
-<p>Interaction based modelだと、QueryとDocumentを一緒に処理するため、精度が高い。一方、計算コストが高いため、Rerankerとして使われることが多い。それに関する研究は以下のものがある：</p>
-<ol type="1">
-<li>Interaction based modelを蒸留し、Representation based modelとして使う。</li>
-<li>Interactionを最後にさせること。</li>
-</ol>
-</section>
-<section id="prompt-based-query-generation" class="level2">
-<h2 class="anchored" data-anchor-id="prompt-based-query-generation">Prompt-based query generation</h2>
-<p>UPR：直接LLMSを使ってRerankを行う</p>
-<p>InPars：GPT3でQueryを生成し、T5のRerankerを学習する</p>
-</section>
-<section id="retrievers-with-late-interactions" class="level2">
-<h2 class="anchored" data-anchor-id="retrievers-with-late-interactions">Retrievers with late interactions</h2>
-<p>Dual encoder modelの効率が良いが、QueryとDocumentの相互作用は最後の内積のみであるため、性能が弱い。ColBERTとSPLADEは最後のToken-level interactionを使ったため、計算コストを少し犠牲して性能を向上させた。</p>
-</section>
-</section>
-<section id="conclution-and-discussions" class="level1">
-<h1>6 Conclution and discussions</h1>
-<p>この論文はPromptagatorを提案した。一方、未解決の問題はいかのように存在する：</p>
-<ol type="1">
-<li>効率的に生成したデータを利用する手法が必要。</li>
-<li>PromptとRetrieverの性能との関係。</li>
-<li>LLMの情報を小さいモデルを転移すること。</li>
-</ol>
-
-
-</section>
-
- ]]></description>
-  <category>NLP</category>
-  <category>Information_retrieval</category>
-  <category>paper</category>
-  <guid>https://jiang.jp/posts/20230429_promptagator/index.html</guid>
-  <pubDate>Fri, 28 Apr 2023 15:00:00 GMT</pubDate>
 </item>
 </channel>
 </rss>
