@@ -121,5 +121,8 @@
   },
   "posts/20250124_LLM_efficiency/index.qmd": {
     "index.html": "38770b74"
+  },
+  "posts/20250129_speculative_decoding/index.ipynb": {
+    "index.html": "2b0f9bfb"
   }
 }
