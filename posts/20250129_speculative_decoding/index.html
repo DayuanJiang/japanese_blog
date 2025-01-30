@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.6.40">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="dcterms.date" content="2024-02-23">
+
+<title>LLMの推論速度を劇的に加速する方法 Speculative Decoding の解説 – blog</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script><script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-57476271c5f0467c372e20ff5d25630e.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap-edc0777d93aca8f084c81dbc6fa27f8b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=G-56TE34D1Z4"></script>
+
+<script type="text/javascript">
+
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg==" crossorigin="anonymous"></script>
+
+<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
+
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
+<link rel="stylesheet" href="../../styles.css">
+</head>
+
+<body class="nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../../index.html">
+    <span class="navbar-title">blog</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../about.html"> 
+<span class="menu-text">About</span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="http://www.linkedin.com/in/jiang-dayuan"> <i class="bi bi-linkedin" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#はじめに" id="toc-はじめに" class="nav-link active" data-scroll-target="#はじめに">はじめに</a></li>
+  <li><a href="#speculative-decodingって何" id="toc-speculative-decodingって何" class="nav-link" data-scroll-target="#speculative-decodingって何">「Speculative Decoding」って何？</a></li>
+  <li><a href="#llmの生成プロセスの説明" id="toc-llmの生成プロセスの説明" class="nav-link" data-scroll-target="#llmの生成プロセスの説明">LLMの生成プロセスの説明</a></li>
+  <li><a href="#コードでの再現" id="toc-コードでの再現" class="nav-link" data-scroll-target="#コードでの再現">コードでの再現</a></li>
+  <li><a href="#実験" id="toc-実験" class="nav-link" data-scroll-target="#実験">実験</a></li>
+  <li><a href="#speculative-decodingを使う際の制限" id="toc-speculative-decodingを使う際の制限" class="nav-link" data-scroll-target="#speculative-decodingを使う際の制限">Speculative Decodingを使う際の制限</a></li>
+  <li><a href="#まとめ" id="toc-まとめ" class="nav-link" data-scroll-target="#まとめ">まとめ</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">LLMの推論速度を劇的に加速する方法 Speculative Decoding の解説</h1>
+  <div class="quarto-categories">
+    <div class="quarto-category">NLP</div>
+    <div class="quarto-category">LLM</div>
+  </div>
+  </div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">February 23, 2024</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="はじめに" class="level2">
+<h2 class="anchored" data-anchor-id="はじめに">はじめに</h2>
+<p>皆さんに質問です。 「モデルの精度を落とさず、計算リソースも増やさず、推論速度だけを2倍にする方法」 があるとしたら——それは魔法でしょうか？それとも現実の技術でしょうか？</p>
+<p>答えは後者です。Google DeepMindとUC Berkeleyが共同開発したSpeculative Decodingは、まさにこの不可能を可能にする「推論加速のブラックボックス」。自動車で例えれば、ナビの予測ルート候補を事前計算しつつ、実際の走行で最適経路を選択するような巧妙な手法で、LLMの生成速度に革命を起こします。</p>
+<p>本記事では、この技術が ✓ なぜ「推測（Speculative）」で速度向上できるのか ✓ 従来手法と何が根本的に違うのか ✓ 実際のビジネスにどう応用できるのか を、技術詳細から具体例までわかりやすひも解きます。</p>
+</section>
+<section id="speculative-decodingって何" class="level2">
+<h2 class="anchored" data-anchor-id="speculative-decodingって何">「Speculative Decoding」って何？</h2>
+<p>「Speculative Decoding」は日本語で「<strong>推測的デコーディング</strong>」と訳されることが多く、直訳に近い表現として「投機的デコーディング」と呼ばれることもあります。この手法を簡単に言うと、<strong>小さなモデル（ドラフトモデル）で一気に複数個のトークンを推測生成し、それを大きなモデル（ターゲットモデル）で一括検証する</strong>ことです。推測が正しければ、そのまま採用することで、生成速度が向上します。</p>
+<p>もう少し詳しく説明します。</p>
+<p>例えば、LLaMa3 70Bを使ってテキストを生成したいとします。しかし、LLaMa3 70Bは非常に大きいため、生成に時間がかかります。そこで、より小さなモデルであるLLaMa3 7Bをドラフトモデルとして利用してSpeculative Decodingを行います。</p>
+<p>入力は「The quick brown」としましょう。これは英語で非常に有名な文「The quick brown fox jumps over the lazy dog」の先頭なので、小さなモデルでも比較的容易に続きを推測できます。</p>
+<p>まず、小さなモデルに「The quick brown」を入力し、次に続くトークンを推測生成させます。ここでは、一度に推測するトークン数（チャンクサイズ）を2としましょう。</p>
+<p>ここでは、小さなモデルは「The quick brown <strong>fox jumps</strong>」と生成しました。</p>
+<p>次に、この結果を大きなモデルで検証します。小さなモデルの推測したトークンをプロンプトに含めて入力し、大きなモデルの検証結果は「<strong>fox jumps over</strong>」と生成しました。単純に新しく生成した「fox jumps」のみではなく、さらにその先の「over」まで出してもらいました。</p>
+<p>これで一ステップが完成しました。使った時間を少し分析しましょう。ここで、7Bのモデルと70Bのモデルが1トークンを生成するのにかかる時間をそれぞれ <span class="math inline">\(t\)</span> と <span class="math inline">\(T\)</span> としましょう。</p>
+<p>小さなモデルは2つのトークンを生成するのに <span class="math inline">\(2t\)</span> かかり、大きなモデルは検証のために一回のみ推測したので <span class="math inline">\(T\)</span> かかります。合計すると <span class="math inline">\(2t + T\)</span> です。もし70Bのモデルで直接生成していたら、<span class="math inline">\(3T\)</span> かかります。一般的に、<span class="math inline">\(t\)</span> は <span class="math inline">\(T\)</span> よりもずっと小さいため、Speculative Decoding を使うことで生成時間を節約できることがわかります。</p>
+<p>上記の話の中ざっくり「Speculative Decoding」を紹介しましたが、まだ謎が多いと思います。</p>
+<ul>
+<li>なぜ70Bのモデルで検証する際にかかる時間が<span class="math inline">\(1T\)</span>のみか？</li>
+<li>なぜ新しく生成した2個のトークンを検証するのに、更にその次のトークンも得られるか？</li>
+<li>小さいモデルの提案が合ってない場合はどうするのか？</li>
+<li>なぜ毎回2個のみ推測するのか？もっと多くのトークンを一度に推測すればもっと速くなるのでは？</li>
+</ul>
+<p>これらの疑問に答えるために、次の章で詳しく説明します。</p>
+</section>
+<section id="llmの生成プロセスの説明" class="level2">
+<h2 class="anchored" data-anchor-id="llmの生成プロセスの説明">LLMの生成プロセスの説明</h2>
+<p>これからコードで「Speculative Decoding」を再現しますが、その前に、そもそもLLMがどのようにトークンを生成しているかを前置きとして説明します。</p>
+<p>LLMはトークンを生成する際、一つずつ順番に生成します。一つのトークンを生成するプロセスは以下の通りです。</p>
+<p><img src="image-2.png" alt="alt text" height="400"></p>
+<ol type="1">
+<li><strong>「The quick brown」</strong> の3つのトークンをモデルに入力します。</li>
+<li>モデルは各入力トークンに対応する<strong>logits</strong>を出力します。この例では3つのトークンを入力したので、3つのlogitsが出力されます。</li>
+<li><strong>最後のトークンに対応するlogitsのみ</strong> を使って、Softmax関数を適用し、次のトークンの<strong>確率分布</strong>を得ます。</li>
+<li>その確率分布から、次のトークンを<strong>サンプリング</strong>します。ここでは「fox」がサンプリングされました。</li>
+<li>次のステップでは、元の入力に生成されたトークン「fox」を加えた <strong>「The quick brown fox」</strong> を新しい入力とします。</li>
+</ol>
+<p>このプロセスを、必要なトークン数になるまで繰り返すことで、文章を生成することができます。</p>
+<p>ここで重要なポイントは、<strong>LLMが出力するlogitsの数は入力されたトークン数と同じ</strong> であることです。さらに言うと、<strong>各入力トークンに対応するlogitsは、そのトークンの次のトークンの確率分布を予測するために使われます。</strong> この特性を利用することで、小さいモデルが提案したトークン列の妥当性を、大きいモデルを使って効率的に検証することができます。</p>
+<p><img src="image-3.png" alt="alt text" height="400"></p>
+<p>例えば、上の図のように「The quick brown」の3つのトークンを入力として、小さいモデルが「fox jumps」という2つのトークンを提案したとします。この場合、大きいモデルは「The quick brown」を入力とし、3つのlogitsを出力します。これらのlogitsを使って、「fox」と「jumps」がそれぞれ「The quick brown」と「The quick brown fox」の次のトークンとして適切かどうかを<strong>一度のフォワードパスで検証できます</strong>。さらに、もし「fox jumps」が正しいと判断されれば、大きいモデルは「jumps」の次のトークンのlogitsも出力しているため、<strong>次のトークンの予測も同時に得られます</strong>。</p>
+<p>一方、提案が間違っていた場合は、大きいモデルは最初に間違ったトークンを特定し、正しいトークンに修正できます。次のステップでは、修正されたトークンまでを入力として使用します。</p>
+<p><img src="image-4.png" alt="alt text" height="400"></p>
+<p>例えば、上の図のように小さいモデルの提案が「fox run」で、大きいモデルの出力が「fox jumps over」である場合、「fox」までは正しいが「run」が間違っていると判断できます。この場合、「fox」の次のトークンとして「jumps」を採択します。次のステップでは <strong>「The quick brown fox jumps」</strong> を入力として、再び生成プロセスを続行します。</p>
+<p>仕組みを理解したうえで上の4つの質問を回答することができます。</p>
+<ul>
+<li>なぜ70Bのモデルで検証する際にかかる時間が<span class="math inline">\(1T\)</span>のみか？
+<ul>
+<li>回答：一回のフォワードパスでインプットされたすべてのトークンを検証することができるため。</li>
+</ul></li>
+<li>なぜ新しく生成した2個のトークンを検証するのに、更にその次のトークンも得られるか？
+<ul>
+<li>回答：第<span class="math inline">\(t\)</span>トークンのlogitsを使って第<span class="math inline">\(t+1\)</span>トークンの確率分布を予測するため。提案が正しい場合、次のトークンも同時に得られる。</li>
+</ul></li>
+<li>小さいモデルの提案が合ってない場合はどうするのか？
+<ul>
+<li>回答：提案が間違っている場合は、大きいモデルが最初に間違ったトークンを特定し、正しいトークンに修正する。次のステップでは、修正されたトークンまでを入力として使用する</li>
+</ul></li>
+<li>なぜ毎回2個のみ推測するのか？もっと多くのトークンを一度に推測すればもっと速くなるのでは？
+<ul>
+<li>回答：一度に推測するトークン数を増やすと、提案が間違う可能性も高くなるため。例えば、一回100トークン提案し、2個目が間違っている場合は、98個のトークンを無駄に生成される。Transformersの中にある実装案は、最初に3個にして、間違ったら1個減少、正解したら2個増加するという方法を取っている。</li>
+</ul></li>
+</ul>
+</section>
+<section id="コードでの再現" class="level2">
+<h2 class="anchored" data-anchor-id="コードでの再現">コードでの再現</h2>
+<p>これからは上記のことをコードで再現します。今所持しているPCのGPUはRTX4070で、メモリは12GBのみなので、今回はLLaMa3ではなく、4Bitで量子化したQwen2.5の0.5Bと3Bを利用します。</p>
+<p>まずモデルをローディングし、インプットデータを準備します。</p>
+<div id="cell-5" class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1"></a><span class="im">import</span> torch</span>
+<span id="cb1-2"><a href="#cb1-2"></a><span class="im">from</span> transformers <span class="im">import</span> AutoModelForCausalLM, AutoTokenizer</span>
+<span id="cb1-3"><a href="#cb1-3"></a><span class="im">import</span> time</span>
+<span id="cb1-4"><a href="#cb1-4"></a></span>
+<span id="cb1-5"><a href="#cb1-5"></a><span class="co"># Model Loading and Setup</span></span>
+<span id="cb1-6"><a href="#cb1-6"></a>small_model_name <span class="op">=</span> <span class="st">"Qwen/Qwen2.5-0.5B-Instruct-GPTQ-Int4"</span></span>
+<span id="cb1-7"><a href="#cb1-7"></a>big_model_name <span class="op">=</span> <span class="st">"Qwen/Qwen2.5-3B-Instruct-GPTQ-Int4"</span></span>
+<span id="cb1-8"><a href="#cb1-8"></a></span>
+<span id="cb1-9"><a href="#cb1-9"></a><span class="co"># the tokenizer is the same for both models</span></span>
+<span id="cb1-10"><a href="#cb1-10"></a>tokenizer <span class="op">=</span> AutoTokenizer.from_pretrained(small_model_name)</span>
+<span id="cb1-11"><a href="#cb1-11"></a></span>
+<span id="cb1-12"><a href="#cb1-12"></a>small_model <span class="op">=</span> AutoModelForCausalLM.from_pretrained(</span>
+<span id="cb1-13"><a href="#cb1-13"></a>    small_model_name, torch_dtype<span class="op">=</span><span class="st">"auto"</span>, device_map<span class="op">=</span><span class="st">"auto"</span></span>
+<span id="cb1-14"><a href="#cb1-14"></a>).<span class="bu">eval</span>()</span>
+<span id="cb1-15"><a href="#cb1-15"></a></span>
+<span id="cb1-16"><a href="#cb1-16"></a>big_model <span class="op">=</span> AutoModelForCausalLM.from_pretrained(</span>
+<span id="cb1-17"><a href="#cb1-17"></a>    big_model_name, torch_dtype<span class="op">=</span><span class="st">"auto"</span>, device_map<span class="op">=</span><span class="st">"auto"</span></span>
+<span id="cb1-18"><a href="#cb1-18"></a>).<span class="bu">eval</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>/home/dj/anaconda3/envs/llm/lib/python3.11/site-packages/auto_gptq/nn_modules/triton_utils/kernels.py:410: FutureWarning: `torch.cuda.amp.custom_fwd(args...)` is deprecated. Please use `torch.amp.custom_fwd(args..., device_type='cuda')` instead.
+  @custom_fwd
+/home/dj/anaconda3/envs/llm/lib/python3.11/site-packages/auto_gptq/nn_modules/triton_utils/kernels.py:418: FutureWarning: `torch.cuda.amp.custom_bwd(args...)` is deprecated. Please use `torch.amp.custom_bwd(args..., device_type='cuda')` instead.
+  @custom_bwd
+/home/dj/anaconda3/envs/llm/lib/python3.11/site-packages/auto_gptq/nn_modules/triton_utils/kernels.py:461: FutureWarning: `torch.cuda.amp.custom_fwd(args...)` is deprecated. Please use `torch.amp.custom_fwd(args..., device_type='cuda')` instead.
+  @custom_fwd(cast_inputs=torch.float16)
+CUDA extension not installed.
+CUDA extension not installed.
+`loss_type=None` was set in the config but it is unrecognised.Using the default loss: `ForCausalLMLoss`.</code></pre>
+</div>
+</div>
+<div id="cell-6" class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1"></a>prompt <span class="op">=</span> <span class="st">"The quick brown"</span></span>
+<span id="cb3-2"><a href="#cb3-2"></a>input_ids <span class="op">=</span> tokenizer.encode(prompt, return_tensors<span class="op">=</span><span class="st">"pt"</span>).to(small_model.device)</span>
+<span id="cb3-3"><a href="#cb3-3"></a><span class="bu">print</span>(<span class="st">"Input IDs:"</span>, input_ids[<span class="dv">0</span>].tolist())</span>
+<span id="cb3-4"><a href="#cb3-4"></a><span class="bu">print</span>(<span class="st">"Input tokens:"</span>, tokenizer.decode(input_ids[<span class="dv">0</span>], skip_special_tokens<span class="op">=</span><span class="va">True</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Input IDs: [785, 3974, 13876]
+Input tokens: The quick brown</code></pre>
+</div>
+</div>
+<p>つぎに、小さいモデルで2個のトークンを生成します。結果が予想通りに「fox jumps」が新しく生成されました。</p>
+<div id="cell-8" class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1"></a>candidate_length <span class="op">=</span> <span class="dv">2</span></span>
+<span id="cb5-2"><a href="#cb5-2"></a>candidate_ids <span class="op">=</span> small_model.generate(input_ids, max_new_tokens<span class="op">=</span>candidate_length)</span>
+<span id="cb5-3"><a href="#cb5-3"></a>candidate_new_ids <span class="op">=</span> candidate_ids[:, input_ids.shape[<span class="dv">1</span>] :]  <span class="co"># remove the prompt</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="cell-9" class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1"></a><span class="kw">def</span> formatted_print(var_name, var):</span>
+<span id="cb6-2"><a href="#cb6-2"></a>    length_str <span class="op">=</span> <span class="bu">len</span>(var_name)</span>
+<span id="cb6-3"><a href="#cb6-3"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>var_name<span class="sc">}</span><span class="ss">:</span><span class="sc">{</span><span class="bu">str</span>(var)<span class="sc">:</span><span class="op">&gt;</span>{<span class="dv">60</span> <span class="op">-</span> length_str}<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb6-4"><a href="#cb6-4"></a></span>
+<span id="cb6-5"><a href="#cb6-5"></a></span>
+<span id="cb6-6"><a href="#cb6-6"></a>formatted_print(<span class="st">"Candidate IDs"</span>, candidate_ids[<span class="dv">0</span>].tolist())</span>
+<span id="cb6-7"><a href="#cb6-7"></a>formatted_print(<span class="st">"Candidate new IDs"</span>, candidate_new_ids[<span class="dv">0</span>].tolist())</span>
+<span id="cb6-8"><a href="#cb6-8"></a>formatted_print(<span class="st">"Candidate tokens"</span>, tokenizer.decode(candidate_ids[<span class="dv">0</span>]))</span>
+<span id="cb6-9"><a href="#cb6-9"></a>formatted_print(<span class="st">"Candidate new tokens"</span>, tokenizer.decode(candidate_new_ids[<span class="dv">0</span>]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Candidate IDs:               [785, 3974, 13876, 38835, 34208]
+Candidate new IDs:                             [38835, 34208]
+Candidate tokens:                   The quick brown fox jumps
+Candidate new tokens:                               fox jumps</code></pre>
+</div>
+</div>
+<p>次に、生成されたトークンを大きなモデルで検証します。</p>
+<div id="cell-11" class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1"></a>big_model_logits <span class="op">=</span> big_model(candidate_ids).logits</span>
+<span id="cb8-2"><a href="#cb8-2"></a>big_model_ids <span class="op">=</span> big_model_logits.argmax(dim<span class="op">=-</span><span class="dv">1</span>)  <span class="co"># validation result</span></span>
+<span id="cb8-3"><a href="#cb8-3"></a></span>
+<span id="cb8-4"><a href="#cb8-4"></a>formatted_print(<span class="st">"verified_ids"</span>, big_model_ids.tolist())</span>
+<span id="cb8-5"><a href="#cb8-5"></a>formatted_print(<span class="st">"verified_tokens"</span>, tokenizer.decode(big_model_ids[<span class="dv">0</span>]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>verified_ids:              [[2701, 13876, 38835, 34208, 916]]
+verified_tokens:               following brown fox jumps over</code></pre>
+</div>
+</div>
+<p>ここでわかることとしては、7Bのモデルが考えている予測はこれです。</p>
+<p><img src="image-5.png" alt="alt text" height="400"></p>
+<p>もしインプットが「The」の場合は、7Bのモデルによると次のトークンが「following」である確率が最も高いです。最初から間違っていますが、でもこれは大丈夫です。なぜかというと、検証の対象は新しく生成された「fox jumps」だけのためです。</p>
+<div id="cell-13" class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1"></a>verified_ids <span class="op">=</span> big_model_ids[:, <span class="op">-</span>(candidate_length <span class="op">+</span> <span class="dv">1</span>) :]</span>
+<span id="cb10-2"><a href="#cb10-2"></a>formatted_print(<span class="st">"verified_ids"</span>, verified_ids[<span class="dv">0</span>].tolist())</span>
+<span id="cb10-3"><a href="#cb10-3"></a>formatted_print(<span class="st">"varified_tokens"</span>, tokenizer.decode(verified_ids[<span class="dv">0</span>]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>verified_ids:                             [38835, 34208, 916]
+varified_tokens:                               fox jumps over</code></pre>
+</div>
+</div>
+<p>0.5Bモデルが提案した結果を7Bモデルの検証結果と比較し、全部合っていることがわかりました。これでボーナストークンとインプットに結合して次の生成に回すことができます。</p>
+<div id="cell-15" class="cell" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1"></a><span class="co"># validation result</span></span>
+<span id="cb12-2"><a href="#cb12-2"></a>n_matches <span class="op">=</span> (</span>
+<span id="cb12-3"><a href="#cb12-3"></a>    (<span class="op">~</span>(candidate_new_ids <span class="op">==</span> verified_ids[:, :<span class="op">-</span><span class="dv">1</span>])).cumsum(dim<span class="op">=-</span><span class="dv">1</span>) <span class="op">&lt;</span> <span class="dv">1</span></span>
+<span id="cb12-4"><a href="#cb12-4"></a>).<span class="bu">sum</span>()  <span class="co"># fancy way to count the number of matches</span></span>
+<span id="cb12-5"><a href="#cb12-5"></a>valid_ids <span class="op">=</span> verified_ids[:, : n_matches <span class="op">+</span> <span class="dv">1</span>]</span>
+<span id="cb12-6"><a href="#cb12-6"></a>next_input_ids <span class="op">=</span> torch.cat((input_ids, valid_ids), dim<span class="op">=-</span><span class="dv">1</span>)</span>
+<span id="cb12-7"><a href="#cb12-7"></a></span>
+<span id="cb12-8"><a href="#cb12-8"></a></span>
+<span id="cb12-9"><a href="#cb12-9"></a>formatted_print(<span class="st">"n_matches"</span>, n_matches.item())</span>
+<span id="cb12-10"><a href="#cb12-10"></a>formatted_print(<span class="st">"valid_ids"</span>, valid_ids[<span class="dv">0</span>].tolist())</span>
+<span id="cb12-11"><a href="#cb12-11"></a>formatted_print(<span class="st">"valid_tokens"</span>, tokenizer.decode(valid_ids[<span class="dv">0</span>]))</span>
+<span id="cb12-12"><a href="#cb12-12"></a>formatted_print(<span class="st">"next_input_ids"</span>, next_input_ids[<span class="dv">0</span>].tolist())</span>
+<span id="cb12-13"><a href="#cb12-13"></a>formatted_print(<span class="st">"next_input_tokens"</span>, tokenizer.decode(next_input_ids[<span class="dv">0</span>]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>n_matches:                                                  2
+valid_ids:                                [38835, 34208, 916]
+valid_tokens:                                  fox jumps over
+next_input_ids:         [785, 3974, 13876, 38835, 34208, 916]
+next_input_tokens:             The quick brown fox jumps over</code></pre>
+</div>
+</div>
+<p>これで、Speculative Decodingの一個の循環が完了しました。</p>
+</section>
+<section id="実験" class="level2">
+<h2 class="anchored" data-anchor-id="実験">実験</h2>
+<p>コードの分解もしたので、次に実際に実験してみましょう。今回はコード生成の結果を比較してみます。まず、上記のコードを関数として整理します。</p>
+<div id="cell-18" class="cell" data-execution_count="86">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1"></a><span class="im">import</span> torch</span>
+<span id="cb14-2"><a href="#cb14-2"></a></span>
+<span id="cb14-3"><a href="#cb14-3"></a></span>
+<span id="cb14-4"><a href="#cb14-4"></a><span class="kw">def</span> speculative_decoding(</span>
+<span id="cb14-5"><a href="#cb14-5"></a>    big_model,</span>
+<span id="cb14-6"><a href="#cb14-6"></a>    small_model,</span>
+<span id="cb14-7"><a href="#cb14-7"></a>    input_ids,</span>
+<span id="cb14-8"><a href="#cb14-8"></a>    max_length<span class="op">=</span><span class="dv">1000</span>,</span>
+<span id="cb14-9"><a href="#cb14-9"></a>    candidate_length<span class="op">=</span><span class="dv">3</span>,</span>
+<span id="cb14-10"><a href="#cb14-10"></a>    tokenizer<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb14-11"><a href="#cb14-11"></a>):</span>
+<span id="cb14-12"><a href="#cb14-12"></a>    generated_ids <span class="op">=</span> input_ids.clone()</span>
+<span id="cb14-13"><a href="#cb14-13"></a>    total_generated <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb14-14"><a href="#cb14-14"></a>    accepted <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb14-15"><a href="#cb14-15"></a>    generated_ids_list <span class="op">=</span> [(<span class="st">"prompt"</span>, tokenizer.decode(input_ids[<span class="dv">0</span>]))]</span>
+<span id="cb14-16"><a href="#cb14-16"></a></span>
+<span id="cb14-17"><a href="#cb14-17"></a>    <span class="cf">with</span> torch.no_grad():</span>
+<span id="cb14-18"><a href="#cb14-18"></a>        <span class="cf">while</span> generated_ids.shape[<span class="op">-</span><span class="dv">1</span>] <span class="op">&lt;</span> max_length:</span>
+<span id="cb14-19"><a href="#cb14-19"></a>            <span class="co"># 1. Candidate Generation (Small Model)</span></span>
+<span id="cb14-20"><a href="#cb14-20"></a>            candidate_input_ids <span class="op">=</span> small_model.generate(</span>
+<span id="cb14-21"><a href="#cb14-21"></a>                generated_ids, max_new_tokens<span class="op">=</span>candidate_length, do_sample<span class="op">=</span><span class="va">False</span></span>
+<span id="cb14-22"><a href="#cb14-22"></a>            )</span>
+<span id="cb14-23"><a href="#cb14-23"></a></span>
+<span id="cb14-24"><a href="#cb14-24"></a>            <span class="co"># 2. Big Model Filtering</span></span>
+<span id="cb14-25"><a href="#cb14-25"></a>            new_logits <span class="op">=</span> big_model(candidate_input_ids).logits[</span>
+<span id="cb14-26"><a href="#cb14-26"></a>                :, <span class="op">-</span>(candidate_length <span class="op">+</span> <span class="dv">1</span>) :</span>
+<span id="cb14-27"><a href="#cb14-27"></a>            ]  <span class="co"># +1 because we have a bonus token</span></span>
+<span id="cb14-28"><a href="#cb14-28"></a>            selected_tokens <span class="op">=</span> new_logits.argmax(dim<span class="op">=-</span><span class="dv">1</span>)</span>
+<span id="cb14-29"><a href="#cb14-29"></a>            candidate_new_tokens <span class="op">=</span> candidate_input_ids[:, generated_ids.shape[<span class="dv">1</span>] :]</span>
+<span id="cb14-30"><a href="#cb14-30"></a></span>
+<span id="cb14-31"><a href="#cb14-31"></a>            <span class="co"># Determine the actual number of generated tokens</span></span>
+<span id="cb14-32"><a href="#cb14-32"></a>            num_generated_tokens <span class="op">=</span> candidate_new_tokens.shape[<span class="dv">1</span>]</span>
+<span id="cb14-33"><a href="#cb14-33"></a></span>
+<span id="cb14-34"><a href="#cb14-34"></a>            <span class="co"># Compare only the relevant portion of selected_tokens</span></span>
+<span id="cb14-35"><a href="#cb14-35"></a>            n_matches <span class="op">=</span> (</span>
+<span id="cb14-36"><a href="#cb14-36"></a>                (</span>
+<span id="cb14-37"><a href="#cb14-37"></a>                    <span class="op">~</span>(candidate_new_tokens <span class="op">==</span> selected_tokens[:, :num_generated_tokens])</span>
+<span id="cb14-38"><a href="#cb14-38"></a>                ).cumsum(dim<span class="op">=-</span><span class="dv">1</span>)</span>
+<span id="cb14-39"><a href="#cb14-39"></a>                <span class="op">&lt;</span> <span class="dv">1</span></span>
+<span id="cb14-40"><a href="#cb14-40"></a>            ).<span class="bu">sum</span>()</span>
+<span id="cb14-41"><a href="#cb14-41"></a></span>
+<span id="cb14-42"><a href="#cb14-42"></a>            valid_tokens <span class="op">=</span> selected_tokens[:, : n_matches <span class="op">+</span> <span class="dv">1</span>]</span>
+<span id="cb14-43"><a href="#cb14-43"></a>            generated_ids_list.append(</span>
+<span id="cb14-44"><a href="#cb14-44"></a>                (<span class="st">"accepted"</span>, tokenizer.decode(valid_tokens[<span class="dv">0</span>, :n_matches]))</span>
+<span id="cb14-45"><a href="#cb14-45"></a>            )</span>
+<span id="cb14-46"><a href="#cb14-46"></a>            generated_ids_list.append(</span>
+<span id="cb14-47"><a href="#cb14-47"></a>                (<span class="st">"generated"</span>, tokenizer.decode(valid_tokens[<span class="dv">0</span>, <span class="op">-</span><span class="dv">1</span>:]))</span>
+<span id="cb14-48"><a href="#cb14-48"></a>            )</span>
+<span id="cb14-49"><a href="#cb14-49"></a>            <span class="co"># 3. Update Generated Sequence</span></span>
+<span id="cb14-50"><a href="#cb14-50"></a>            generated_ids <span class="op">=</span> torch.cat((generated_ids, valid_tokens), dim<span class="op">=-</span><span class="dv">1</span>)</span>
+<span id="cb14-51"><a href="#cb14-51"></a>            total_generated <span class="op">+=</span> candidate_length</span>
+<span id="cb14-52"><a href="#cb14-52"></a>            accepted <span class="op">+=</span> n_matches</span>
+<span id="cb14-53"><a href="#cb14-53"></a></span>
+<span id="cb14-54"><a href="#cb14-54"></a>            <span class="cf">if</span> valid_tokens.shape[<span class="dv">1</span>] <span class="op">==</span> <span class="dv">0</span> <span class="kw">or</span> (</span>
+<span id="cb14-55"><a href="#cb14-55"></a>                valid_tokens.shape[<span class="dv">1</span>] <span class="op">&gt;</span> <span class="dv">0</span> <span class="kw">and</span> tokenizer.pad_token_id <span class="kw">in</span> valid_tokens</span>
+<span id="cb14-56"><a href="#cb14-56"></a>            ):</span>
+<span id="cb14-57"><a href="#cb14-57"></a>                <span class="co"># delete tokens from padding</span></span>
+<span id="cb14-58"><a href="#cb14-58"></a>                idx_pad <span class="op">=</span> (generated_ids <span class="op">==</span> tokenizer.pad_token_id).nonzero()</span>
+<span id="cb14-59"><a href="#cb14-59"></a>                <span class="cf">if</span> idx_pad.numel() <span class="op">&gt;</span> <span class="dv">0</span>:</span>
+<span id="cb14-60"><a href="#cb14-60"></a>                    generated_ids <span class="op">=</span> generated_ids[:, : idx_pad[<span class="dv">0</span>, <span class="dv">1</span>] <span class="op">+</span> <span class="dv">1</span>]</span>
+<span id="cb14-61"><a href="#cb14-61"></a>                <span class="cf">break</span></span>
+<span id="cb14-62"><a href="#cb14-62"></a></span>
+<span id="cb14-63"><a href="#cb14-63"></a>    <span class="cf">return</span> generated_ids, total_generated, accepted, generated_ids_list</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div id="cell-19" class="cell" data-execution_count="82">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1"></a>prompt <span class="op">=</span> <span class="st">'''from typing import List</span></span>
+<span id="cb15-2"><a href="#cb15-2"></a></span>
+<span id="cb15-3"><a href="#cb15-3"></a></span>
+<span id="cb15-4"><a href="#cb15-4"></a><span class="st">def below_zero(operations: List[int]) -&gt; bool:</span></span>
+<span id="cb15-5"><a href="#cb15-5"></a><span class="st">    """You're given a list of deposit and withdrawal operations on a bank account that starts with zero balance. Your task is to detect if at any point the balance of account fallls below zero, and at that point function should return True. Otherwise it should return False. &gt;&gt;&gt; below_zero([1, 2, 3]) False &gt;&gt;&gt; below_zero([1, 2, -4, 5]) True"""</span></span>
+<span id="cb15-6"><a href="#cb15-6"></a><span class="st">'''</span></span>
+<span id="cb15-7"><a href="#cb15-7"></a>input_ids <span class="op">=</span> tokenizer.encode(prompt, return_tensors<span class="op">=</span><span class="st">"pt"</span>).to(big_model.device)</span>
+<span id="cb15-8"><a href="#cb15-8"></a></span>
+<span id="cb15-9"><a href="#cb15-9"></a>start <span class="op">=</span> time.time()</span>
+<span id="cb15-10"><a href="#cb15-10"></a><span class="cf">with</span> torch.no_grad():</span>
+<span id="cb15-11"><a href="#cb15-11"></a>    big_model_generated_ids <span class="op">=</span> big_model.generate(</span>
+<span id="cb15-12"><a href="#cb15-12"></a>        input_ids.clone(), max_length<span class="op">=</span><span class="dv">1000</span>, do_sample<span class="op">=</span><span class="va">False</span></span>
+<span id="cb15-13"><a href="#cb15-13"></a>    )</span>
+<span id="cb15-14"><a href="#cb15-14"></a>cost <span class="op">=</span> time.time() <span class="op">-</span> start</span>
+<span id="cb15-15"><a href="#cb15-15"></a></span>
+<span id="cb15-16"><a href="#cb15-16"></a><span class="bu">print</span>(<span class="st">"Time cost:"</span>, <span class="ss">f"</span><span class="sc">{</span>cost<span class="sc">:.2f}</span><span class="ss">s"</span>)</span>
+<span id="cb15-17"><a href="#cb15-17"></a><span class="bu">print</span>(<span class="st">"Generated code:"</span>)</span>
+<span id="cb15-18"><a href="#cb15-18"></a><span class="bu">print</span>(tokenizer.decode(big_model_generated_ids[<span class="dv">0</span>]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Time cost: 13.21s
+Generated code:
+from typing import List
+
+
+def below_zero(operations: List[int]) -&gt; bool:
+    """You're given a list of deposit and withdrawal operations on a bank account that starts with zero balance. Your task is to detect if at any point the balance of account fallls below zero, and at that point function should return True. Otherwise it should return False. &gt;&gt;&gt; below_zero([1, 2, 3]) False &gt;&gt;&gt; below_zero([1, 2, -4, 5]) True"""
+    balance = 0
+    for operation in operations:
+        balance += operation
+        if balance &lt; 0:
+            return True
+    return False
+
+
+if __name__ == "__main__":
+    print(below_zero([1, 2, 3]))
+    print(below_zero([1, 2, -4, 5]))&lt;|endoftext|&gt;</code></pre>
+</div>
+</div>
+<div id="cell-20" class="cell" data-execution_count="89">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1"></a>start <span class="op">=</span> time.time()</span>
+<span id="cb17-2"><a href="#cb17-2"></a>generated_ids, total_generated, accepted, generated_ids_list <span class="op">=</span> speculative_decoding(</span>
+<span id="cb17-3"><a href="#cb17-3"></a>    big_model,</span>
+<span id="cb17-4"><a href="#cb17-4"></a>    small_model,</span>
+<span id="cb17-5"><a href="#cb17-5"></a>    input_ids,</span>
+<span id="cb17-6"><a href="#cb17-6"></a>    max_length<span class="op">=</span><span class="dv">1000</span>,</span>
+<span id="cb17-7"><a href="#cb17-7"></a>    candidate_length<span class="op">=</span><span class="dv">3</span>,</span>
+<span id="cb17-8"><a href="#cb17-8"></a>    tokenizer<span class="op">=</span>tokenizer,</span>
+<span id="cb17-9"><a href="#cb17-9"></a>)</span>
+<span id="cb17-10"><a href="#cb17-10"></a>cost <span class="op">=</span> time.time() <span class="op">-</span> start</span>
+<span id="cb17-11"><a href="#cb17-11"></a></span>
+<span id="cb17-12"><a href="#cb17-12"></a><span class="bu">print</span>(<span class="st">"Total generated tokens:"</span>, total_generated)</span>
+<span id="cb17-13"><a href="#cb17-13"></a><span class="bu">print</span>(<span class="st">"Accepted tokens:"</span>, accepted)</span>
+<span id="cb17-14"><a href="#cb17-14"></a><span class="bu">print</span>(<span class="st">"Acceptance rate:"</span>, accepted <span class="op">/</span> total_generated)</span>
+<span id="cb17-15"><a href="#cb17-15"></a><span class="bu">print</span>(<span class="st">"Time cost:"</span>, <span class="ss">f"</span><span class="sc">{</span>cost<span class="sc">:.2f}</span><span class="ss">s"</span>)</span>
+<span id="cb17-16"><a href="#cb17-16"></a><span class="bu">print</span>(</span>
+<span id="cb17-17"><a href="#cb17-17"></a>    <span class="st">"Same result generated by big model:"</span>,</span>
+<span id="cb17-18"><a href="#cb17-18"></a>    (big_model_generated_ids <span class="op">==</span> generated_ids).<span class="bu">all</span>().item(),</span>
+<span id="cb17-19"><a href="#cb17-19"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Total generated tokens: 63
+Accepted tokens: tensor(51, device='cuda:0')
+Acceptance rate: tensor(0.8095, device='cuda:0')
+Time cost: 8.47s
+Same result generated by big model: True</code></pre>
+</div>
+</div>
+<p>これでわかることとしては、実際にテストしてみると、「Speculative Decoding」を使ってコードを生成する際に、0.5Bモデルが提案した77%のトークンがただしくて、それで生成速度が13/8=1.6倍まで加速できました。</p>
+<p>一般的にはコード生成や、コード修正などのタスクにおいて、アウトプットのランダム性が少ないため、Acceptance Rateが高いです。そのため、Speculative Decodingは特にこのようなタスクに適しています。OpenAIの<a href="https://platform.openai.com/docs/guides/predicted-outputs">predicted output</a>の機能もこの手法を使っているようです。</p>
+<p>実験の最後、おまけとして、生成したコードのどの部分が0.5Bモデルの提案で、どの部分が7Bモデルの検証結果かを可視化してみましょう。 緑が0.5Bモデルの提案、オレンジ色が7Bモデルの検証結果です。</p>
+<div id="cell-22" class="cell" data-execution_count="95">
+<details class="code-fold">
+<summary>Click here to show the visualization code</summary>
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1"></a><span class="im">from</span> IPython.display <span class="im">import</span> HTML, display</span>
+<span id="cb19-2"><a href="#cb19-2"></a></span>
+<span id="cb19-3"><a href="#cb19-3"></a>html_output <span class="op">=</span> <span class="st">"&lt;pre&gt;"</span>  <span class="co"># Wrap the entire output in &lt;pre&gt; tags</span></span>
+<span id="cb19-4"><a href="#cb19-4"></a></span>
+<span id="cb19-5"><a href="#cb19-5"></a><span class="cf">for</span> <span class="bu">type</span>, text <span class="kw">in</span> generated_ids_list:</span>
+<span id="cb19-6"><a href="#cb19-6"></a>    text <span class="op">=</span> text.replace(<span class="st">" "</span>, <span class="st">" "</span>)  <span class="co"># Replace spaces with</span></span>
+<span id="cb19-7"><a href="#cb19-7"></a>    <span class="cf">if</span> <span class="bu">type</span> <span class="op">==</span> <span class="st">"prompt"</span>:</span>
+<span id="cb19-8"><a href="#cb19-8"></a>        html_output <span class="op">+=</span> <span class="ss">f"&lt;span style='background-color: transparent;'&gt;</span><span class="sc">{</span>text<span class="sc">}</span><span class="ss">&lt;/span&gt;"</span></span>
+<span id="cb19-9"><a href="#cb19-9"></a>    <span class="cf">elif</span> <span class="bu">type</span> <span class="op">==</span> <span class="st">"accepted"</span>:</span>
+<span id="cb19-10"><a href="#cb19-10"></a>        html_output <span class="op">+=</span> <span class="ss">f"&lt;span style='background-color: lightgreen;'&gt;</span><span class="sc">{</span>text<span class="sc">}</span><span class="ss">&lt;/span&gt;"</span></span>
+<span id="cb19-11"><a href="#cb19-11"></a>    <span class="cf">elif</span> <span class="bu">type</span> <span class="op">==</span> <span class="st">"generated"</span>:</span>
+<span id="cb19-12"><a href="#cb19-12"></a>        html_output <span class="op">+=</span> <span class="ss">f"&lt;span style='background-color: orange;'&gt;</span><span class="sc">{</span>text<span class="sc">}</span><span class="ss">&lt;/span&gt;"</span></span>
+<span id="cb19-13"><a href="#cb19-13"></a></span>
+<span id="cb19-14"><a href="#cb19-14"></a>html_output <span class="op">+=</span> <span class="st">"&lt;/pre&gt;"</span>  <span class="co"># Close the &lt;pre&gt; tag</span></span>
+<span id="cb19-15"><a href="#cb19-15"></a></span>
+<span id="cb19-16"><a href="#cb19-16"></a>display(HTML(html_output))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-display">
+<pre><span style="background-color: transparent;">from typing import List
+
+
+def below_zero(operations: List[int]) -&gt; bool:
+    """You're given a list of deposit and withdrawal operations on a bank account that starts with zero balance. Your task is to detect if at any point the balance of account fallls below zero, and at that point function should return True. Otherwise it should return False. &gt;&gt;&gt; below_zero([1, 2, 3]) False &gt;&gt;&gt; below_zero([1, 2, -4, 5]) True"""
+</span><span style="background-color: lightgreen;">   </span><span style="background-color: orange;"> balance</span><span style="background-color: lightgreen;"> = 0</span><span style="background-color: orange;">
+</span><span style="background-color: lightgreen;">    for operation</span><span style="background-color: orange;"> in</span><span style="background-color: lightgreen;"> operations:
+       </span><span style="background-color: orange;"> balance</span><span style="background-color: lightgreen;"> += operation
+</span><span style="background-color: orange;">       </span><span style="background-color: lightgreen;"> if balance &lt;</span><span style="background-color: orange;"> </span><span style="background-color: lightgreen;">0:
+           </span><span style="background-color: orange;"> return</span><span style="background-color: lightgreen;"> True
+   </span><span style="background-color: orange;"> return</span><span style="background-color: lightgreen;"> False</span><span style="background-color: orange;">
+
+
+</span><span style="background-color: lightgreen;">if __name</span><span style="background-color: orange;">__</span><span style="background-color: lightgreen;"> ==</span><span style="background-color: orange;"> "__</span><span style="background-color: lightgreen;">main__":
+   </span><span style="background-color: orange;"> print</span><span style="background-color: lightgreen;"></span><span style="background-color: orange;">(b</span><span style="background-color: lightgreen;">elow_zero([</span><span style="background-color: orange;">1</span><span style="background-color: lightgreen;">, 2</span><span style="background-color: orange;">,</span><span style="background-color: lightgreen;"> 3</span><span style="background-color: orange;">]))
+</span><span style="background-color: lightgreen;">   </span><span style="background-color: orange;"> print</span><span style="background-color: lightgreen;">(below_zero</span><span style="background-color: orange;">([</span><span style="background-color: lightgreen;">1, </span><span style="background-color: orange;">2</span><span style="background-color: lightgreen;">, -4</span><span style="background-color: orange;">,</span><span style="background-color: lightgreen;"> 5]))</span><span style="background-color: orange;">&lt;|endoftext|&gt;</span></pre>
+</div>
+</div>
+</section>
+<section id="speculative-decodingを使う際の制限" class="level2">
+<h2 class="anchored" data-anchor-id="speculative-decodingを使う際の制限">Speculative Decodingを使う際の制限</h2>
+<p>Speculative Decodingは生成速度を向上させるための強力な手法ですが、いくつかの制限があります。 まず、提案を検証するためには、小さいモデルと大きいモデルのTokenizerが一緒でないといけません。この点については、Huggingfaceのほうで<a href="https://huggingface.co/blog/universal_assisted_generation">Universal assisted generation</a>を提案しました。つまり、提案したトークンをテキストに変換した後、また大きいモデルのTokenizerにトークンを変換することで、この問題を解決できます。 次に、Speculative Decodingが役に立つ前提としては、計算する際にメモリのスピードがボトルネックになることが必要です。言い換えると、バッチサイズを上げる場合は、メモリスピードより計算スピードがボトルネックになるため、あまりこの手法は効果がありません。</p>
+</section>
+<section id="まとめ" class="level2">
+<h2 class="anchored" data-anchor-id="まとめ">まとめ</h2>
+<p>本記事では、Speculative Decodingの仕組みと実装方法について解説しました。この手法は、小さいモデルで提案したトークンを大きいモデルで検証することで、生成速度を向上させることができます。また、実験結果からも、この手法が生成タスクにおいて有効であることがわかりました。最後に、Speculative Decodingを使う際の制限についても触れました。</p>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp("https:\/\/jiang\.jp");
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+<script src="https://utteranc.es/client.js" repo="AlbertRapp/blogComments" issue-term="pathname" theme="github-light" crossorigin="anonymous" async="">
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

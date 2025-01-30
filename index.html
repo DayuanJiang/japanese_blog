@@ -2,12 +2,12 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.3.340">
+<meta name="generator" content="quarto-1.6.40">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>blog - 自然言語処理技術ブログ</title>
+<title>自然言語処理技術ブログ – blog</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -37,17 +37,23 @@ ul.task-list li input[type="checkbox"] {
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="site_libs/quarto-html/anchor.min.js"></script>
 <link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-57476271c5f0467c372e20ff5d25630e.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-edc0777d93aca8f084c81dbc6fa27f8b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
   "collapse-after": 3,
   "panel-placement": "end",
   "type": "overlay",
-  "limit": 20,
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
   "language": {
     "search-no-results-text": "No results",
     "search-matching-documents-text": "matching documents",
@@ -56,8 +62,10 @@ ul.task-list li input[type="checkbox"] {
     "search-more-match-text": "more match in this document",
     "search-more-matches-text": "more matches in this document",
     "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
     "search-detached-cancel-button-title": "Cancel",
-    "search-submit-button-title": "Submit"
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
   }
 }</script>
 <script>
@@ -99,42 +107,69 @@ gtag('js', new Date());
 gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
 </script>
 
-  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
   <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
 
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN") {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
+
 <link rel="stylesheet" href="styles.css">
-<link rel="alternate" type="application/rss+xml" title="blog" href="index.xml"></head>
+<link rel="alternate" type="application/rss+xml" title="blog" href="index.xml" data-external="1"></head>
 
 <body class="nav-fixed">
 
 <div id="quarto-search-results"></div>
-  <header id="quarto-header" class="headroom fixed-top">
-    <nav class="navbar navbar-expand-lg navbar-dark ">
+  <header id="quarto-header" class="headroom fixed-top quarto-banner">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
       <div class="navbar-container container-fluid">
-      <div class="navbar-brand-container">
+      <div class="navbar-brand-container mx-auto">
     <a class="navbar-brand" href="./index.html">
     <span class="navbar-title">blog</span>
     </a>
   </div>
             <div id="quarto-search" class="" title="Search"></div>
-          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
   <span class="navbar-toggler-icon"></span>
 </button>
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll ms-auto">
   <li class="nav-item">
-    <a class="nav-link" href="./about.html" rel="" target="">
- <span class="menu-text">About</span></a>
+    <a class="nav-link" href="./about.html"> 
+<span class="menu-text">About</span></a>
   </li>  
   <li class="nav-item compact">
-    <a class="nav-link" href="http://www.linkedin.com/in/jiang-dayuan" rel="" target=""><i class="bi bi-linkedin" role="img">
+    <a class="nav-link" href="http://www.linkedin.com/in/jiang-dayuan"> <i class="bi bi-linkedin" role="img">
 </i> 
- <span class="menu-text"></span></a>
+<span class="menu-text"></span></a>
   </li>  
 </ul>
+          </div> <!-- /navcollapse -->
             <div class="quarto-navbar-tools">
 </div>
-          </div> <!-- /navcollapse -->
       </div> <!-- /container-fluid -->
     </nav>
 </header>
@@ -147,7 +182,7 @@ gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
   </div>
     
   
-  <div class="quarto-title-meta">
+  <div class="quarto-title-meta column-page-left">
 
       
     
@@ -160,9 +195,10 @@ gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
         
-    <h5 class="quarto-listing-category-title">Categories</h5><div class="quarto-listing-category category-default"><div class="category" data-category="">All <span class="quarto-category-count">(22)</span></div><div class="category" data-category="Information_retrieval">Information_retrieval <span class="quarto-category-count">(5)</span></div><div class="category" data-category="LLM">LLM <span class="quarto-category-count">(5)</span></div><div class="category" data-category="LLMs">LLMs <span class="quarto-category-count">(7)</span></div><div class="category" data-category="LangChain">LangChain <span class="quarto-category-count">(7)</span></div><div class="category" data-category="NLP">NLP <span class="quarto-category-count">(18)</span></div><div class="category" data-category="Speech Recognition">Speech Recognition <span class="quarto-category-count">(2)</span></div><div class="category" data-category="Web">Web <span class="quarto-category-count">(2)</span></div><div class="category" data-category="paper">paper <span class="quarto-category-count">(5)</span></div></div></div>
+    <h5 class="quarto-listing-category-title">Categories</h5><div class="quarto-listing-category category-default"><div class="category" data-category="">All <span class="quarto-category-count">(23)</span></div><div class="category" data-category="SW5mb3JtYXRpb25fcmV0cmlldmFs">Information_retrieval <span class="quarto-category-count">(5)</span></div><div class="category" data-category="TExN">LLM <span class="quarto-category-count">(6)</span></div><div class="category" data-category="TExNcw==">LLMs <span class="quarto-category-count">(7)</span></div><div class="category" data-category="TGFuZ0NoYWlu">LangChain <span class="quarto-category-count">(7)</span></div><div class="category" data-category="TkxQ">NLP <span class="quarto-category-count">(19)</span></div><div class="category" data-category="U3BlZWNoJTIwUmVjb2duaXRpb24=">Speech Recognition <span class="quarto-category-count">(2)</span></div><div class="category" data-category="V2Vi">Web <span class="quarto-category-count">(2)</span></div><div class="category" data-category="cGFwZXI=">paper <span class="quarto-category-count">(5)</span></div></div></div>
 <!-- main -->
 <main class="content quarto-banner-title-block column-page-left" id="quarto-document-content">
+
 
 
 
@@ -195,791 +231,780 @@ gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
     </div>
 </div>
 <div class="list quarto-listing-default">
-<div class="quarto-post image-right" data-index="0" data-categories="LLM,Web" data-listing-date-sort="1737644400000" data-listing-file-modified-sort="1738035287601" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="5">
+<div class="quarto-post image-right" data-index="0" data-categories="TExNJTJDV2Vi" data-listing-date-sort="1737644400000" data-listing-file-modified-sort="1738154274046" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="5" data-listing-word-count-sort="805">
 <div class="thumbnail">
-<p><a href="./posts/20250124_LLM_efficiency/index.html"> <p class="card-img-top"><img src="posts/20250124_LLM_efficiency/images/paste-4.png"  class="thumbnail-image card-img"/></p> </a></p>
+<p><a href="./posts/20250124_LLM_efficiency/index.html" class="no-external"></a></p><a href="./posts/20250124_LLM_efficiency/index.html" class="no-external">
+<p class="card-img-top"><img src="posts/20250124_LLM_efficiency/images/paste-4.png"  class="thumbnail-image card-img"/></p>
+</a><p><a href="./posts/20250124_LLM_efficiency/index.html" class="no-external"></a></p>
 </div>
 <div class="body">
-<a href="./posts/20250124_LLM_efficiency/index.html">
 <h3 class="no-anchor listing-title">
-なぜLLMはMacBookでも動くのか？計算力とメモリから見るその仕組み
+<a href="./posts/20250124_LLM_efficiency/index.html" class="no-external">なぜLLMはMacBookでも動くのか？計算力とメモリから見るその仕組み</a>
 </h3>
 <div class="listing-subtitle">
-
+<a href="./posts/20250124_LLM_efficiency/index.html" class="no-external"></a>
 </div>
-</a>
 <div class="listing-categories">
-<div class="listing-category" onclick="window.quartoListingCategory('LLM'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('TExN'); return false;">
 LLM
 </div>
-<div class="listing-category" onclick="window.quartoListingCategory('Web'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('V2Vi'); return false;">
 Web
 </div>
 </div>
-<a href="./posts/20250124_LLM_efficiency/index.html">
 <div class="listing-description">
-最近、OpenAIのO1レベルのOSSモデル、DeepSeek-R1が出ました。そして、XではM4 64GBのMac miniを8台繋いでクラスターにして、671Bのモデルを動かしたスレッドがありました。
+<a href="./posts/20250124_LLM_efficiency/index.html" class="no-external">最近、OpenAIのO1レベルのOSSモデル、DeepSeek-R1が出ました。そして、XではM4 64GBのMac miniを8台繋いでクラスターにして、671Bのモデルを動かしたスレッドがありました。</a>
 </div>
-</a>
 </div>
 <div class="metadata">
-<a href="./posts/20250124_LLM_efficiency/index.html">
+<a href="./posts/20250124_LLM_efficiency/index.html" class="no-external">
 <div class="listing-date">
 Jan 24, 2025
 </div>
 </a>
 </div>
 </div>
-<div class="quarto-post image-right" data-index="1" data-categories="LLM,Web" data-listing-date-sort="1723647600000" data-listing-file-modified-sort="1723704413899" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="8">
+<div class="quarto-post image-right" data-index="1" data-categories="TExNJTJDV2Vi" data-listing-date-sort="1723647600000" data-listing-file-modified-sort="1738154274046" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="8" data-listing-word-count-sort="1451">
 <div class="thumbnail">
-<p><a href="./posts/20240815_ai_sdk/index.html"> <p class="card-img-top"><img src="posts/20240815_ai_sdk/images/paste-1.png" alt="doc"  class="thumbnail-image card-img"/></p> </a></p>
+<p><a href="./posts/20240815_ai_sdk/index.html" class="no-external"></a></p><a href="./posts/20240815_ai_sdk/index.html" class="no-external">
+<p class="card-img-top"><img src="posts/20240815_ai_sdk/images/paste-1.png" alt="doc"  class="thumbnail-image card-img"/></p>
+</a><p><a href="./posts/20240815_ai_sdk/index.html" class="no-external"></a></p>
 </div>
 <div class="body">
-<a href="./posts/20240815_ai_sdk/index.html">
 <h3 class="no-anchor listing-title">
-LangserveとVercel AI SDKを使ってGenAIデモアプリをクイックに作る
+<a href="./posts/20240815_ai_sdk/index.html" class="no-external">LangserveとVercel AI SDKを使ってGenAIデモアプリをクイックに作る</a>
 </h3>
 <div class="listing-subtitle">
-
+<a href="./posts/20240815_ai_sdk/index.html" class="no-external"></a>
 </div>
-</a>
 <div class="listing-categories">
-<div class="listing-category" onclick="window.quartoListingCategory('LLM'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('TExN'); return false;">
 LLM
 </div>
-<div class="listing-category" onclick="window.quartoListingCategory('Web'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('V2Vi'); return false;">
 Web
 </div>
 </div>
-<a href="./posts/20240815_ai_sdk/index.html">
 <div class="listing-description">
-Vercel AI SDKは、Vercel社が提供するAIアプリケーション開発のための強力なフレームワークです。これを使えば、AIアプリケーションの開発が驚くほど簡単になります。
+<a href="./posts/20240815_ai_sdk/index.html" class="no-external">Vercel AI SDKは、Vercel社が提供するAIアプリケーション開発のための強力なフレームワークです。これを使えば、AIアプリケーションの開発が驚くほど簡単になります。</a>
 </div>
-</a>
 </div>
 <div class="metadata">
-<a href="./posts/20240815_ai_sdk/index.html">
+<a href="./posts/20240815_ai_sdk/index.html" class="no-external">
 <div class="listing-date">
 Aug 15, 2024
 </div>
 </a>
 </div>
 </div>
-<div class="quarto-post image-right" data-index="2" data-categories="NLP,LLM,LangChain" data-listing-date-sort="1708614000000" data-listing-file-modified-sort="1708872992170" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="1">
+<div class="quarto-post image-right" data-index="2" data-categories="TkxQJTJDTExN" data-listing-date-sort="1708614000000" data-listing-file-modified-sort="1738250171665" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="1" data-listing-word-count-sort="153">
 <div class="thumbnail">
-<p><a href="./posts/20240223_dspy_introduce/index.html"> <div class="listing-item-img-placeholder card-img-top" >&nbsp;</div> </a></p>
+<p><a href="./posts/20250129_speculative_decoding/index.html" class="no-external"></a></p><a href="./posts/20250129_speculative_decoding/index.html" class="no-external">
+<p class="card-img-top"><img src="posts/20250129_speculative_decoding/image-2.png" alt="alt text"  class="thumbnail-image card-img"/></p>
+</a><p><a href="./posts/20250129_speculative_decoding/index.html" class="no-external"></a></p>
 </div>
 <div class="body">
-<a href="./posts/20240223_dspy_introduce/index.html">
 <h3 class="no-anchor listing-title">
-LLM版のPyTorchーDSPyの紹介
+<a href="./posts/20250129_speculative_decoding/index.html" class="no-external">LLMの推論速度を劇的に加速する方法 Speculative Decoding の解説</a>
 </h3>
 <div class="listing-subtitle">
-
+<a href="./posts/20250129_speculative_decoding/index.html" class="no-external"></a>
 </div>
-</a>
 <div class="listing-categories">
-<div class="listing-category" onclick="window.quartoListingCategory('NLP'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('TkxQ'); return false;">
 NLP
 </div>
-<div class="listing-category" onclick="window.quartoListingCategory('LLM'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('TExN'); return false;">
 LLM
 </div>
-<div class="listing-category" onclick="window.quartoListingCategory('LangChain'); return false;">
-LangChain
 </div>
-</div>
-<a href="./posts/20240223_dspy_introduce/index.html">
 <div class="listing-description">
-DSPyはStanford大学が開発したLLMのプロンプトとウェイトを自動的に最適化できるフレームワークです。DSPyは概念的にPyTorchに似ています。プログラムでモジュールを定義し、使うPromptをモデルのウェイトとして扱い、学習データで最適なPromptを学習させます。DSPyの中ではこの学習のステップを「Compile」と呼んでいます。
+<a href="./posts/20250129_speculative_decoding/index.html" class="no-external">皆さんに質問です。 「モデルの精度を落とさず、計算リソースも増やさず、推論速度だけを2倍にする方法」 があるとしたら——それは魔法でしょうか？それとも現実の技術でしょうか？</a>
 </div>
-</a>
 </div>
 <div class="metadata">
-<a href="./posts/20240223_dspy_introduce/index.html">
+<a href="./posts/20250129_speculative_decoding/index.html" class="no-external">
 <div class="listing-date">
 Feb 23, 2024
 </div>
 </a>
 </div>
 </div>
-<div class="quarto-post image-right" data-index="3" data-categories="NLP,LLM,LangChain" data-listing-date-sort="1702134000000" data-listing-file-modified-sort="1737698806052" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="4">
+<div class="quarto-post image-right" data-index="3" data-categories="TkxQJTJDTExNJTJDTGFuZ0NoYWlu" data-listing-date-sort="1708614000000" data-listing-file-modified-sort="1738154274036" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="1" data-listing-word-count-sort="65">
 <div class="thumbnail">
-<p><a href="./posts/20231109_multi_vector_retrieval/index.html"> <p class="card-img-top"><img src="posts/20231109_multi_vector_retrieval/multi-vector_retriever_init.svg"  class="thumbnail-image card-img"/></p> </a></p>
+<p><a href="./posts/20240223_dspy_introduce/index.html" class="no-external"></a></p><a href="./posts/20240223_dspy_introduce/index.html" class="no-external">
+<div class="listing-item-img-placeholder card-img-top" >&nbsp;</div>
+</a><p><a href="./posts/20240223_dspy_introduce/index.html" class="no-external"></a></p>
 </div>
 <div class="body">
-<a href="./posts/20231109_multi_vector_retrieval/index.html">
 <h3 class="no-anchor listing-title">
-Multi-Vector Retrieverの使い方とその効果
+<a href="./posts/20240223_dspy_introduce/index.html" class="no-external">LLM版のPyTorchーDSPyの紹介</a>
 </h3>
 <div class="listing-subtitle">
-
+<a href="./posts/20240223_dspy_introduce/index.html" class="no-external"></a>
 </div>
-</a>
 <div class="listing-categories">
-<div class="listing-category" onclick="window.quartoListingCategory('NLP'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('TkxQ'); return false;">
 NLP
 </div>
-<div class="listing-category" onclick="window.quartoListingCategory('LLM'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('TExN'); return false;">
 LLM
 </div>
-<div class="listing-category" onclick="window.quartoListingCategory('LangChain'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('TGFuZ0NoYWlu'); return false;">
 LangChain
 </div>
 </div>
-<a href="./posts/20231109_multi_vector_retrieval/index.html">
 <div class="listing-description">
-この記事では、<code>Multi-Vector Retriever</code>の使用方法を紹介し、複数の実験を通じてその効果を検証しました。実験から得られた主な知見は以下の3点です。
+<a href="./posts/20240223_dspy_introduce/index.html" class="no-external">DSPyはStanford大学が開発したLLMのプロンプトとウェイトを自動的に最適化できるフレームワークです。DSPyは概念的にPyTorchに似ています。プログラムでモジュールを定義し、使うPromptをモデルのウェイトとして扱い、学習データで最適なPromptを学習させます。DSPyの中ではこの学習のステップを「Compile」と呼んでいます。</a>
+</div>
+</div>
+<div class="metadata">
+<a href="./posts/20240223_dspy_introduce/index.html" class="no-external">
+<div class="listing-date">
+Feb 23, 2024
 </div>
 </a>
 </div>
+</div>
+<div class="quarto-post image-right" data-index="4" data-categories="TkxQJTJDTExNJTJDTGFuZ0NoYWlu" data-listing-date-sort="1702134000000" data-listing-file-modified-sort="1738154274036" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="4" data-listing-word-count-sort="769">
+<div class="thumbnail">
+<p><a href="./posts/20231109_multi_vector_retrieval/index.html" class="no-external"></a></p><a href="./posts/20231109_multi_vector_retrieval/index.html" class="no-external">
+<p class="card-img-top"><img src="posts/20231109_multi_vector_retrieval/multi-vector_retriever_init.svg"  class="thumbnail-image card-img"/></p>
+</a><p><a href="./posts/20231109_multi_vector_retrieval/index.html" class="no-external"></a></p>
+</div>
+<div class="body">
+<h3 class="no-anchor listing-title">
+<a href="./posts/20231109_multi_vector_retrieval/index.html" class="no-external">Multi-Vector Retrieverの使い方とその効果</a>
+</h3>
+<div class="listing-subtitle">
+<a href="./posts/20231109_multi_vector_retrieval/index.html" class="no-external"></a>
+</div>
+<div class="listing-categories">
+<div class="listing-category" onclick="window.quartoListingCategory('TkxQ'); return false;">
+NLP
+</div>
+<div class="listing-category" onclick="window.quartoListingCategory('TExN'); return false;">
+LLM
+</div>
+<div class="listing-category" onclick="window.quartoListingCategory('TGFuZ0NoYWlu'); return false;">
+LangChain
+</div>
+</div>
+<div class="listing-description">
+<a href="./posts/20231109_multi_vector_retrieval/index.html" class="no-external">この記事では、<code>Multi-Vector Retriever</code>の使用方法を紹介し、複数の実験を通じてその効果を検証しました。実験から得られた主な知見は以下の3点です。</a>
+</div>
+</div>
 <div class="metadata">
-<a href="./posts/20231109_multi_vector_retrieval/index.html">
+<a href="./posts/20231109_multi_vector_retrieval/index.html" class="no-external">
 <div class="listing-date">
 Dec 10, 2023
 </div>
 </a>
 </div>
 </div>
-<div class="quarto-post image-right" data-index="4" data-categories="NLP" data-listing-date-sort="1697295600000" data-listing-file-modified-sort="1697471369645" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="1">
+<div class="quarto-post image-right" data-index="5" data-categories="TkxQ" data-listing-date-sort="1697295600000" data-listing-file-modified-sort="1738154274036" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="1" data-listing-word-count-sort="51">
 <div class="thumbnail">
-<p><a href="./posts/20231014_cs224n_lecture_3/index.html"> <p class="card-img-top"><img src="posts/20231014_cs224n_lecture_3/images/0001.jpeg"  class="thumbnail-image card-img"/></p> </a></p>
+<p><a href="./posts/20231014_cs224n_lecture_3/index.html" class="no-external"></a></p><a href="./posts/20231014_cs224n_lecture_3/index.html" class="no-external">
+<p class="card-img-top"><img src="posts/20231014_cs224n_lecture_3/images/0001.jpeg"  class="thumbnail-image card-img"/></p>
+</a><p><a href="./posts/20231014_cs224n_lecture_3/index.html" class="no-external"></a></p>
 </div>
 <div class="body">
-<a href="./posts/20231014_cs224n_lecture_3/index.html">
 <h3 class="no-anchor listing-title">
-Stanford CS224N 深層学習による自然言語処理 Lecture 3 まとめ
+<a href="./posts/20231014_cs224n_lecture_3/index.html" class="no-external">Stanford CS224N 深層学習による自然言語処理 Lecture 3 まとめ</a>
 </h3>
 <div class="listing-subtitle">
-
+<a href="./posts/20231014_cs224n_lecture_3/index.html" class="no-external"></a>
 </div>
-</a>
 <div class="listing-categories">
-<div class="listing-category" onclick="window.quartoListingCategory('NLP'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('TkxQ'); return false;">
 NLP
 </div>
 </div>
-<a href="./posts/20231014_cs224n_lecture_3/index.html">
 <div class="listing-description">
-今日は3回目のレクチャーです。今回の授業は自然言語処理とは関係しなくて、深層学習の内容になります。その辺に詳しい方はこのレクチャーを飛ばして良いです。
+<a href="./posts/20231014_cs224n_lecture_3/index.html" class="no-external">今日は3回目のレクチャーです。今回の授業は自然言語処理とは関係しなくて、深層学習の内容になります。その辺に詳しい方はこのレクチャーを飛ばして良いです。</a>
 </div>
-</a>
 </div>
 <div class="metadata">
-<a href="./posts/20231014_cs224n_lecture_3/index.html">
+<a href="./posts/20231014_cs224n_lecture_3/index.html" class="no-external">
 <div class="listing-date">
 Oct 15, 2023
 </div>
 </a>
 </div>
 </div>
-<div class="quarto-post image-right" data-index="5" data-categories="NLP" data-listing-date-sort="1697122800000" data-listing-file-modified-sort="1697337495904" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="1">
+<div class="quarto-post image-right" data-index="6" data-categories="TkxQ" data-listing-date-sort="1697122800000" data-listing-file-modified-sort="1738154274016" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="1" data-listing-word-count-sort="37">
 <div class="thumbnail">
-<p><a href="./posts/20231013_cs224n_lecture_2/index.html"> <p class="card-img-top"><img src="posts/20231013_cs224n_lecture_2/images/0001.jpeg"  class="thumbnail-image card-img"/></p> </a></p>
+<p><a href="./posts/20231013_cs224n_lecture_2/index.html" class="no-external"></a></p><a href="./posts/20231013_cs224n_lecture_2/index.html" class="no-external">
+<p class="card-img-top"><img src="posts/20231013_cs224n_lecture_2/images/0001.jpeg"  class="thumbnail-image card-img"/></p>
+</a><p><a href="./posts/20231013_cs224n_lecture_2/index.html" class="no-external"></a></p>
 </div>
 <div class="body">
-<a href="./posts/20231013_cs224n_lecture_2/index.html">
 <h3 class="no-anchor listing-title">
-Stanford CS224N 深層学習による自然言語処理 Lecture 2 まとめ
+<a href="./posts/20231013_cs224n_lecture_2/index.html" class="no-external">Stanford CS224N 深層学習による自然言語処理 Lecture 2 まとめ</a>
 </h3>
 <div class="listing-subtitle">
-
+<a href="./posts/20231013_cs224n_lecture_2/index.html" class="no-external"></a>
 </div>
-</a>
 <div class="listing-categories">
-<div class="listing-category" onclick="window.quartoListingCategory('NLP'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('TkxQ'); return false;">
 NLP
 </div>
 </div>
-<a href="./posts/20231013_cs224n_lecture_2/index.html">
 <div class="listing-description">
-Word2vecのモデルを紹介し、ランダムなワードベクトルから始めて、テキストの大量のコーパスを通じて各ワードを反復処理します。各位置で、中心ワードの周囲にどのワードが出現するかを予測しようとします。これは、中心ワードとコンテキストワードのワードベクトル間のドット積に基づいて定義される確率分布によって行います。これに…
+<a href="./posts/20231013_cs224n_lecture_2/index.html" class="no-external">Word2vecのモデルを紹介し、ランダムなワードベクトルから始めて、テキストの大量のコーパスを通じて各ワードを反復処理します。各位置で、中心ワードの周囲にどのワードが出現するかを予測しようとします。これは、中心ワードとコンテキストワードのワードベクトル間のドット積に基づいて定義される確率分布によって行います。これにより、あるワードが特定のコンテ…</a>
 </div>
-</a>
 </div>
 <div class="metadata">
-<a href="./posts/20231013_cs224n_lecture_2/index.html">
+<a href="./posts/20231013_cs224n_lecture_2/index.html" class="no-external">
 <div class="listing-date">
 Oct 13, 2023
 </div>
 </a>
 </div>
 </div>
-<div class="quarto-post image-right" data-index="6" data-categories="NLP" data-listing-date-sort="1696950000000" data-listing-file-modified-sort="1697244532297" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="1">
+<div class="quarto-post image-right" data-index="7" data-categories="TkxQ" data-listing-date-sort="1696950000000" data-listing-file-modified-sort="1738154273986" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="1" data-listing-word-count-sort="48">
 <div class="thumbnail">
-<p><a href="./posts/20231011_cs224n_lecture_1/index.html"> <p class="card-img-top"><img src="posts/20231011_cs224n_lecture_1/images/0001 Large.jpeg"  class="thumbnail-image card-img"/></p> </a></p>
+<p><a href="./posts/20231011_cs224n_lecture_1/index.html" class="no-external"></a></p><a href="./posts/20231011_cs224n_lecture_1/index.html" class="no-external">
+<p class="card-img-top"><img src="posts/20231011_cs224n_lecture_1/images/0001 Large.jpeg"  class="thumbnail-image card-img"/></p>
+</a><p><a href="./posts/20231011_cs224n_lecture_1/index.html" class="no-external"></a></p>
 </div>
 <div class="body">
-<a href="./posts/20231011_cs224n_lecture_1/index.html">
 <h3 class="no-anchor listing-title">
-Stanford CS224N 深層学習による自然言語処理 Lecture 1 まとめ
+<a href="./posts/20231011_cs224n_lecture_1/index.html" class="no-external">Stanford CS224N 深層学習による自然言語処理 Lecture 1 まとめ</a>
 </h3>
 <div class="listing-subtitle">
-
+<a href="./posts/20231011_cs224n_lecture_1/index.html" class="no-external"></a>
 </div>
-</a>
 <div class="listing-categories">
-<div class="listing-category" onclick="window.quartoListingCategory('NLP'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('TkxQ'); return false;">
 NLP
 </div>
 </div>
-<a href="./posts/20231011_cs224n_lecture_1/index.html">
 <div class="listing-description">
-Stanford University CS224Nは深層学習による自然言語処理の授業です。授業のビデオ、使用したスライド、また宿題等、授業のすべてがインタネットで公開されています。
+<a href="./posts/20231011_cs224n_lecture_1/index.html" class="no-external">Stanford University CS224Nは深層学習による自然言語処理の授業です。授業のビデオ、使用したスライド、また宿題等、授業のすべてがインタネットで公開されています。</a>
 </div>
-</a>
 </div>
 <div class="metadata">
-<a href="./posts/20231011_cs224n_lecture_1/index.html">
+<a href="./posts/20231011_cs224n_lecture_1/index.html" class="no-external">
 <div class="listing-date">
 Oct 11, 2023
 </div>
 </a>
 </div>
 </div>
-<div class="quarto-post image-right" data-index="7" data-categories="NLP,LLM" data-listing-date-sort="1689433200000" data-listing-file-modified-sort="1689495916096" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="2">
+<div class="quarto-post image-right" data-index="8" data-categories="TkxQJTJDTExN" data-listing-date-sort="1689433200000" data-listing-file-modified-sort="1738154273976" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="2" data-listing-word-count-sort="239">
 <div class="thumbnail">
-<p><a href="./posts/20230611_retreiver/index.html"> <p class="card-img-top"><img src="posts/20230611_retreiver/image.png"  class="thumbnail-image card-img"/></p> </a></p>
+<p><a href="./posts/20230611_retreiver/index.html" class="no-external"></a></p><a href="./posts/20230611_retreiver/index.html" class="no-external">
+<p class="card-img-top"><img src="posts/20230611_retreiver/image.png"  class="thumbnail-image card-img"/></p>
+</a><p><a href="./posts/20230611_retreiver/index.html" class="no-external"></a></p>
 </div>
 <div class="body">
-<a href="./posts/20230611_retreiver/index.html">
 <h3 class="no-anchor listing-title">
-RAG質問応答システムに使うRetrieverの精度比較
+<a href="./posts/20230611_retreiver/index.html" class="no-external">RAG質問応答システムに使うRetrieverの精度比較</a>
 </h3>
 <div class="listing-subtitle">
-
+<a href="./posts/20230611_retreiver/index.html" class="no-external"></a>
 </div>
-</a>
 <div class="listing-categories">
-<div class="listing-category" onclick="window.quartoListingCategory('NLP'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('TkxQ'); return false;">
 NLP
 </div>
-<div class="listing-category" onclick="window.quartoListingCategory('LLM'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('TExN'); return false;">
 LLM
 </div>
 </div>
-<a href="./posts/20230611_retreiver/index.html">
 <div class="listing-description">
-今回はRAGのRetrieverの性能を比較しました。 その結果としては、
+<a href="./posts/20230611_retreiver/index.html" class="no-external">今回はRAGのRetrieverの性能を比較しました。 その結果としては、</a>
 </div>
-</a>
 </div>
 <div class="metadata">
-<a href="./posts/20230611_retreiver/index.html">
+<a href="./posts/20230611_retreiver/index.html" class="no-external">
 <div class="listing-date">
 Jul 16, 2023
 </div>
 </a>
 </div>
 </div>
-<div class="quarto-post image-right" data-index="8" data-categories="NLP,LLMs,LangChain" data-listing-date-sort="1685545200000" data-listing-file-modified-sort="1685633247285" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="1">
+<div class="quarto-post image-right" data-index="9" data-categories="TkxQJTJDTExNcyUyQ0xhbmdDaGFpbg==" data-listing-date-sort="1685545200000" data-listing-file-modified-sort="1738154273966" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="1" data-listing-word-count-sort="28">
 <div class="thumbnail">
-<p><a href="./posts/20230601_embedding_benchmark/index.html"> <p class="card-img-top"><img src="images/b5dee33d69d5266ceac2cb94e9d33d1ed6bf86820349f32b3991e1024d086fda.png"  class="thumbnail-image card-img"/></p> </a></p>
+<p><a href="./posts/20230601_embedding_benchmark/index.html" class="no-external"></a></p><a href="./posts/20230601_embedding_benchmark/index.html" class="no-external">
+<p class="card-img-top"><img src="images/b5dee33d69d5266ceac2cb94e9d33d1ed6bf86820349f32b3991e1024d086fda.png"  class="thumbnail-image card-img"/></p>
+</a><p><a href="./posts/20230601_embedding_benchmark/index.html" class="no-external"></a></p>
 </div>
 <div class="body">
-<a href="./posts/20230601_embedding_benchmark/index.html">
 <h3 class="no-anchor listing-title">
-日本語Embeddingモデルのベンチマーク比較: OpenAIが圧倒的な精度でリード
+<a href="./posts/20230601_embedding_benchmark/index.html" class="no-external">日本語Embeddingモデルのベンチマーク比較: OpenAIが圧倒的な精度でリード</a>
 </h3>
 <div class="listing-subtitle">
-
+<a href="./posts/20230601_embedding_benchmark/index.html" class="no-external"></a>
 </div>
-</a>
 <div class="listing-categories">
-<div class="listing-category" onclick="window.quartoListingCategory('NLP'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('TkxQ'); return false;">
 NLP
 </div>
-<div class="listing-category" onclick="window.quartoListingCategory('LLMs'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('TExNcw=='); return false;">
 LLMs
 </div>
-<div class="listing-category" onclick="window.quartoListingCategory('LangChain'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('TGFuZ0NoYWlu'); return false;">
 LangChain
 </div>
 </div>
-<a href="./posts/20230601_embedding_benchmark/index.html">
 <div class="listing-description">
-質問応答システムを作成する際、最初のステップは関連するドキュメントをデータベースから取得することです。これは通常、クエリをOpenAIのAPIを使用して埋め込みに変換し、データベース内の埋め込みとの距離を計算して近い順に並べることで行われます。
+<a href="./posts/20230601_embedding_benchmark/index.html" class="no-external">質問応答システムを作成する際、最初のステップは関連するドキュメントをデータベースから取得することです。これは通常、クエリをOpenAIのAPIを使用して埋め込みに変換し、データベース内の埋め込みとの距離を計算して近い順に並べることで行われます。</a>
 </div>
-</a>
 </div>
 <div class="metadata">
-<a href="./posts/20230601_embedding_benchmark/index.html">
+<a href="./posts/20230601_embedding_benchmark/index.html" class="no-external">
 <div class="listing-date">
 Jun 1, 2023
 </div>
 </a>
 </div>
 </div>
-<div class="quarto-post image-right" data-index="9" data-categories="Speech Recognition" data-listing-date-sort="1685199600000" data-listing-file-modified-sort="1685277090544" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="1">
+<div class="quarto-post image-right" data-index="10" data-categories="U3BlZWNoJTIwUmVjb2duaXRpb24=" data-listing-date-sort="1685199600000" data-listing-file-modified-sort="1738154273966" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="1" data-listing-word-count-sort="138">
 <div class="thumbnail">
-<p><a href="./posts/20230523_speech_foundation_models_part2/index.html"> <p class="card-img-top"><img src="posts/20230523_speech_foundation_models_part2/images/paste-1.png"  class="thumbnail-image card-img"/></p> </a></p>
+<p><a href="./posts/20230523_speech_foundation_models_part2/index.html" class="no-external"></a></p><a href="./posts/20230523_speech_foundation_models_part2/index.html" class="no-external">
+<p class="card-img-top"><img src="posts/20230523_speech_foundation_models_part2/images/paste-1.png"  class="thumbnail-image card-img"/></p>
+</a><p><a href="./posts/20230523_speech_foundation_models_part2/index.html" class="no-external"></a></p>
 </div>
 <div class="body">
-<a href="./posts/20230523_speech_foundation_models_part2/index.html">
 <h3 class="no-anchor listing-title">
-音声基礎モデルの紹介 Part2
+<a href="./posts/20230523_speech_foundation_models_part2/index.html" class="no-external">音声基礎モデルの紹介 Part2</a>
 </h3>
 <div class="listing-subtitle">
-
+<a href="./posts/20230523_speech_foundation_models_part2/index.html" class="no-external"></a>
 </div>
-</a>
 <div class="listing-categories">
-<div class="listing-category" onclick="window.quartoListingCategory('Speech Recognition'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('U3BlZWNoJTIwUmVjb2duaXRpb24='); return false;">
 Speech Recognition
 </div>
 </div>
-<a href="./posts/20230523_speech_foundation_models_part2/index.html">
 <div class="listing-description">
-音声基礎モデルに関する内容を3部分に分けて紹介しています。このポストはPart2と3について紹介します。
+<a href="./posts/20230523_speech_foundation_models_part2/index.html" class="no-external">音声基礎モデルに関する内容を3部分に分けて紹介しています。このポストはPart2と3について紹介します。</a>
 </div>
-</a>
 </div>
 <div class="metadata">
-<a href="./posts/20230523_speech_foundation_models_part2/index.html">
+<a href="./posts/20230523_speech_foundation_models_part2/index.html" class="no-external">
 <div class="listing-date">
 May 28, 2023
 </div>
 </a>
 </div>
 </div>
-<div class="quarto-post image-right" data-index="10" data-categories="Speech Recognition" data-listing-date-sort="1685113200000" data-listing-file-modified-sort="1685276931892" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="1">
+<div class="quarto-post image-right" data-index="11" data-categories="U3BlZWNoJTIwUmVjb2duaXRpb24=" data-listing-date-sort="1685113200000" data-listing-file-modified-sort="1738154273936" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="1" data-listing-word-count-sort="85">
 <div class="thumbnail">
-<p><a href="./posts/20230523_speech_foundation_models_part1/index.html"> <p class="card-img-top"><img src="posts/20230523_speech_foundation_models_part1/images/paste-1.png"  class="thumbnail-image card-img"/></p> </a></p>
+<p><a href="./posts/20230523_speech_foundation_models_part1/index.html" class="no-external"></a></p><a href="./posts/20230523_speech_foundation_models_part1/index.html" class="no-external">
+<p class="card-img-top"><img src="posts/20230523_speech_foundation_models_part1/images/paste-1.png"  class="thumbnail-image card-img"/></p>
+</a><p><a href="./posts/20230523_speech_foundation_models_part1/index.html" class="no-external"></a></p>
 </div>
 <div class="body">
-<a href="./posts/20230523_speech_foundation_models_part1/index.html">
 <h3 class="no-anchor listing-title">
-音声基礎モデルの紹介 Part1
+<a href="./posts/20230523_speech_foundation_models_part1/index.html" class="no-external">音声基礎モデルの紹介 Part1</a>
 </h3>
 <div class="listing-subtitle">
-
+<a href="./posts/20230523_speech_foundation_models_part1/index.html" class="no-external"></a>
 </div>
-</a>
 <div class="listing-categories">
-<div class="listing-category" onclick="window.quartoListingCategory('Speech Recognition'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('U3BlZWNoJTIwUmVjb2duaXRpb24='); return false;">
 Speech Recognition
 </div>
 </div>
-<a href="./posts/20230523_speech_foundation_models_part1/index.html">
 <div class="listing-description">
-本文の内容はYoutubeで音声認識に関する講義に基づいています。全体は3部分に分けられます。本文は音声表現学習に焦点を当て、対照学習モデルと予測モデルの両方について説明します。次のパートでは、音声大型言語モデルやその他の音声基礎モデルについて詳しく説明します。
+<a href="./posts/20230523_speech_foundation_models_part1/index.html" class="no-external">本文の内容はYoutubeで音声認識に関する講義に基づいています。全体は3部分に分けられます。本文は音声表現学習に焦点を当て、対照学習モデルと予測モデルの両方について説明します。次のパートでは、音声大型言語モデルやその他の音声基礎モデルについて詳しく説明します。</a>
 </div>
-</a>
 </div>
 <div class="metadata">
-<a href="./posts/20230523_speech_foundation_models_part1/index.html">
+<a href="./posts/20230523_speech_foundation_models_part1/index.html" class="no-external">
 <div class="listing-date">
 May 27, 2023
 </div>
 </a>
 </div>
 </div>
-<div class="quarto-post image-right" data-index="11" data-categories="NLP,LLMs" data-listing-date-sort="1684422000000" data-listing-file-modified-sort="1684542168331" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="1">
+<div class="quarto-post image-right" data-index="12" data-categories="TkxQJTJDTExNcw==" data-listing-date-sort="1684422000000" data-listing-file-modified-sort="1738154273896" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="1" data-listing-word-count-sort="36">
 <div class="thumbnail">
-<p><a href="./posts/20230518_grammar_checker/index.html"> <p class="card-img-top"><img src="posts/20230518_grammar_checker/images/paste-2.png"  class="thumbnail-image card-img"/></p> </a></p>
+<p><a href="./posts/20230518_grammar_checker/index.html" class="no-external"></a></p><a href="./posts/20230518_grammar_checker/index.html" class="no-external">
+<p class="card-img-top"><img src="posts/20230518_grammar_checker/images/paste-2.png"  class="thumbnail-image card-img"/></p>
+</a><p><a href="./posts/20230518_grammar_checker/index.html" class="no-external"></a></p>
 </div>
 <div class="body">
-<a href="./posts/20230518_grammar_checker/index.html">
 <h3 class="no-anchor listing-title">
-GPT文書校正アシスタント
+<a href="./posts/20230518_grammar_checker/index.html" class="no-external">GPT文書校正アシスタント</a>
 </h3>
 <div class="listing-subtitle">
-
+<a href="./posts/20230518_grammar_checker/index.html" class="no-external"></a>
 </div>
-</a>
 <div class="listing-categories">
-<div class="listing-category" onclick="window.quartoListingCategory('NLP'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('TkxQ'); return false;">
 NLP
 </div>
-<div class="listing-category" onclick="window.quartoListingCategory('LLMs'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('TExNcw=='); return false;">
 LLMs
 </div>
 </div>
-<a href="./posts/20230518_grammar_checker/index.html">
 <div class="listing-description">
-ChatGPTが登場する前、書いたものが正しいかをチェックするために、いつも「Back Translation」の手法を使っていました。つまり、DeepLでまず書いた日本語を中国語に訳し、正しい意味を伝えたかを確認します。修正したものを日本語に訳し、それに基づいて元の文書を修正します。
+<a href="./posts/20230518_grammar_checker/index.html" class="no-external">ChatGPTが登場する前、書いたものが正しいかをチェックするために、いつも「Back Translation」の手法を使っていました。つまり、DeepLでまず書いた日本語を中国語に訳し、正しい意味を伝えたかを確認します。修正したものを日本語に訳し、それに基づいて元の文書を修正します。</a>
 </div>
-</a>
 </div>
 <div class="metadata">
-<a href="./posts/20230518_grammar_checker/index.html">
+<a href="./posts/20230518_grammar_checker/index.html" class="no-external">
 <div class="listing-date">
 May 19, 2023
 </div>
 </a>
 </div>
 </div>
-<div class="quarto-post image-right" data-index="12" data-categories="NLP,LLMs,LangChain" data-listing-date-sort="1684076400000" data-listing-file-modified-sort="1684820550951" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="3">
+<div class="quarto-post image-right" data-index="13" data-categories="TkxQJTJDTExNcyUyQ0xhbmdDaGFpbg==" data-listing-date-sort="1684076400000" data-listing-file-modified-sort="1738154273896" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="3" data-listing-word-count-sort="576">
 <div class="thumbnail">
-<p><a href="./posts/20230510_hyde_detailed/index.html"> <div class="listing-item-img-placeholder card-img-top" >&nbsp;</div> </a></p>
+<p><a href="./posts/20230510_hyde_detailed/index.html" class="no-external"></a></p><a href="./posts/20230510_hyde_detailed/index.html" class="no-external">
+<div class="listing-item-img-placeholder card-img-top" >&nbsp;</div>
+</a><p><a href="./posts/20230510_hyde_detailed/index.html" class="no-external"></a></p>
 </div>
 <div class="body">
-<a href="./posts/20230510_hyde_detailed/index.html">
 <h3 class="no-anchor listing-title">
-LangChain Hypothetical Document Embeddings (HyDE) 全面解説
+<a href="./posts/20230510_hyde_detailed/index.html" class="no-external">LangChain Hypothetical Document Embeddings (HyDE) 全面解説</a>
 </h3>
 <div class="listing-subtitle">
-
+<a href="./posts/20230510_hyde_detailed/index.html" class="no-external"></a>
 </div>
-</a>
 <div class="listing-categories">
-<div class="listing-category" onclick="window.quartoListingCategory('NLP'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('TkxQ'); return false;">
 NLP
 </div>
-<div class="listing-category" onclick="window.quartoListingCategory('LLMs'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('TExNcw=='); return false;">
 LLMs
 </div>
-<div class="listing-category" onclick="window.quartoListingCategory('LangChain'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('TGFuZ0NoYWlu'); return false;">
 LangChain
 </div>
 </div>
-<a href="./posts/20230510_hyde_detailed/index.html">
 <div class="listing-description">
-Hypothetical Document Embeddings (HyDE)は去年提出した情報検索の精度を向上させるための手法です。
+<a href="./posts/20230510_hyde_detailed/index.html" class="no-external">Hypothetical Document Embeddings (HyDE)は去年提出した情報検索の精度を向上させるための手法です。</a>
 </div>
-</a>
 </div>
 <div class="metadata">
-<a href="./posts/20230510_hyde_detailed/index.html">
+<a href="./posts/20230510_hyde_detailed/index.html" class="no-external">
 <div class="listing-date">
 May 15, 2023
 </div>
 </a>
 </div>
 </div>
-<div class="quarto-post image-right" data-index="13" data-categories="NLP,LLMs" data-listing-date-sort="1683644400000" data-listing-file-modified-sort="1684541938050" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="1">
+<div class="quarto-post image-right" data-index="14" data-categories="TkxQJTJDTExNcw==" data-listing-date-sort="1683644400000" data-listing-file-modified-sort="1738154273896" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="1" data-listing-word-count-sort="83">
 <div class="thumbnail">
-<p><a href="./posts/20230513_azure_openai/index.html"> <p class="card-img-top"><img src="posts/20230513_azure_openai/images/paste-1.png" alt="data flow"  class="thumbnail-image card-img"/></p> </a></p>
+<p><a href="./posts/20230513_azure_openai/index.html" class="no-external"></a></p><a href="./posts/20230513_azure_openai/index.html" class="no-external">
+<p class="card-img-top"><img src="posts/20230513_azure_openai/images/paste-1.png" alt="data flow"  class="thumbnail-image card-img"/></p>
+</a><p><a href="./posts/20230513_azure_openai/index.html" class="no-external"></a></p>
 </div>
 <div class="body">
-<a href="./posts/20230513_azure_openai/index.html">
 <h3 class="no-anchor listing-title">
-Azure OpenAI Serviceの利用について
+<a href="./posts/20230513_azure_openai/index.html" class="no-external">Azure OpenAI Serviceの利用について</a>
 </h3>
 <div class="listing-subtitle">
-
+<a href="./posts/20230513_azure_openai/index.html" class="no-external"></a>
 </div>
-</a>
 <div class="listing-categories">
-<div class="listing-category" onclick="window.quartoListingCategory('NLP'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('TkxQ'); return false;">
 NLP
 </div>
-<div class="listing-category" onclick="window.quartoListingCategory('LLMs'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('TExNcw=='); return false;">
 LLMs
 </div>
 </div>
-<a href="./posts/20230513_azure_openai/index.html">
 <div class="listing-description">
-最近、GPTを用いた提案を行う際のお作法についていくつかの問い合わせを受けています。実は、筆者もGPTを利用したプロジェクトを担当し、いくつかの問題でコケた経験があります。その経験をまとめてみたいと思います。
+<a href="./posts/20230513_azure_openai/index.html" class="no-external">最近、GPTを用いた提案を行う際のお作法についていくつかの問い合わせを受けています。実は、筆者もGPTを利用したプロジェクトを担当し、いくつかの問題でコケた経験があります。その経験をまとめてみたいと思います。</a>
 </div>
-</a>
 </div>
 <div class="metadata">
-<a href="./posts/20230513_azure_openai/index.html">
+<a href="./posts/20230513_azure_openai/index.html" class="no-external">
 <div class="listing-date">
 May 10, 2023
 </div>
 </a>
 </div>
 </div>
-<div class="quarto-post image-right" data-index="14" data-categories="NLP,LLMs,LangChain" data-listing-date-sort="1683558000000" data-listing-file-modified-sort="1683676677046" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="4">
+<div class="quarto-post image-right" data-index="15" data-categories="TkxQJTJDTExNcyUyQ0xhbmdDaGFpbg==" data-listing-date-sort="1683558000000" data-listing-file-modified-sort="1738154273896" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="4" data-listing-word-count-sort="629">
 <div class="thumbnail">
-<p><a href="./posts/20230509_react/index.html"> <div class="listing-item-img-placeholder card-img-top" >&nbsp;</div> </a></p>
+<p><a href="./posts/20230509_react/index.html" class="no-external"></a></p><a href="./posts/20230509_react/index.html" class="no-external">
+<div class="listing-item-img-placeholder card-img-top" >&nbsp;</div>
+</a><p><a href="./posts/20230509_react/index.html" class="no-external"></a></p>
 </div>
 <div class="body">
-<a href="./posts/20230509_react/index.html">
 <h3 class="no-anchor listing-title">
-LangChain Agentの全面解説
+<a href="./posts/20230509_react/index.html" class="no-external">LangChain Agentの全面解説</a>
 </h3>
 <div class="listing-subtitle">
-
+<a href="./posts/20230509_react/index.html" class="no-external"></a>
 </div>
-</a>
 <div class="listing-categories">
-<div class="listing-category" onclick="window.quartoListingCategory('NLP'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('TkxQ'); return false;">
 NLP
 </div>
-<div class="listing-category" onclick="window.quartoListingCategory('LLMs'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('TExNcw=='); return false;">
 LLMs
 </div>
-<div class="listing-category" onclick="window.quartoListingCategory('LangChain'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('TGFuZ0NoYWlu'); return false;">
 LangChain
 </div>
 </div>
-<a href="./posts/20230509_react/index.html">
 <div class="listing-description">
-LangChainの中に最もハイレベルな概念としてはAgentです。以前の投稿の中でも話ましたが、LangChainはまだ未熟なライブラリなので、Agentの実装は複雑なものになっていますし、中身の挙動を説明するドキュメントもなかったので、本文ではAgentの使い方から、インプットからアウトプットまでの流れを説明していきます。
+<a href="./posts/20230509_react/index.html" class="no-external">LangChainの中に最もハイレベルな概念としてはAgentです。以前の投稿の中でも話ましたが、LangChainはまだ未熟なライブラリなので、Agentの実装は複雑なものになっていますし、中身の挙動を説明するドキュメントもなかったので、本文ではAgentの使い方から、インプットからアウトプットまでの流れを説明していきます。</a>
 </div>
-</a>
 </div>
 <div class="metadata">
-<a href="./posts/20230509_react/index.html">
+<a href="./posts/20230509_react/index.html" class="no-external">
 <div class="listing-date">
 May 9, 2023
 </div>
 </a>
 </div>
 </div>
-<div class="quarto-post image-right" data-index="15" data-categories="NLP,LLMs,LangChain" data-listing-date-sort="1683298800000" data-listing-file-modified-sort="1683384702276" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="2">
+<div class="quarto-post image-right" data-index="16" data-categories="TkxQJTJDTExNcyUyQ0xhbmdDaGFpbg==" data-listing-date-sort="1683298800000" data-listing-file-modified-sort="1738154273896" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="2" data-listing-word-count-sort="266">
 <div class="thumbnail">
-<p><a href="./posts/20230505_LangChain_basic/index.html"> <p class="card-img-top"><img src="posts/20230505_LangChain_basic/langchain.png"  class="thumbnail-image card-img"/></p> </a></p>
+<p><a href="./posts/20230505_LangChain_basic/index.html" class="no-external"></a></p><a href="./posts/20230505_LangChain_basic/index.html" class="no-external">
+<p class="card-img-top"><img src="posts/20230505_LangChain_basic/langchain.png"  class="thumbnail-image card-img"/></p>
+</a><p><a href="./posts/20230505_LangChain_basic/index.html" class="no-external"></a></p>
 </div>
 <div class="body">
-<a href="./posts/20230505_LangChain_basic/index.html">
 <h3 class="no-anchor listing-title">
-LangChainのベーシックを全面解説する
+<a href="./posts/20230505_LangChain_basic/index.html" class="no-external">LangChainのベーシックを全面解説する</a>
 </h3>
 <div class="listing-subtitle">
-
+<a href="./posts/20230505_LangChain_basic/index.html" class="no-external"></a>
 </div>
-</a>
 <div class="listing-categories">
-<div class="listing-category" onclick="window.quartoListingCategory('NLP'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('TkxQ'); return false;">
 NLP
 </div>
-<div class="listing-category" onclick="window.quartoListingCategory('LLMs'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('TExNcw=='); return false;">
 LLMs
 </div>
-<div class="listing-category" onclick="window.quartoListingCategory('LangChain'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('TGFuZ0NoYWlu'); return false;">
 LangChain
 </div>
 </div>
-<a href="./posts/20230505_LangChain_basic/index.html">
 <div class="listing-description">
-OpenAIのGPTのAPIを利用してアプリを作成するには、今まで一番使いやすいパッケージはLangChain🦜️🔗 だと思います。本文では、LangChainの基本的な使い方を優しく説明します。
+<a href="./posts/20230505_LangChain_basic/index.html" class="no-external">OpenAIのGPTのAPIを利用してアプリを作成するには、今まで一番使いやすいパッケージはLangChain🦜️🔗 だと思います。本文では、LangChainの基本的な使い方を優しく説明します。</a>
 </div>
-</a>
 </div>
 <div class="metadata">
-<a href="./posts/20230505_LangChain_basic/index.html">
+<a href="./posts/20230505_LangChain_basic/index.html" class="no-external">
 <div class="listing-date">
 May 6, 2023
 </div>
 </a>
 </div>
 </div>
-<div class="quarto-post image-right" data-index="16" data-categories="NLP,LLMs,LangChain" data-listing-date-sort="1683212400000" data-listing-file-modified-sort="1683460328371" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="1">
+<div class="quarto-post image-right" data-index="17" data-categories="TkxQJTJDTExNcyUyQ0xhbmdDaGFpbg==" data-listing-date-sort="1683212400000" data-listing-file-modified-sort="1738154273896" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="1" data-listing-word-count-sort="174">
 <div class="thumbnail">
-<p><a href="./posts/20230505_tiktoken/index.html"> <p class="card-img-top"><img src="posts/20230505_tiktoken/index_files/figure-html/cell-7-output-2.png"  class="thumbnail-image card-img"/></p> </a></p>
+<p><a href="./posts/20230505_tiktoken/index.html" class="no-external"></a></p><a href="./posts/20230505_tiktoken/index.html" class="no-external">
+<p class="card-img-top"><img src="posts/20230505_tiktoken/index_files/figure-html/cell-7-output-1.png"  class="thumbnail-image card-img"/></p>
+</a><p><a href="./posts/20230505_tiktoken/index.html" class="no-external"></a></p>
 </div>
 <div class="body">
-<a href="./posts/20230505_tiktoken/index.html">
 <h3 class="no-anchor listing-title">
-OpenAIのGPTのAPIのToken数に関する調査
+<a href="./posts/20230505_tiktoken/index.html" class="no-external">OpenAIのGPTのAPIのToken数に関する調査</a>
 </h3>
 <div class="listing-subtitle">
-
+<a href="./posts/20230505_tiktoken/index.html" class="no-external"></a>
 </div>
-</a>
 <div class="listing-categories">
-<div class="listing-category" onclick="window.quartoListingCategory('NLP'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('TkxQ'); return false;">
 NLP
 </div>
-<div class="listing-category" onclick="window.quartoListingCategory('LLMs'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('TExNcw=='); return false;">
 LLMs
 </div>
-<div class="listing-category" onclick="window.quartoListingCategory('LangChain'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('TGFuZ0NoYWlu'); return false;">
 LangChain
 </div>
 </div>
-<a href="./posts/20230505_tiktoken/index.html">
 <div class="listing-description">
-OpenAIのGPTモデルでドキュメントを処理する際に、日本語の1文字は大よそ1Tokenに等しいです。千文字のドキュメントを処理するためには、概算で、スピード重視の<code>gpt-3.5-turbo</code>を使う場合は0.59円かかります。性能重視の<code>gpt-4-32k</code>を利用する場合は、9.7円かかります。
+<a href="./posts/20230505_tiktoken/index.html" class="no-external">OpenAIのGPTモデルでドキュメントを処理する際に、日本語の1文字は大よそ1Tokenに等しいです。千文字のドキュメントを処理するためには、概算で、スピード重視の<code>gpt-3.5-turbo</code>を使う場合は0.59円かかります。性能重視の<code>gpt-4-32k</code>を利用する場合は、9.7円かかります。</a>
 </div>
-</a>
 </div>
 <div class="metadata">
-<a href="./posts/20230505_tiktoken/index.html">
+<a href="./posts/20230505_tiktoken/index.html" class="no-external">
 <div class="listing-date">
 May 5, 2023
 </div>
 </a>
 </div>
 </div>
-<div class="quarto-post image-right" data-index="17" data-categories="NLP,Information_retrieval,paper" data-listing-date-sort="1682953200000" data-listing-file-modified-sort="1683076907176" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="1">
+<div class="quarto-post image-right" data-index="18" data-categories="TkxQJTJDSW5mb3JtYXRpb25fcmV0cmlldmFsJTJDcGFwZXI=" data-listing-date-sort="1682953200000" data-listing-file-modified-sort="1738154273896" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="1" data-listing-word-count-sort="89">
 <div class="thumbnail">
-<p><a href="./posts/20230502_inpars_light/index.html"> <p class="card-img-top"><img src="posts/20230502_inpars_light/images/paste-1.png" alt="main results"  class="thumbnail-image card-img"/></p> </a></p>
+<p><a href="./posts/20230502_inpars_light/index.html" class="no-external"></a></p><a href="./posts/20230502_inpars_light/index.html" class="no-external">
+<p class="card-img-top"><img src="posts/20230502_inpars_light/images/paste-1.png" alt="main results"  class="thumbnail-image card-img"/></p>
+</a><p><a href="./posts/20230502_inpars_light/index.html" class="no-external"></a></p>
 </div>
 <div class="body">
-<a href="./posts/20230502_inpars_light/index.html">
 <h3 class="no-anchor listing-title">
-InPars light 論文解読
+<a href="./posts/20230502_inpars_light/index.html" class="no-external">InPars light 論文解読</a>
 </h3>
 <div class="listing-subtitle">
-
+<a href="./posts/20230502_inpars_light/index.html" class="no-external"></a>
 </div>
-</a>
 <div class="listing-categories">
-<div class="listing-category" onclick="window.quartoListingCategory('NLP'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('TkxQ'); return false;">
 NLP
 </div>
-<div class="listing-category" onclick="window.quartoListingCategory('Information_retrieval'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('SW5mb3JtYXRpb25fcmV0cmlldmFs'); return false;">
 Information_retrieval
 </div>
-<div class="listing-category" onclick="window.quartoListingCategory('paper'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('cGFwZXI='); return false;">
 paper
 </div>
 </div>
-<a href="./posts/20230502_inpars_light/index.html">
 <div class="listing-description">
-InPars-lightは、無料で利用可能な言語モデルBLOOMをランキングモデルを使用し、1000個ではなく100個の候補レコードを再ランクしした。…
+<a href="./posts/20230502_inpars_light/index.html" class="no-external">InPars-lightは、無料で利用可能な言語モデルBLOOMをランキングモデルを使用し、1000個ではなく100個の候補レコードを再ランクしした。 先行研究の主要な知見を再現するだけでなく、Consistency checkingとAll-domain…</a>
 </div>
-</a>
 </div>
 <div class="metadata">
-<a href="./posts/20230502_inpars_light/index.html">
+<a href="./posts/20230502_inpars_light/index.html" class="no-external">
 <div class="listing-date">
 May 2, 2023
 </div>
 </a>
 </div>
 </div>
-<div class="quarto-post image-right" data-index="18" data-categories="NLP,Information_retrieval,paper" data-listing-date-sort="1682866800000" data-listing-file-modified-sort="1682933746437" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="1">
+<div class="quarto-post image-right" data-index="19" data-categories="TkxQJTJDSW5mb3JtYXRpb25fcmV0cmlldmFsJTJDcGFwZXI=" data-listing-date-sort="1682866800000" data-listing-file-modified-sort="1738154273886" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="1" data-listing-word-count-sort="182">
 <div class="thumbnail">
-<p><a href="./posts/20230501_inpars_v2/index.html"> <p class="card-img-top"><img src="posts/20230501_inpars_v2/images/paste-1.png" alt="result"  class="thumbnail-image card-img"/></p> </a></p>
+<p><a href="./posts/20230501_inpars_v2/index.html" class="no-external"></a></p><a href="./posts/20230501_inpars_v2/index.html" class="no-external">
+<p class="card-img-top"><img src="posts/20230501_inpars_v2/images/paste-1.png" alt="result"  class="thumbnail-image card-img"/></p>
+</a><p><a href="./posts/20230501_inpars_v2/index.html" class="no-external"></a></p>
 </div>
 <div class="body">
-<a href="./posts/20230501_inpars_v2/index.html">
 <h3 class="no-anchor listing-title">
-InPars V2 論文解読
+<a href="./posts/20230501_inpars_v2/index.html" class="no-external">InPars V2 論文解読</a>
 </h3>
 <div class="listing-subtitle">
-
+<a href="./posts/20230501_inpars_v2/index.html" class="no-external"></a>
 </div>
-</a>
 <div class="listing-categories">
-<div class="listing-category" onclick="window.quartoListingCategory('NLP'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('TkxQ'); return false;">
 NLP
 </div>
-<div class="listing-category" onclick="window.quartoListingCategory('Information_retrieval'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('SW5mb3JtYXRpb25fcmV0cmlldmFs'); return false;">
 Information_retrieval
 </div>
-<div class="listing-category" onclick="window.quartoListingCategory('paper'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('cGFwZXI='); return false;">
 paper
 </div>
 </div>
-<a href="./posts/20230501_inpars_v2/index.html">
 <div class="listing-description">
-In…
+<a href="./posts/20230501_inpars_v2/index.html" class="no-external">InPars V2論文では、Query生成に使用するLLMがGPT3からオープンソースのGPT-J(6B)に変更され、生成したQueryのフィルタリング方法がLog…</a>
 </div>
-</a>
 </div>
 <div class="metadata">
-<a href="./posts/20230501_inpars_v2/index.html">
+<a href="./posts/20230501_inpars_v2/index.html" class="no-external">
 <div class="listing-date">
 May 1, 2023
 </div>
 </a>
 </div>
 </div>
-<div class="quarto-post image-right" data-index="19" data-categories="NLP,Information_retrieval,paper" data-listing-date-sort="1682780400000" data-listing-file-modified-sort="1682929022196" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="1">
+<div class="quarto-post image-right" data-index="20" data-categories="TkxQJTJDSW5mb3JtYXRpb25fcmV0cmlldmFsJTJDcGFwZXI=" data-listing-date-sort="1682780400000" data-listing-file-modified-sort="1738154273886" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="1" data-listing-word-count-sort="68">
 <div class="thumbnail">
-<p><a href="./posts/20230430_HyDE/index.html"> <p class="card-img-top"><img src="posts/20230430_HyDE/images/paste-1.png" alt="HyDE"  class="thumbnail-image card-img"/></p> </a></p>
+<p><a href="./posts/20230430_HyDE/index.html" class="no-external"></a></p><a href="./posts/20230430_HyDE/index.html" class="no-external">
+<p class="card-img-top"><img src="posts/20230430_HyDE/images/paste-1.png" alt="HyDE"  class="thumbnail-image card-img"/></p>
+</a><p><a href="./posts/20230430_HyDE/index.html" class="no-external"></a></p>
 </div>
 <div class="body">
-<a href="./posts/20230430_HyDE/index.html">
 <h3 class="no-anchor listing-title">
-HyDE 論文解読
+<a href="./posts/20230430_HyDE/index.html" class="no-external">HyDE 論文解読</a>
 </h3>
 <div class="listing-subtitle">
-
+<a href="./posts/20230430_HyDE/index.html" class="no-external"></a>
 </div>
-</a>
 <div class="listing-categories">
-<div class="listing-category" onclick="window.quartoListingCategory('NLP'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('TkxQ'); return false;">
 NLP
 </div>
-<div class="listing-category" onclick="window.quartoListingCategory('Information_retrieval'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('SW5mb3JtYXRpb25fcmV0cmlldmFs'); return false;">
 Information_retrieval
 </div>
-<div class="listing-category" onclick="window.quartoListingCategory('paper'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('cGFwZXI='); return false;">
 paper
 </div>
 </div>
-<a href="./posts/20230430_HyDE/index.html">
 <div class="listing-description">
-HyDE論文では、教師なしのZero-shot dense retrievalシステムを提案。従来のDense…
+<a href="./posts/20230430_HyDE/index.html" class="no-external">HyDE論文では、教師なしのZero-shot dense retrievalシステムを提案。従来のDense…</a>
 </div>
-</a>
 </div>
 <div class="metadata">
-<a href="./posts/20230430_HyDE/index.html">
+<a href="./posts/20230430_HyDE/index.html" class="no-external">
 <div class="listing-date">
 Apr 30, 2023
 </div>
 </a>
 </div>
 </div>
-<div class="quarto-post image-right" data-index="20" data-categories="NLP,Information_retrieval,paper" data-listing-date-sort="1682694000000" data-listing-file-modified-sort="1682904258012" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="2">
+<div class="quarto-post image-right" data-index="21" data-categories="TkxQJTJDSW5mb3JtYXRpb25fcmV0cmlldmFsJTJDcGFwZXI=" data-listing-date-sort="1682694000000" data-listing-file-modified-sort="1738154273886" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="2" data-listing-word-count-sort="329">
 <div class="thumbnail">
-<p><a href="./posts/20230429_promptagator/index.html"> <p class="card-img-top"><img src="posts/20230429_promptagator/images/paste-7.png" alt="Few-shot retrieval with PROMPTAGATOR"  class="thumbnail-image card-img"/></p> </a></p>
+<p><a href="./posts/20230429_promptagator/index.html" class="no-external"></a></p><a href="./posts/20230429_promptagator/index.html" class="no-external">
+<p class="card-img-top"><img src="posts/20230429_promptagator/images/paste-7.png" alt="Few-shot retrieval with PROMPTAGATOR"  class="thumbnail-image card-img"/></p>
+</a><p><a href="./posts/20230429_promptagator/index.html" class="no-external"></a></p>
 </div>
 <div class="body">
-<a href="./posts/20230429_promptagator/index.html">
 <h3 class="no-anchor listing-title">
-Promptagator 論文解読
+<a href="./posts/20230429_promptagator/index.html" class="no-external">Promptagator 論文解読</a>
 </h3>
 <div class="listing-subtitle">
-
+<a href="./posts/20230429_promptagator/index.html" class="no-external"></a>
 </div>
-</a>
 <div class="listing-categories">
-<div class="listing-category" onclick="window.quartoListingCategory('NLP'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('TkxQ'); return false;">
 NLP
 </div>
-<div class="listing-category" onclick="window.quartoListingCategory('Information_retrieval'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('SW5mb3JtYXRpb25fcmV0cmlldmFs'); return false;">
 Information_retrieval
 </div>
-<div class="listing-category" onclick="window.quartoListingCategory('paper'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('cGFwZXI='); return false;">
 paper
 </div>
 </div>
-<a href="./posts/20230429_promptagator/index.html">
 <div class="listing-description">
-Promptagator論文では、Few-shot Retrieval…
+<a href="./posts/20230429_promptagator/index.html" class="no-external">Promptagator論文では、Few-shot Retrieval…</a>
 </div>
-</a>
 </div>
 <div class="metadata">
-<a href="./posts/20230429_promptagator/index.html">
+<a href="./posts/20230429_promptagator/index.html" class="no-external">
 <div class="listing-date">
 Apr 29, 2023
 </div>
 </a>
 </div>
 </div>
-<div class="quarto-post image-right" data-index="21" data-categories="NLP,Information_retrieval,paper" data-listing-date-sort="1682694000000" data-listing-file-modified-sort="1682904210953" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="1">
+<div class="quarto-post image-right" data-index="22" data-categories="TkxQJTJDSW5mb3JtYXRpb25fcmV0cmlldmFsJTJDcGFwZXI=" data-listing-date-sort="1682694000000" data-listing-file-modified-sort="1738154273866" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="1" data-listing-word-count-sort="146">
 <div class="thumbnail">
-<p><a href="./posts/20230428_inpars/index.html"> <p class="card-img-top"><img src="posts/20230428_inpars/images/paste-1.png" alt="InPars "  class="thumbnail-image card-img"/></p> </a></p>
+<p><a href="./posts/20230428_inpars/index.html" class="no-external"></a></p><a href="./posts/20230428_inpars/index.html" class="no-external">
+<p class="card-img-top"><img src="posts/20230428_inpars/images/paste-1.png" alt="InPars "  class="thumbnail-image card-img"/></p>
+</a><p><a href="./posts/20230428_inpars/index.html" class="no-external"></a></p>
 </div>
 <div class="body">
-<a href="./posts/20230428_inpars/index.html">
 <h3 class="no-anchor listing-title">
-InPars 論文解読
+<a href="./posts/20230428_inpars/index.html" class="no-external">InPars 論文解読</a>
 </h3>
 <div class="listing-subtitle">
-
+<a href="./posts/20230428_inpars/index.html" class="no-external"></a>
 </div>
-</a>
 <div class="listing-categories">
-<div class="listing-category" onclick="window.quartoListingCategory('NLP'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('TkxQ'); return false;">
 NLP
 </div>
-<div class="listing-category" onclick="window.quartoListingCategory('Information_retrieval'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('SW5mb3JtYXRpb25fcmV0cmlldmFs'); return false;">
 Information_retrieval
 </div>
-<div class="listing-category" onclick="window.quartoListingCategory('paper'); return false;">
+<div class="listing-category" onclick="window.quartoListingCategory('cGFwZXI='); return false;">
 paper
 </div>
 </div>
-<a href="./posts/20230428_inpars/index.html">
 <div class="listing-description">
-InPars論文では、擬似データ（Pseudo data）生成によるランキングモデル学習手法を提案。LLMを用いて擬似データを生成し、それを使ってモデルを学習させることで、情報検索（IR）の精度を向上させる。実験では、生成された擬似データでMonoT5をFine-tuningし、結果として従来のUnsupervisedモデルより優れた性能を示した。
+<a href="./posts/20230428_inpars/index.html" class="no-external">InPars論文では、擬似データ（Pseudo data）生成によるランキングモデル学習手法を提案。LLMを用いて擬似データを生成し、それを使ってモデルを学習させることで、情報検索（IR）の精度を向上させる。実験では、生成された擬似データでMonoT5をFine-tuningし、結果として従来のUnsupervisedモデルより優れた性能を示した。</a>
 </div>
-</a>
 </div>
 <div class="metadata">
-<a href="./posts/20230428_inpars/index.html">
+<a href="./posts/20230428_inpars/index.html" class="no-external">
 <div class="listing-date">
 Apr 29, 2023
 </div>
@@ -1026,18 +1051,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     }
     return false;
   }
-  const clipboard = new window.ClipboardJS('.code-copy-button', {
-    text: function(trigger) {
-      const codeEl = trigger.previousElementSibling.cloneNode(true);
-      for (const childEl of codeEl.children) {
-        if (isCodeAnnotation(childEl)) {
-          childEl.remove();
-        }
-      }
-      return codeEl.innerText;
-    }
-  });
-  clipboard.on('success', function(e) {
+  const onCopySuccess = function(e) {
     // button target
     const button = e.trigger;
     // don't keep focus
@@ -1069,11 +1083,48 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     }, 1000);
     // clear code selection
     e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
   });
-  function tippyHover(el, contentFn) {
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp("https:\/\/jiang\.jp");
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
     const config = {
       allowHTML: true,
-      content: contentFn,
       maxWidth: 500,
       delay: 100,
       arrow: false,
@@ -1083,8 +1134,17 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       interactive: true,
       interactiveBorder: 10,
       theme: 'quarto',
-      placement: 'bottom-start'
+      placement: 'bottom-start',
     };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
     window.tippy(el, config); 
   }
   const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
@@ -1096,7 +1156,129 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       try { href = new URL(href).hash; } catch {}
       const id = href.replace(/^#\/?/, "");
       const note = window.document.getElementById(id);
-      return note.innerHTML;
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
     });
   }
       let selectedAnnoteEl;
@@ -1140,6 +1322,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
             }
             div.style.top = top - 2 + "px";
             div.style.height = height + 4 + "px";
+            div.style.left = 0;
             let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
             if (gutterDiv === null) {
               gutterDiv = window.document.createElement("div");
@@ -1165,6 +1348,32 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
         });
         selectedAnnoteEl = undefined;
       };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
       // Attach click handler to the DT
       const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
       for (const annoteDlNode of annoteDls) {
@@ -1225,6 +1434,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 });
 </script>
 </div> <!-- /content -->
+
 
 
 
