@@ -10,7 +10,979 @@
 <atom:link href="https://jiang.jp/index.xml" rel="self" type="application/rss+xml"/>
 <description></description>
 <generator>quarto-1.3.340</generator>
-<lastBuildDate>Thu, 23 Jan 2025 15:00:00 GMT</lastBuildDate>
+<lastBuildDate>Tue, 28 Jan 2025 15:00:00 GMT</lastBuildDate>
+<item>
+  <title>LLMの推論速度を劇的に加速する方法 Speculative Decoding の解説</title>
+  <link>https://jiang.jp/posts/20250129_speculative_decoding/index.html</link>
+  <description><![CDATA[ 
+
+
+
+<section id="はじめに" class="level2">
+<h2 class="anchored" data-anchor-id="はじめに">はじめに</h2>
+<p>皆さんに質問です。 「モデルの精度を落とさず、計算リソースも増やさず、推論速度だけを2倍にする方法」 があるとしたら——それは魔法でしょうか？それとも現実の技術でしょうか？</p>
+<p>答えは後者です。Google DeepMindとUC Berkeleyが共同開発したSpeculative Decodingは、まさにこの不可能を可能にする「推論加速のブラックボックス」。自動車で例えれば、ナビの予測ルート候補を事前計算しつつ、実際の走行で最適経路を選択するような巧妙な手法で、LLMの生成速度に革命を起こします。</p>
+</section>
+<section id="speculative-decodingって何" class="level2">
+<h2 class="anchored" data-anchor-id="speculative-decodingって何">「Speculative Decoding」って何？</h2>
+<p>「Speculative Decoding」は日本語で「<strong>推測的デコーディング</strong>」と訳されることが多く、直訳に近い表現として「投機的デコーディング」と呼ばれることもあります。この手法を簡単に言うと、<strong>小さなモデル（ドラフトモデル）で複数トークンをまとめて推測・生成し、それを大きなモデル（ターゲットモデル）で一括検証する</strong>というものです。推測が正しければ、その結果をそのまま利用することで、テキスト生成を高速化できます。</p>
+<p>もう少し詳しく見ていきましょう。</p>
+<p>例えば、LLaMa3 70Bを使ってテキストを生成したいとします。LLaMa3 70Bは非常に大きいモデルのため、テキスト生成に時間がかかります。そこで、より小さなモデル、例えばLLaMa3 7Bをドラフトモデルとして利用してSpeculative Decodingを行います。</p>
+<p>入力として「The quick brown」というテキストを与えてみましょう。これは英語で有名な文「The quick brown fox jumps over the lazy dog」の冒頭部分であり、小さなモデルでも比較的容易に続きを推測できると考えられます。</p>
+<p>まず、小さなモデルに「The quick brown」を入力し、続くトークンを推測させます。ここでは、一度に推測するトークン数（チャンクサイズ）を2と設定しましょう。</p>
+<p>すると、小さなモデルは「The quick brown <strong>fox jumps</strong>」と生成しました。</p>
+<p>次に、この結果を大きなモデルで検証します。小さなモデルが推測したトークンをプロンプトに含めて大きなモデルに入力すると、「<strong>fox jumps over</strong>」と生成しました。小さなモデルが生成した「fox jumps」を検証できたのみではなく、その先の「over」まで予測できています。</p>
+<p>ここで、処理時間について考えてみましょう。7Bモデルが1トークンを生成するのにかかる時間を <img src="https://latex.codecogs.com/png.latex?t"> 、70Bモデルが1トークンを生成するのにかかる時間を <img src="https://latex.codecogs.com/png.latex?T"> とします。</p>
+<p>小さなモデルは2つのトークンを生成するのに <img src="https://latex.codecogs.com/png.latex?2t"> の時間がかかります。一方、大きなモデルは検証のために1回だけ推論を行うので、かかる時間は <img src="https://latex.codecogs.com/png.latex?T"> です。したがって、合計時間は <img src="https://latex.codecogs.com/png.latex?2t%20+%20T"> となります。もしSpeculative Decodingを使わずに70Bモデルだけで3トークンを生成しようとすると、<img src="https://latex.codecogs.com/png.latex?3T"> の時間がかかります。一般的に、<img src="https://latex.codecogs.com/png.latex?t"> は <img src="https://latex.codecogs.com/png.latex?T"> よりもずっと小さいため、Speculative Decodingを利用することで生成時間を大幅に短縮できることがわかります。</p>
+<p>上記でSpeculative Decodingの概要を説明しましたが、まだ疑問点が残るかもしれません。</p>
+<ul>
+<li>なぜ70Bモデルで複数のトークンを検証するのに、検証時間が<img src="https://latex.codecogs.com/png.latex?1T">だけで済むのか？</li>
+<li>なぜ2つのトークンを検証する際に、次のトークンも得られるのか？</li>
+<li>小さいモデルの推測が間違っていた場合はどうなるのか？</li>
+<li>なぜ毎回2トークン推測するのか？もっと多くのトークンを一度に推測すれば、さらに高速化できるのではないか？</li>
+</ul>
+<p>これらの疑問について、次の章で詳しく解説していきます。</p>
+</section>
+<section id="llmの生成プロセスの説明" class="level2">
+<h2 class="anchored" data-anchor-id="llmの生成プロセスの説明">LLMの生成プロセスの説明</h2>
+<p>これからコードで「Speculative Decoding」を再現するにあたり、その前に、LLMがどのようにトークンを生成しているかを前置きとして説明します。</p>
+<p>LLMはトークンを生成する際、一つずつ順番に生成します。一つのトークンを生成するプロセスは以下の通りです。</p>
+<p><img src="https://jiang.jp/posts/20250129_speculative_decoding/image-2.png" alt="alt text" height="400"></p>
+<ol type="1">
+<li><strong>「The quick brown」</strong> の3つのトークンをモデルに入力します。</li>
+<li>モデルは入力トークンに対応する<strong>logits</strong>を出力します。この例では3つのトークンを入力したため、3つのlogitsが出力されます。</li>
+<li><strong>最後のトークンに対応するlogitsのみ</strong> を用いて、Softmax関数を適用し、次のトークンの<strong>確率分布</strong>を得ます。</li>
+<li>その確率分布から、次のトークンを<strong>サンプリング</strong>します。ここでは「fox」がサンプリングされました。</li>
+<li>次のステップでは、元の入力にトークン「fox」を加えた <strong>「The quick brown fox」</strong> を新たな入力とします。</li>
+</ol>
+<p>このプロセスを、必要なトークン数になるまで繰り返すことで、文章を生成することができます。</p>
+<p>ここで重要なポイントは、<strong>LLMが出力するlogitsの数が入力トークン数と同じである</strong>という点です。加えて、<strong>各入力トークンに対応するlogitsは、そのトークンの次のトークンの確率分布を予測するために利用されます。</strong> この特性を利用することで、小さいモデルが提案したトークン列の妥当性を、大きいモデルを使って効率的に検証することができます。</p>
+<p><img src="https://jiang.jp/posts/20250129_speculative_decoding/image-3.png" alt="alt text" height="400"></p>
+<p>例えば、上の図のように「The quick brown」の3つのトークンを入力として、小さいモデルが「fox jumps」という2つのトークンを提案したとします。この場合、大きいモデルは「The quick brown」を入力とし、3つのlogitsを出力します。これらのlogitsを用いることで、「fox」が「The quick brown」の、そして「jumps」が「The quick brown fox」の次のトークンとして適切かどうかを、一度のフォワードパスで検証できます。さらに、「fox jumps」が正しいと判断された場合、大きいモデルは「jumps」の次のトークンのlogitsも出力していることから、次のトークンの予測も同時に得られます。</p>
+<p>一方、提案が正しくなかった場合、大きいモデルは最初に間違ったトークンを特定し、正しいトークンに修正できます。次のステップでは、修正されたトークンまでを入力として使用します。</p>
+<p><img src="https://jiang.jp/posts/20250129_speculative_decoding/image-4.png" alt="alt text" height="400"></p>
+<p>例えば、上の図のように小さいモデルの提案が「fox run」で、大きいモデルの出力が「fox jumps over」である場合、「fox」までは正しいが「run」が間違っていると判断できます。この場合、「fox」の次のトークンとして「jumps」を採択します。次のステップでは <strong>「The quick brown fox jumps」</strong> を入力として、再び生成プロセスを続行します。</p>
+<p>仕組みを理解したうえで上の4つの質問を回答することができます。</p>
+<ul>
+<li>なぜ70Bのモデルで検証する際にかかる時間が<img src="https://latex.codecogs.com/png.latex?1T">のみか？
+<ul>
+<li>回答：一度のフォワードパスで、入力されたすべてのトークンを並列で検証できるためです。</li>
+</ul></li>
+<li>なぜ新しく生成した2個のトークンを検証するのに、更にその次のトークンも得られるか？
+<ul>
+<li>回答：第<img src="https://latex.codecogs.com/png.latex?t">トークンのlogitsを用いて第<img src="https://latex.codecogs.com/png.latex?t+1">トークンの確率分布を予測するためです。提案が正しい場合、次のトークンも同時に得られます。</li>
+</ul></li>
+<li>小さいモデルの提案が正しくない場合はどうするのか？
+<ul>
+<li>回答：提案が誤っている場合は、大きいモデルが最初に誤ったトークンを特定し、正しいトークンに修正します。次のステップでは、修正されたトークンまでを入力として使用します</li>
+</ul></li>
+<li>なぜ毎回2個のみ推測するのか？もっと多くのトークンを一度に推測すればもっと速くなるのでは？
+<ul>
+<li>回答：一度に推測するトークン数を増やすと、提案が誤る可能性も高くなるためです。例えば、一度に100トークン提案し、2個目が誤っていた場合、98個のトークンが無駄になってしまいます。Transformersの実装案では、最初に3個とし、誤りの場合は1個減少し、正解の場合は2個増加させるという方法を採用しています。</li>
+</ul></li>
+</ul>
+</section>
+<section id="コードでの再現" class="level2">
+<h2 class="anchored" data-anchor-id="コードでの再現">コードでの再現</h2>
+<p>これからは上記のことをコードで再現します。今所持しているPCのGPUはRTX4070で、メモリは12GBのみなので、今回はLLaMa3ではなく、4Bitで量子化したQwen2.5の0.5Bと3Bを利用します。</p>
+<p>まずモデルをローディングし、インプットデータを準備します。</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb1-1"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> torch</span>
+<span id="cb1-2"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> transformers <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> AutoModelForCausalLM, AutoTokenizer</span>
+<span id="cb1-3"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> time</span>
+<span id="cb1-4"></span>
+<span id="cb1-5"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Model Loading and Setup</span></span>
+<span id="cb1-6">small_model_name <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'Qwen/Qwen2.5-0.5B-Instruct-GPTQ-Int4'</span></span>
+<span id="cb1-7">big_model_name <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'Qwen/Qwen2.5-3B-Instruct-GPTQ-Int4'</span></span>
+<span id="cb1-8"></span>
+<span id="cb1-9"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># the tokenizer is the same for both models</span></span>
+<span id="cb1-10">tokenizer <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> AutoTokenizer.from_pretrained(small_model_name)</span>
+<span id="cb1-11"></span>
+<span id="cb1-12">small_model <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> AutoModelForCausalLM.from_pretrained(</span>
+<span id="cb1-13">    small_model_name, torch_dtype<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'auto'</span>, device_map<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'auto'</span></span>
+<span id="cb1-14">).<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">eval</span>()</span>
+<span id="cb1-15"></span>
+<span id="cb1-16">big_model <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> AutoModelForCausalLM.from_pretrained(</span>
+<span id="cb1-17">    big_model_name, torch_dtype<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'auto'</span>, device_map<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'auto'</span></span>
+<span id="cb1-18">).<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">eval</span>()</span></code></pre></div>
+</div>
+<div class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb2-1">prompt <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'The quick brown'</span></span>
+<span id="cb2-2">input_ids <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> tokenizer.encode(prompt, return_tensors<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'pt'</span>).to(small_model.device)</span>
+<span id="cb2-3"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'Input IDs:'</span>, input_ids[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>].tolist())</span>
+<span id="cb2-4"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'Input tokens:'</span>, tokenizer.decode(input_ids[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>], skip_special_tokens<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">True</span>))</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Input IDs: [785, 3974, 13876]
+Input tokens: The quick brown</code></pre>
+</div>
+</div>
+<p>つぎに、小さいモデルで2個のトークンを生成します。結果として、予想通りに「fox jumps」が新しく生成されました。</p>
+<div class="cell" data-execution_count="6">
+<div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb4-1">candidate_length <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">2</span></span>
+<span id="cb4-2">candidate_ids <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> small_model.generate(input_ids, max_new_tokens<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>candidate_length)</span>
+<span id="cb4-3">candidate_new_ids <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> candidate_ids[:, input_ids.shape[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>] :]  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># remove the prompt</span></span>
+<span id="cb4-4"></span>
+<span id="cb4-5"></span>
+<span id="cb4-6"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">def</span> formatted_print(var_name, var):</span>
+<span id="cb4-7">    length_str <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">len</span>(var_name)</span>
+<span id="cb4-8">    <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f'</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>var_name<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">:</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">str</span>(var)<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:</span><span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span>{<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">60</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> length_str}<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'</span>)</span>
+<span id="cb4-9"></span>
+<span id="cb4-10"></span>
+<span id="cb4-11">formatted_print(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'Candidate IDs'</span>, candidate_ids[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>].tolist())</span>
+<span id="cb4-12">formatted_print(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'Candidate new IDs'</span>, candidate_new_ids[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>].tolist())</span>
+<span id="cb4-13">formatted_print(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'Candidate tokens'</span>, tokenizer.decode(candidate_ids[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>]))</span>
+<span id="cb4-14">formatted_print(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'Candidate new tokens'</span>, tokenizer.decode(candidate_new_ids[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>]))</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Candidate IDs:               [785, 3974, 13876, 38835, 34208]
+Candidate new IDs:                             [38835, 34208]
+Candidate tokens:                   The quick brown fox jumps
+Candidate new tokens:                               fox jumps</code></pre>
+</div>
+</div>
+<p>次に、生成されたトークンを大きなモデルで検証します。</p>
+<div class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb6-1">big_model_logits <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> big_model(candidate_ids).logits</span>
+<span id="cb6-2">big_model_ids <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> big_model_logits.argmax(dim<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>)  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># validation result</span></span>
+<span id="cb6-3"></span>
+<span id="cb6-4">formatted_print(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'verified_ids'</span>, big_model_ids.tolist())</span>
+<span id="cb6-5">formatted_print(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'verified_tokens'</span>, tokenizer.decode(big_model_ids[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>]))</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>verified_ids:              [[2701, 13876, 38835, 34208, 916]]
+verified_tokens:               following brown fox jumps over</code></pre>
+</div>
+</div>
+<p>得た「following brown fox jumps over」の由来は以下の図でわかります。<br>
+もしインプットが「The」の場合は、7Bのモデルによると次のトークンが「following」である確率が最も高いです。<br>
+もしインプットが「The quick」の場合は、7Bのモデルによると次のトークンが「brown」である確率が最も高いです。<br>
+…</p>
+<p><img src="https://jiang.jp/posts/20250129_speculative_decoding/image-5.png" alt="alt text" height="400"></p>
+<p>最初から一個の予測が間違っていますが、でもこれは大丈夫です。なぜかというと、検証の対象は新しく生成された「fox jumps」だけのためです。<br>
+次のセルに「fox jumps over」がでましたが、「over」はボーナストークンです。</p>
+<div class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb8" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb8-1">verified_ids <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> big_model_ids[:, <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span>(candidate_length <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>) :]</span>
+<span id="cb8-2">formatted_print(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'verified_ids'</span>, verified_ids[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>].tolist())</span>
+<span id="cb8-3">formatted_print(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'varified_tokens'</span>, tokenizer.decode(verified_ids[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>]))</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>verified_ids:                             [38835, 34208, 916]
+varified_tokens:                               fox jumps over</code></pre>
+</div>
+</div>
+<p>0.5Bモデルが提案した結果を7Bモデルの検証結果と比較し、全部合っていることがわかりました。次に「fox jump」プラス最後のボーナストークン「over」をインプットに結合して次の生成に回すことができます。</p>
+<div class="cell" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb10" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb10-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># validation result</span></span>
+<span id="cb10-2">n_matches <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> (</span>
+<span id="cb10-3">    (<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span>(candidate_new_ids <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> verified_ids[:, :<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>])).cumsum(dim<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span></span>
+<span id="cb10-4">).<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">sum</span>()  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># fancy way to count the number of matches</span></span>
+<span id="cb10-5">valid_ids <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> verified_ids[:, : n_matches <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]</span>
+<span id="cb10-6">next_input_ids <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> torch.cat((input_ids, valid_ids), dim<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>)</span>
+<span id="cb10-7"></span>
+<span id="cb10-8"></span>
+<span id="cb10-9">formatted_print(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'n_matches'</span>, n_matches.item())</span>
+<span id="cb10-10">formatted_print(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'valid_ids'</span>, valid_ids[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>].tolist())</span>
+<span id="cb10-11">formatted_print(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'valid_tokens'</span>, tokenizer.decode(valid_ids[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>]))</span>
+<span id="cb10-12">formatted_print(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'next_input_ids'</span>, next_input_ids[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>].tolist())</span>
+<span id="cb10-13">formatted_print(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'next_input_tokens'</span>, tokenizer.decode(next_input_ids[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>]))</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>n_matches:                                                  2
+valid_ids:                                [38835, 34208, 916]
+valid_tokens:                                  fox jumps over
+next_input_ids:         [785, 3974, 13876, 38835, 34208, 916]
+next_input_tokens:             The quick brown fox jumps over</code></pre>
+</div>
+</div>
+<p>これで、Speculative Decodingの一個の循環が完了しました。</p>
+</section>
+<section id="実験" class="level2">
+<h2 class="anchored" data-anchor-id="実験">実験</h2>
+<p>コードの分解もしたので、次に実際に実験してみましょう。今回はコード生成の結果を比較してみます。まず、上記のコードを関数として整理します。</p>
+<div class="cell" data-execution_count="86">
+<div class="sourceCode cell-code" id="cb12" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb12-1"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> torch</span>
+<span id="cb12-2"></span>
+<span id="cb12-3"></span>
+<span id="cb12-4"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">def</span> speculative_decoding(</span>
+<span id="cb12-5">    big_model,</span>
+<span id="cb12-6">    small_model,</span>
+<span id="cb12-7">    input_ids,</span>
+<span id="cb12-8">    max_length<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1000</span>,</span>
+<span id="cb12-9">    candidate_length<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>,</span>
+<span id="cb12-10">    tokenizer<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span>,</span>
+<span id="cb12-11">):</span>
+<span id="cb12-12">    generated_ids <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> input_ids.clone()</span>
+<span id="cb12-13">    total_generated <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span></span>
+<span id="cb12-14">    accepted <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span></span>
+<span id="cb12-15">    generated_ids_list <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> [(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'prompt'</span>, tokenizer.decode(input_ids[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>]))]</span>
+<span id="cb12-16"></span>
+<span id="cb12-17">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">with</span> torch.no_grad():</span>
+<span id="cb12-18">        <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">while</span> generated_ids.shape[<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;</span> max_length:</span>
+<span id="cb12-19">            <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># 1. Candidate Generation (Small Model)</span></span>
+<span id="cb12-20">            candidate_input_ids <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> small_model.generate(</span>
+<span id="cb12-21">                generated_ids, max_new_tokens<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>candidate_length, do_sample<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">False</span></span>
+<span id="cb12-22">            )</span>
+<span id="cb12-23"></span>
+<span id="cb12-24">            <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># 2. Big Model Filtering</span></span>
+<span id="cb12-25">            new_logits <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> big_model(candidate_input_ids).logits[</span>
+<span id="cb12-26">                :, <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span>(candidate_length <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>) :</span>
+<span id="cb12-27">            ]  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># +1 because we have a bonus token</span></span>
+<span id="cb12-28">            selected_tokens <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> new_logits.argmax(dim<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>)</span>
+<span id="cb12-29">            candidate_new_tokens <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> candidate_input_ids[:, generated_ids.shape[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>] :]</span>
+<span id="cb12-30"></span>
+<span id="cb12-31">            <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Determine the actual number of generated tokens</span></span>
+<span id="cb12-32">            num_generated_tokens <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> candidate_new_tokens.shape[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]</span>
+<span id="cb12-33"></span>
+<span id="cb12-34">            <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Compare only the relevant portion of selected_tokens</span></span>
+<span id="cb12-35">            n_matches <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> (</span>
+<span id="cb12-36">                (</span>
+<span id="cb12-37">                    <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">~</span>(candidate_new_tokens <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> selected_tokens[:, :num_generated_tokens])</span>
+<span id="cb12-38">                ).cumsum(dim<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>)</span>
+<span id="cb12-39">                <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&lt;</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span></span>
+<span id="cb12-40">            ).<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">sum</span>()</span>
+<span id="cb12-41"></span>
+<span id="cb12-42">            valid_tokens <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> selected_tokens[:, : n_matches <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]</span>
+<span id="cb12-43">            generated_ids_list.append(</span>
+<span id="cb12-44">                (<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'accepted'</span>, tokenizer.decode(valid_tokens[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>, :n_matches]))</span>
+<span id="cb12-45">            )</span>
+<span id="cb12-46">            generated_ids_list.append(</span>
+<span id="cb12-47">                (<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'generated'</span>, tokenizer.decode(valid_tokens[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>, <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>:]))</span>
+<span id="cb12-48">            )</span>
+<span id="cb12-49">            <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># 3. Update Generated Sequence</span></span>
+<span id="cb12-50">            generated_ids <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> torch.cat((generated_ids, valid_tokens), dim<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=-</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>)</span>
+<span id="cb12-51">            total_generated <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+=</span> candidate_length</span>
+<span id="cb12-52">            accepted <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+=</span> n_matches</span>
+<span id="cb12-53"></span>
+<span id="cb12-54">            <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">if</span> valid_tokens.shape[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span> <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">or</span> (</span>
+<span id="cb12-55">                valid_tokens.shape[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span> <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">and</span> tokenizer.pad_token_id <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> valid_tokens</span>
+<span id="cb12-56">            ):</span>
+<span id="cb12-57">                <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># delete tokens from padding</span></span>
+<span id="cb12-58">                idx_pad <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> (generated_ids <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> tokenizer.pad_token_id).nonzero()</span>
+<span id="cb12-59">                <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">if</span> idx_pad.numel() <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">&gt;</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>:</span>
+<span id="cb12-60">                    generated_ids <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> generated_ids[:, : idx_pad[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>, <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>] <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1</span>]</span>
+<span id="cb12-61">                <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">break</span></span>
+<span id="cb12-62"></span>
+<span id="cb12-63">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">return</span> generated_ids, total_generated, accepted, generated_ids_list</span></code></pre></div>
+</div>
+<p>まず、Speculative Decodingを使わない場合どうなるかを確認します。</p>
+<div class="cell" data-execution_count="82">
+<div class="sourceCode cell-code" id="cb13" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb13-1">prompt <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'''from typing import List</span></span>
+<span id="cb13-2"></span>
+<span id="cb13-3"></span>
+<span id="cb13-4"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">def below_zero(operations: List[int]) -&gt; bool:</span></span>
+<span id="cb13-5"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">    """You're given a list of deposit and withdrawal operations on a bank account that starts with zero balance. Your task is to detect if at any point the balance of account fallls below zero, and at that point function should return True. Otherwise it should return False. &gt;&gt;&gt; below_zero([1, 2, 3]) False &gt;&gt;&gt; below_zero([1, 2, -4, 5]) True"""</span></span>
+<span id="cb13-6"><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'''</span></span>
+<span id="cb13-7">input_ids <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> tokenizer.encode(prompt, return_tensors<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'pt'</span>).to(big_model.device)</span>
+<span id="cb13-8"></span>
+<span id="cb13-9">start <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> time.time()</span>
+<span id="cb13-10"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">with</span> torch.no_grad():</span>
+<span id="cb13-11">    big_model_generated_ids <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> big_model.generate(</span>
+<span id="cb13-12">        input_ids.clone(), max_length<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1000</span>, do_sample<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">False</span></span>
+<span id="cb13-13">    )</span>
+<span id="cb13-14">cost <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> time.time() <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> start</span>
+<span id="cb13-15"></span>
+<span id="cb13-16"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'Time cost:'</span>, <span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f'</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>cost<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.2f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">s'</span>)</span>
+<span id="cb13-17"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'Generated code:'</span>)</span>
+<span id="cb13-18"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(tokenizer.decode(big_model_generated_ids[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>]))</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Time cost: 13.21s
+Generated code:
+from typing import List
+
+
+def below_zero(operations: List[int]) -&gt; bool:
+    """You're given a list of deposit and withdrawal operations on a bank account that starts with zero balance. Your task is to detect if at any point the balance of account fallls below zero, and at that point function should return True. Otherwise it should return False. &gt;&gt;&gt; below_zero([1, 2, 3]) False &gt;&gt;&gt; below_zero([1, 2, -4, 5]) True"""
+    balance = 0
+    for operation in operations:
+        balance += operation
+        if balance &lt; 0:
+            return True
+    return False
+
+
+if __name__ == "__main__":
+    print(below_zero([1, 2, 3]))
+    print(below_zero([1, 2, -4, 5]))&lt;|endoftext|&gt;</code></pre>
+</div>
+</div>
+<p>次に、Speculative Decodingを使ってみます。</p>
+<div class="cell" data-execution_count="89">
+<div class="sourceCode cell-code" id="cb15" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb15-1">start <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> time.time()</span>
+<span id="cb15-2">generated_ids, total_generated, accepted, generated_ids_list <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> speculative_decoding(</span>
+<span id="cb15-3">    big_model,</span>
+<span id="cb15-4">    small_model,</span>
+<span id="cb15-5">    input_ids,</span>
+<span id="cb15-6">    max_length<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">1000</span>,</span>
+<span id="cb15-7">    candidate_length<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">3</span>,</span>
+<span id="cb15-8">    tokenizer<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>tokenizer,</span>
+<span id="cb15-9">)</span>
+<span id="cb15-10">cost <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> time.time() <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-</span> start</span>
+<span id="cb15-11"></span>
+<span id="cb15-12"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'Total generated tokens:'</span>, total_generated)</span>
+<span id="cb15-13"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'Accepted tokens:'</span>, accepted)</span>
+<span id="cb15-14"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'Acceptance rate:'</span>, accepted <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">/</span> total_generated)</span>
+<span id="cb15-15"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'Time cost:'</span>, <span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f'</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>cost<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">:.2f}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">s'</span>)</span>
+<span id="cb15-16"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(</span>
+<span id="cb15-17">    <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'Same result generated by big model:'</span>,</span>
+<span id="cb15-18">    (big_model_generated_ids <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> generated_ids).<span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">all</span>().item(),</span>
+<span id="cb15-19">)</span></code></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Total generated tokens: 63
+Accepted tokens: tensor(51, device='cuda:0')
+Acceptance rate: tensor(0.8095, device='cuda:0')
+Time cost: 8.47s
+Same result generated by big model: True</code></pre>
+</div>
+</div>
+<p>実際にテストしてみると、「Speculative Decoding」を使ってコードを生成する際に、0.5Bモデルが提案したトークンのうち<strong>77%が正しく</strong>、その結果、生成速度が13/8=1.6倍まで<strong>高速化されました</strong>。</p>
+<p>一般的に、コード生成やコード修正などのタスクは、出力のランダム性が低いため、<strong>高いAcceptance Rate（受理率）</strong>が期待できます。そのため、Speculative Decodingは特にこれらのタスクに適しています。 OpenAIの<a href="https://platform.openai.com/docs/guides/predicted-outputs">predicted output</a>機能も、この手法を<strong>利用していると考えられます</strong>。</p>
+<p>実験の最後に、<strong>おまけとして</strong>、生成されたコードのどの部分が0.5Bモデルの提案によるもので、どの部分が7Bモデルの検証結果によるものかを可視化してみましょう。 <strong>緑色の部分が0.5Bモデルの提案、オレンジ色の部分が7Bモデルの検証結果です。</strong></p>
+<div class="cell" data-execution_count="95">
+<details>
+<summary>Click here to show the visualization code</summary>
+<div class="sourceCode cell-code" id="cb17" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb17-1"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> IPython.display <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> HTML, display</span>
+<span id="cb17-2"></span>
+<span id="cb17-3">html_output <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'&lt;pre&gt;'</span>  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Wrap the entire output in &lt;pre&gt; tags</span></span>
+<span id="cb17-4"></span>
+<span id="cb17-5"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">for</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">type</span>, text <span class="kw" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">in</span> generated_ids_list:</span>
+<span id="cb17-6">    text <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> text.replace(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">' '</span>, <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">' '</span>)  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Replace spaces with</span></span>
+<span id="cb17-7">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">if</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">type</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'prompt'</span>:</span>
+<span id="cb17-8">        html_output <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+=</span> <span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"&lt;span style='background-color: transparent;'&gt;</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>text<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">&lt;/span&gt;"</span></span>
+<span id="cb17-9">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">elif</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">type</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'accepted'</span>:</span>
+<span id="cb17-10">        html_output <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+=</span> <span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"&lt;span style='background-color: lightgreen;'&gt;</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>text<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">&lt;/span&gt;"</span></span>
+<span id="cb17-11">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">elif</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">type</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'generated'</span>:</span>
+<span id="cb17-12">        html_output <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+=</span> <span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">f"&lt;span style='background-color: orange;'&gt;</span><span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">{</span>text<span class="sc" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">}</span><span class="ss" style="color: #20794D;
+background-color: null;
+font-style: inherit;">&lt;/span&gt;"</span></span>
+<span id="cb17-13"></span>
+<span id="cb17-14">html_output <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">+=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">'&lt;/pre&gt;'</span>  <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># Close the &lt;pre&gt; tag</span></span>
+<span id="cb17-15"></span>
+<span id="cb17-16">display(HTML(html_output))</span></code></pre></div>
+</details>
+<div class="cell-output cell-output-display">
+<pre><span style="background-color: transparent;">from typing import List
+
+
+def below_zero(operations: List[int]) -&gt; bool:
+    """You're given a list of deposit and withdrawal operations on a bank account that starts with zero balance. Your task is to detect if at any point the balance of account fallls below zero, and at that point function should return True. Otherwise it should return False. &gt;&gt;&gt; below_zero([1, 2, 3]) False &gt;&gt;&gt; below_zero([1, 2, -4, 5]) True"""
+</span><span style="background-color: lightgreen;">   </span><span style="background-color: orange;"> balance</span><span style="background-color: lightgreen;"> = 0</span><span style="background-color: orange;">
+</span><span style="background-color: lightgreen;">    for operation</span><span style="background-color: orange;"> in</span><span style="background-color: lightgreen;"> operations:
+       </span><span style="background-color: orange;"> balance</span><span style="background-color: lightgreen;"> += operation
+</span><span style="background-color: orange;">       </span><span style="background-color: lightgreen;"> if balance &lt;</span><span style="background-color: orange;"> </span><span style="background-color: lightgreen;">0:
+           </span><span style="background-color: orange;"> return</span><span style="background-color: lightgreen;"> True
+   </span><span style="background-color: orange;"> return</span><span style="background-color: lightgreen;"> False</span><span style="background-color: orange;">
+
+
+</span><span style="background-color: lightgreen;">if __name</span><span style="background-color: orange;">__</span><span style="background-color: lightgreen;"> ==</span><span style="background-color: orange;"> "__</span><span style="background-color: lightgreen;">main__":
+   </span><span style="background-color: orange;"> print</span><span style="background-color: lightgreen;"></span><span style="background-color: orange;">(b</span><span style="background-color: lightgreen;">elow_zero([</span><span style="background-color: orange;">1</span><span style="background-color: lightgreen;">, 2</span><span style="background-color: orange;">,</span><span style="background-color: lightgreen;"> 3</span><span style="background-color: orange;">]))
+</span><span style="background-color: lightgreen;">   </span><span style="background-color: orange;"> print</span><span style="background-color: lightgreen;">(below_zero</span><span style="background-color: orange;">([</span><span style="background-color: lightgreen;">1, </span><span style="background-color: orange;">2</span><span style="background-color: lightgreen;">, -4</span><span style="background-color: orange;">,</span><span style="background-color: lightgreen;"> 5]))</span><span style="background-color: orange;">&lt;|endoftext|&gt;</span></pre>
+</div>
+</div>
+</section>
+<section id="speculative-decodingを使う際の制限" class="level2">
+<h2 class="anchored" data-anchor-id="speculative-decodingを使う際の制限">Speculative Decodingを使う際の制限</h2>
+<p>Speculative Decodingは生成速度を向上させるための強力な手法ですが、いくつかの制限があります。 まず、提案を検証するためには、小さいモデルと大きいモデルのTokenizerが一緒でないといけません。この点については、Huggingfaceのほうで<a href="https://huggingface.co/blog/universal_assisted_generation">Universal assisted generation</a>を提案しました。つまり、提案したトークンをテキストに変換した後、また大きいモデルのTokenizerにトークンを変換することで、この問題を解決できます。 次に、Speculative Decodingが役に立つ前提としては、計算する際にメモリのスピードがボトルネックになることが必要です。言い換えると、バッチサイズを上げる場合は、メモリスピードより計算スピードがボトルネックになるため、あまりこの手法は効果がありません。</p>
+</section>
+<section id="まとめ" class="level2">
+<h2 class="anchored" data-anchor-id="まとめ">まとめ</h2>
+<p>本文では、Speculative Decodingの仕組みと実装方法について解説しました。この手法は、小さいモデルで提案したトークンを大きいモデルで検証することで、生成速度を向上させることができます。また、実験結果からも、この手法が生成タスクにおいて有効であることがわかりました。最後に、Speculative Decodingを使う際の制限についても触れました。</p>
+</section>
+<section id="参考文献" class="level2">
+<h2 class="anchored" data-anchor-id="参考文献">参考文献</h2>
+<ol type="1">
+<li><a href="https://huggingface.co/blog/assisted-generation">Assisted Generation: a new direction toward low-latency text generation</a></li>
+<li><a href="https://github.com/huggingface/transformers/blob/d7188ba600e36d3fd191b12e19f1b3bb81a8404f/src/transformers/generation/utils.py#L1880">Transformers <code>generate</code> code</a></li>
+<li><a href="https://x.com/karpathy/status/1697318534555336961">Karpathy’s X post on speculative decoding</a></li>
+<li><a href="https://philkrav.com/posts/speculative/">Philkrav’s blog about speculative decoding</a></li>
+</ol>
+
+
+</section>
+
+ ]]></description>
+  <category>NLP</category>
+  <category>LLM</category>
+  <guid>https://jiang.jp/posts/20250129_speculative_decoding/index.html</guid>
+  <pubDate>Tue, 28 Jan 2025 15:00:00 GMT</pubDate>
+</item>
 <item>
   <title>なぜLLMはMacBookでも動くのか？計算力とメモリから見るその仕組み</title>
   <link>https://jiang.jp/posts/20250124_LLM_efficiency/index.html</link>
@@ -1308,978 +2280,6 @@ font-style: inherit;">;</span></span>
   <category>Web</category>
   <guid>https://jiang.jp/posts/20240815_ai_sdk/index.html</guid>
   <pubDate>Wed, 14 Aug 2024 15:00:00 GMT</pubDate>
-</item>
-<item>
-  <title>LLMの推論速度を劇的に加速する方法 Speculative Decoding の解説</title>
-  <link>https://jiang.jp/posts/20250201_speculative_decoding/index.html</link>
-  <description><![CDATA[ 
-
-
-
-<section id="はじめに" class="level2">
-<h2 class="anchored" data-anchor-id="はじめに">はじめに</h2>
-<p>皆さんに質問です。 「モデルの精度を落とさず、計算リソースも増やさず、推論速度だけを2倍にする方法」 があるとしたら——それは魔法でしょうか？それとも現実の技術でしょうか？</p>
-<p>答えは後者です。Google DeepMindとUC Berkeleyが共同開発したSpeculative Decodingは、まさにこの不可能を可能にする「推論加速のブラックボックス」。自動車で例えれば、ナビの予測ルート候補を事前計算しつつ、実際の走行で最適経路を選択するような巧妙な手法で、LLMの生成速度に革命を起こします。</p>
-</section>
-<section id="speculative-decodingって何" class="level2">
-<h2 class="anchored" data-anchor-id="speculative-decodingって何">「Speculative Decoding」って何？</h2>
-<p>「Speculative Decoding」は日本語で「<strong>推測的デコーディング</strong>」と訳されることが多く、直訳に近い表現として「投機的デコーディング」と呼ばれることもあります。この手法を簡単に言うと、<strong>小さなモデル（ドラフトモデル）で複数トークンをまとめて推測・生成し、それを大きなモデル（ターゲットモデル）で一括検証する</strong>というものです。推測が正しければ、その結果をそのまま利用することで、テキスト生成を高速化できます。</p>
-<p>もう少し詳しく見ていきましょう。</p>
-<p>例えば、LLaMa3 70Bを使ってテキストを生成したいとします。LLaMa3 70Bは非常に大きいモデルのため、テキスト生成に時間がかかります。そこで、より小さなモデル、例えばLLaMa3 7Bをドラフトモデルとして利用してSpeculative Decodingを行います。</p>
-<p>入力として「The quick brown」というテキストを与えてみましょう。これは英語で有名な文「The quick brown fox jumps over the lazy dog」の冒頭部分であり、小さなモデルでも比較的容易に続きを推測できると考えられます。</p>
-<p>まず、小さなモデルに「The quick brown」を入力し、続くトークンを推測させます。ここでは、一度に推測するトークン数（チャンクサイズ）を2と設定しましょう。</p>
-<p>すると、小さなモデルは「The quick brown <strong>fox jumps</strong>」と生成しました。</p>
-<p>次に、この結果を大きなモデルで検証します。小さなモデルが推測したトークンをプロンプトに含めて大きなモデルに入力すると、「<strong>fox jumps over</strong>」と生成しました。小さなモデルが生成した「fox jumps」を検証できたのみではなく、その先の「over」まで予測できています。</p>
-<p>ここで、処理時間について考えてみましょう。7Bモデルが1トークンを生成するのにかかる時間を <img src="https://latex.codecogs.com/png.latex?t"> 、70Bモデルが1トークンを生成するのにかかる時間を <img src="https://latex.codecogs.com/png.latex?T"> とします。</p>
-<p>小さなモデルは2つのトークンを生成するのに <img src="https://latex.codecogs.com/png.latex?2t"> の時間がかかります。一方、大きなモデルは検証のために1回だけ推論を行うので、かかる時間は <img src="https://latex.codecogs.com/png.latex?T"> です。したがって、合計時間は <img src="https://latex.codecogs.com/png.latex?2t%20+%20T"> となります。もしSpeculative Decodingを使わずに70Bモデルだけで3トークンを生成しようとすると、<img src="https://latex.codecogs.com/png.latex?3T"> の時間がかかります。一般的に、<img src="https://latex.codecogs.com/png.latex?t"> は <img src="https://latex.codecogs.com/png.latex?T"> よりもずっと小さいため、Speculative Decodingを利用することで生成時間を大幅に短縮できることがわかります。</p>
-<p>上記でSpeculative Decodingの概要を説明しましたが、まだ疑問点が残るかもしれません。</p>
-<ul>
-<li>なぜ70Bモデルで複数のトークンを検証するのに、検証時間が<img src="https://latex.codecogs.com/png.latex?1T">だけで済むのか？</li>
-<li>なぜ2つのトークンを検証する際に、次のトークンも得られるのか？</li>
-<li>小さいモデルの推測が間違っていた場合はどうなるのか？</li>
-<li>なぜ毎回2トークン推測するのか？もっと多くのトークンを一度に推測すれば、さらに高速化できるのではないか？</li>
-</ul>
-<p>これらの疑問について、次の章で詳しく解説していきます。</p>
-</section>
-<section id="llmの生成プロセスの説明" class="level2">
-<h2 class="anchored" data-anchor-id="llmの生成プロセスの説明">LLMの生成プロセスの説明</h2>
-<p>これからコードで「Speculative Decoding」を再現するにあたり、その前に、LLMがどのようにトークンを生成しているかを前置きとして説明します。</p>
-<p>LLMはトークンを生成する際、一つずつ順番に生成します。一つのトークンを生成するプロセスは以下の通りです。</p>
-<p><img src="https://jiang.jp/posts/20250201_speculative_decoding/image-2.png" alt="alt text" height="400"></p>
-<ol type="1">
-<li><strong>「The quick brown」</strong> の3つのトークンをモデルに入力します。</li>
-<li>モデルは入力トークンに対応する<strong>logits</strong>を出力します。この例では3つのトークンを入力したため、3つのlogitsが出力されます。</li>
-<li><strong>最後のトークンに対応するlogitsのみ</strong> を用いて、Softmax関数を適用し、次のトークンの<strong>確率分布</strong>を得ます。</li>
-<li>その確率分布から、次のトークンを<strong>サンプリング</strong>します。ここでは「fox」がサンプリングされました。</li>
-<li>次のステップでは、元の入力にトークン「fox」を加えた <strong>「The quick brown fox」</strong> を新たな入力とします。</li>
-</ol>
-<p>このプロセスを、必要なトークン数になるまで繰り返すことで、文章を生成することができます。</p>
-<p>ここで重要なポイントは、<strong>LLMが出力するlogitsの数が入力トークン数と同じである</strong>という点です。加えて、<strong>各入力トークンに対応するlogitsは、そのトークンの次のトークンの確率分布を予測するために利用されます。</strong> この特性を利用することで、小さいモデルが提案したトークン列の妥当性を、大きいモデルを使って効率的に検証することができます。</p>
-<p><img src="https://jiang.jp/posts/20250201_speculative_decoding/image-3.png" alt="alt text" height="400"></p>
-<p>例えば、上の図のように「The quick brown」の3つのトークンを入力として、小さいモデルが「fox jumps」という2つのトークンを提案したとします。この場合、大きいモデルは「The quick brown」を入力とし、3つのlogitsを出力します。これらのlogitsを用いることで、「fox」が「The quick brown」の、そして「jumps」が「The quick brown fox」の次のトークンとして適切かどうかを、一度のフォワードパスで検証できます。さらに、「fox jumps」が正しいと判断された場合、大きいモデルは「jumps」の次のトークンのlogitsも出力していることから、次のトークンの予測も同時に得られます。</p>
-<p>一方、提案が正しくなかった場合、大きいモデルは最初に間違ったトークンを特定し、正しいトークンに修正できます。次のステップでは、修正されたトークンまでを入力として使用します。</p>
-<p><img src="https://jiang.jp/posts/20250201_speculative_decoding/image-4.png" alt="alt text" height="400"></p>
-<p>例えば、上の図のように小さいモデルの提案が「fox run」で、大きいモデルの出力が「fox jumps over」である場合、「fox」までは正しいが「run」が間違っていると判断できます。この場合、「fox」の次のトークンとして「jumps」を採択します。次のステップでは <strong>「The quick brown fox jumps」</strong> を入力として、再び生成プロセスを続行します。</p>
-<p>仕組みを理解したうえで上の4つの質問を回答することができます。</p>
-<ul>
-<li>なぜ70Bのモデルで検証する際にかかる時間が<img src="https://latex.codecogs.com/png.latex?1T">のみか？
-<ul>
-<li>回答：一度のフォワードパスで、入力されたすべてのトークンを並列で検証できるためです。</li>
-</ul></li>
-<li>なぜ新しく生成した2個のトークンを検証するのに、更にその次のトークンも得られるか？
-<ul>
-<li>回答：第<img src="https://latex.codecogs.com/png.latex?t">トークンのlogitsを用いて第<img src="https://latex.codecogs.com/png.latex?t+1">トークンの確率分布を予測するためです。提案が正しい場合、次のトークンも同時に得られます。</li>
-</ul></li>
-<li>小さいモデルの提案が正しくない場合はどうするのか？
-<ul>
-<li>回答：提案が誤っている場合は、大きいモデルが最初に誤ったトークンを特定し、正しいトークンに修正します。次のステップでは、修正されたトークンまでを入力として使用します</li>
-</ul></li>
-<li>なぜ毎回2個のみ推測するのか？もっと多くのトークンを一度に推測すればもっと速くなるのでは？
-<ul>
-<li>回答：一度に推測するトークン数を増やすと、提案が誤る可能性も高くなるためです。例えば、一度に100トークン提案し、2個目が誤っていた場合、98個のトークンが無駄になってしまいます。Transformersの実装案では、最初に3個とし、誤りの場合は1個減少し、正解の場合は2個増加させるという方法を採用しています。</li>
-</ul></li>
-</ul>
-</section>
-<section id="コードでの再現" class="level2">
-<h2 class="anchored" data-anchor-id="コードでの再現">コードでの再現</h2>
-<p>これからは上記のことをコードで再現します。今所持しているPCのGPUはRTX4070で、メモリは12GBのみなので、今回はLLaMa3ではなく、4Bitで量子化したQwen2.5の0.5Bと3Bを利用します。</p>
-<p>まずモデルをローディングし、インプットデータを準備します。</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb1-1"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> torch</span>
-<span id="cb1-2"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">from</span> transformers <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> AutoModelForCausalLM, AutoTokenizer</span>
-<span id="cb1-3"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> time</span>
-<span id="cb1-4"></span>
-<span id="cb1-5"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Model Loading and Setup</span></span>
-<span id="cb1-6">small_model_name <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"Qwen/Qwen2.5-0.5B-Instruct-GPTQ-Int4"</span></span>
-<span id="cb1-7">big_model_name <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"Qwen/Qwen2.5-3B-Instruct-GPTQ-Int4"</span></span>
-<span id="cb1-8"></span>
-<span id="cb1-9"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># the tokenizer is the same for both models</span></span>
-<span id="cb1-10">tokenizer <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> AutoTokenizer.from_pretrained(small_model_name)</span>
-<span id="cb1-11"></span>
-<span id="cb1-12">small_model <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> AutoModelForCausalLM.from_pretrained(</span>
-<span id="cb1-13">    small_model_name, torch_dtype<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"auto"</span>, device_map<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"auto"</span></span>
-<span id="cb1-14">).<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">eval</span>()</span>
-<span id="cb1-15"></span>
-<span id="cb1-16">big_model <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> AutoModelForCausalLM.from_pretrained(</span>
-<span id="cb1-17">    big_model_name, torch_dtype<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"auto"</span>, device_map<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"auto"</span></span>
-<span id="cb1-18">).<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">eval</span>()</span></code></pre></div>
-</div>
-<div class="cell" data-execution_count="4">
-<div class="sourceCode cell-code" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb2-1">prompt <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"The quick brown"</span></span>
-<span id="cb2-2">input_ids <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> tokenizer.encode(prompt, return_tensors<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"pt"</span>).to(small_model.device)</span>
-<span id="cb2-3"><span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"Input IDs:"</span>, input_ids[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>].tolist())</span>
-<span id="cb2-4"><span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"Input tokens:"</span>, tokenizer.decode(input_ids[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>], skip_special_tokens<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">True</span>))</span></code></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Input IDs: [785, 3974, 13876]
-Input tokens: The quick brown</code></pre>
-</div>
-</div>
-<p>つぎに、小さいモデルで2個のトークンを生成します。結果として、予想通りに「fox jumps」が新しく生成されました。</p>
-<div class="cell" data-execution_count="6">
-<div class="sourceCode cell-code" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb4-1">candidate_length <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">2</span></span>
-<span id="cb4-2">candidate_ids <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> small_model.generate(input_ids, max_new_tokens<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>candidate_length)</span>
-<span id="cb4-3">candidate_new_ids <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> candidate_ids[:, input_ids.shape[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>] :]  <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># remove the prompt</span></span>
-<span id="cb4-4"></span>
-<span id="cb4-5"></span>
-<span id="cb4-6"><span class="kw" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">def</span> formatted_print(var_name, var):</span>
-<span id="cb4-7">    length_str <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">len</span>(var_name)</span>
-<span id="cb4-8">    <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(<span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>var_name<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">:</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span><span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">str</span>(var)<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">:</span><span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">&gt;</span>{<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">60</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> length_str}<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"</span>)</span>
-<span id="cb4-9"></span>
-<span id="cb4-10"></span>
-<span id="cb4-11">formatted_print(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"Candidate IDs"</span>, candidate_ids[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>].tolist())</span>
-<span id="cb4-12">formatted_print(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"Candidate new IDs"</span>, candidate_new_ids[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>].tolist())</span>
-<span id="cb4-13">formatted_print(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"Candidate tokens"</span>, tokenizer.decode(candidate_ids[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>]))</span>
-<span id="cb4-14">formatted_print(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"Candidate new tokens"</span>, tokenizer.decode(candidate_new_ids[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>]))</span></code></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Candidate IDs:               [785, 3974, 13876, 38835, 34208]
-Candidate new IDs:                             [38835, 34208]
-Candidate tokens:                   The quick brown fox jumps
-Candidate new tokens:                               fox jumps</code></pre>
-</div>
-</div>
-<p>次に、生成されたトークンを大きなモデルで検証します。</p>
-<div class="cell" data-execution_count="9">
-<div class="sourceCode cell-code" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb6-1">big_model_logits <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> big_model(candidate_ids).logits</span>
-<span id="cb6-2">big_model_ids <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> big_model_logits.argmax(dim<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=-</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>)  <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># validation result</span></span>
-<span id="cb6-3"></span>
-<span id="cb6-4">formatted_print(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"verified_ids"</span>, big_model_ids.tolist())</span>
-<span id="cb6-5">formatted_print(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"verified_tokens"</span>, tokenizer.decode(big_model_ids[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>]))</span></code></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>verified_ids:              [[2701, 13876, 38835, 34208, 916]]
-verified_tokens:               following brown fox jumps over</code></pre>
-</div>
-</div>
-<p>得た「following brown fox jumps over」の由来は以下の図でわかります。<br>
-もしインプットが「The」の場合は、7Bのモデルによると次のトークンが「following」である確率が最も高いです。<br>
-もしインプットが「The quick」の場合は、7Bのモデルによると次のトークンが「brown」である確率が最も高いです。<br>
-…</p>
-<p><img src="https://jiang.jp/posts/20250201_speculative_decoding/image-5.png" alt="alt text" height="400"></p>
-<p>最初から一個の予測が間違っていますが、でもこれは大丈夫です。なぜかというと、検証の対象は新しく生成された「fox jumps」だけのためです。<br>
-次のセルに「fox jumps over」がでましたが、「over」はボーナストークンです。</p>
-<div class="cell" data-execution_count="10">
-<div class="sourceCode cell-code" id="cb8" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb8-1">verified_ids <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> big_model_ids[:, <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span>(candidate_length <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>) :]</span>
-<span id="cb8-2">formatted_print(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"verified_ids"</span>, verified_ids[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>].tolist())</span>
-<span id="cb8-3">formatted_print(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"varified_tokens"</span>, tokenizer.decode(verified_ids[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>]))</span></code></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>verified_ids:                             [38835, 34208, 916]
-varified_tokens:                               fox jumps over</code></pre>
-</div>
-</div>
-<p>0.5Bモデルが提案した結果を7Bモデルの検証結果と比較し、全部合っていることがわかりました。次に「fox jump」プラス最後のボーナストークン「over」をインプットに結合して次の生成に回すことができます。</p>
-<div class="cell" data-execution_count="11">
-<div class="sourceCode cell-code" id="cb10" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb10-1"><span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># validation result</span></span>
-<span id="cb10-2">n_matches <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> (</span>
-<span id="cb10-3">    (<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">~</span>(candidate_new_ids <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">==</span> verified_ids[:, :<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>])).cumsum(dim<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=-</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>) <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">&lt;</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span></span>
-<span id="cb10-4">).<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">sum</span>()  <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># fancy way to count the number of matches</span></span>
-<span id="cb10-5">valid_ids <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> verified_ids[:, : n_matches <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>]</span>
-<span id="cb10-6">next_input_ids <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> torch.cat((input_ids, valid_ids), dim<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=-</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>)</span>
-<span id="cb10-7"></span>
-<span id="cb10-8"></span>
-<span id="cb10-9">formatted_print(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"n_matches"</span>, n_matches.item())</span>
-<span id="cb10-10">formatted_print(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"valid_ids"</span>, valid_ids[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>].tolist())</span>
-<span id="cb10-11">formatted_print(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"valid_tokens"</span>, tokenizer.decode(valid_ids[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>]))</span>
-<span id="cb10-12">formatted_print(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"next_input_ids"</span>, next_input_ids[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>].tolist())</span>
-<span id="cb10-13">formatted_print(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"next_input_tokens"</span>, tokenizer.decode(next_input_ids[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>]))</span></code></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>n_matches:                                                  2
-valid_ids:                                [38835, 34208, 916]
-valid_tokens:                                  fox jumps over
-next_input_ids:         [785, 3974, 13876, 38835, 34208, 916]
-next_input_tokens:             The quick brown fox jumps over</code></pre>
-</div>
-</div>
-<p>これで、Speculative Decodingの一個の循環が完了しました。</p>
-</section>
-<section id="実験" class="level2">
-<h2 class="anchored" data-anchor-id="実験">実験</h2>
-<p>コードの分解もしたので、次に実際に実験してみましょう。今回はコード生成の結果を比較してみます。まず、上記のコードを関数として整理します。</p>
-<div class="cell" data-execution_count="86">
-<div class="sourceCode cell-code" id="cb12" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb12-1"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> torch</span>
-<span id="cb12-2"></span>
-<span id="cb12-3"></span>
-<span id="cb12-4"><span class="kw" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">def</span> speculative_decoding(</span>
-<span id="cb12-5">    big_model,</span>
-<span id="cb12-6">    small_model,</span>
-<span id="cb12-7">    input_ids,</span>
-<span id="cb12-8">    max_length<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1000</span>,</span>
-<span id="cb12-9">    candidate_length<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">3</span>,</span>
-<span id="cb12-10">    tokenizer<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">None</span>,</span>
-<span id="cb12-11">):</span>
-<span id="cb12-12">    generated_ids <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> input_ids.clone()</span>
-<span id="cb12-13">    total_generated <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span></span>
-<span id="cb12-14">    accepted <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span></span>
-<span id="cb12-15">    generated_ids_list <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> [(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"prompt"</span>, tokenizer.decode(input_ids[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>]))]</span>
-<span id="cb12-16"></span>
-<span id="cb12-17">    <span class="cf" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">with</span> torch.no_grad():</span>
-<span id="cb12-18">        <span class="cf" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">while</span> generated_ids.shape[<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>] <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">&lt;</span> max_length:</span>
-<span id="cb12-19">            <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># 1. Candidate Generation (Small Model)</span></span>
-<span id="cb12-20">            candidate_input_ids <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> small_model.generate(</span>
-<span id="cb12-21">                generated_ids, max_new_tokens<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>candidate_length, do_sample<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">False</span></span>
-<span id="cb12-22">            )</span>
-<span id="cb12-23"></span>
-<span id="cb12-24">            <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># 2. Big Model Filtering</span></span>
-<span id="cb12-25">            new_logits <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> big_model(candidate_input_ids).logits[</span>
-<span id="cb12-26">                :, <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span>(candidate_length <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>) :</span>
-<span id="cb12-27">            ]  <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># +1 because we have a bonus token</span></span>
-<span id="cb12-28">            selected_tokens <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> new_logits.argmax(dim<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=-</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>)</span>
-<span id="cb12-29">            candidate_new_tokens <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> candidate_input_ids[:, generated_ids.shape[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>] :]</span>
-<span id="cb12-30"></span>
-<span id="cb12-31">            <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Determine the actual number of generated tokens</span></span>
-<span id="cb12-32">            num_generated_tokens <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> candidate_new_tokens.shape[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>]</span>
-<span id="cb12-33"></span>
-<span id="cb12-34">            <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Compare only the relevant portion of selected_tokens</span></span>
-<span id="cb12-35">            n_matches <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> (</span>
-<span id="cb12-36">                (</span>
-<span id="cb12-37">                    <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">~</span>(candidate_new_tokens <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">==</span> selected_tokens[:, :num_generated_tokens])</span>
-<span id="cb12-38">                ).cumsum(dim<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=-</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>)</span>
-<span id="cb12-39">                <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">&lt;</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span></span>
-<span id="cb12-40">            ).<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">sum</span>()</span>
-<span id="cb12-41"></span>
-<span id="cb12-42">            valid_tokens <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> selected_tokens[:, : n_matches <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>]</span>
-<span id="cb12-43">            generated_ids_list.append(</span>
-<span id="cb12-44">                (<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"accepted"</span>, tokenizer.decode(valid_tokens[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>, :n_matches]))</span>
-<span id="cb12-45">            )</span>
-<span id="cb12-46">            generated_ids_list.append(</span>
-<span id="cb12-47">                (<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"generated"</span>, tokenizer.decode(valid_tokens[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>, <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>:]))</span>
-<span id="cb12-48">            )</span>
-<span id="cb12-49">            <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># 3. Update Generated Sequence</span></span>
-<span id="cb12-50">            generated_ids <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> torch.cat((generated_ids, valid_tokens), dim<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=-</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>)</span>
-<span id="cb12-51">            total_generated <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+=</span> candidate_length</span>
-<span id="cb12-52">            accepted <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+=</span> n_matches</span>
-<span id="cb12-53"></span>
-<span id="cb12-54">            <span class="cf" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">if</span> valid_tokens.shape[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>] <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">==</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span> <span class="kw" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">or</span> (</span>
-<span id="cb12-55">                valid_tokens.shape[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>] <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">&gt;</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span> <span class="kw" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">and</span> tokenizer.pad_token_id <span class="kw" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">in</span> valid_tokens</span>
-<span id="cb12-56">            ):</span>
-<span id="cb12-57">                <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># delete tokens from padding</span></span>
-<span id="cb12-58">                idx_pad <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> (generated_ids <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">==</span> tokenizer.pad_token_id).nonzero()</span>
-<span id="cb12-59">                <span class="cf" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">if</span> idx_pad.numel() <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">&gt;</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>:</span>
-<span id="cb12-60">                    generated_ids <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> generated_ids[:, : idx_pad[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>, <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>] <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+</span> <span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1</span>]</span>
-<span id="cb12-61">                <span class="cf" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">break</span></span>
-<span id="cb12-62"></span>
-<span id="cb12-63">    <span class="cf" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">return</span> generated_ids, total_generated, accepted, generated_ids_list</span></code></pre></div>
-</div>
-<p>まず、Speculative Decodingを使わない場合どうなるかを確認します。</p>
-<div class="cell" data-execution_count="82">
-<div class="sourceCode cell-code" id="cb13" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb13-1">prompt <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">'''from typing import List</span></span>
-<span id="cb13-2"></span>
-<span id="cb13-3"></span>
-<span id="cb13-4"><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">def below_zero(operations: List[int]) -&gt; bool:</span></span>
-<span id="cb13-5"><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">    """You're given a list of deposit and withdrawal operations on a bank account that starts with zero balance. Your task is to detect if at any point the balance of account fallls below zero, and at that point function should return True. Otherwise it should return False. &gt;&gt;&gt; below_zero([1, 2, 3]) False &gt;&gt;&gt; below_zero([1, 2, -4, 5]) True"""</span></span>
-<span id="cb13-6"><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">'''</span></span>
-<span id="cb13-7">input_ids <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> tokenizer.encode(prompt, return_tensors<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"pt"</span>).to(big_model.device)</span>
-<span id="cb13-8"></span>
-<span id="cb13-9">start <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> time.time()</span>
-<span id="cb13-10"><span class="cf" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">with</span> torch.no_grad():</span>
-<span id="cb13-11">    big_model_generated_ids <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> big_model.generate(</span>
-<span id="cb13-12">        input_ids.clone(), max_length<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1000</span>, do_sample<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="va" style="color: #111111;
-background-color: null;
-font-style: inherit;">False</span></span>
-<span id="cb13-13">    )</span>
-<span id="cb13-14">cost <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> time.time() <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> start</span>
-<span id="cb13-15"></span>
-<span id="cb13-16"><span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"Time cost:"</span>, <span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>cost<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">:.2f}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">s"</span>)</span>
-<span id="cb13-17"><span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"Generated code:"</span>)</span>
-<span id="cb13-18"><span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(tokenizer.decode(big_model_generated_ids[<span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">0</span>]))</span></code></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Time cost: 13.21s
-Generated code:
-from typing import List
-
-
-def below_zero(operations: List[int]) -&gt; bool:
-    """You're given a list of deposit and withdrawal operations on a bank account that starts with zero balance. Your task is to detect if at any point the balance of account fallls below zero, and at that point function should return True. Otherwise it should return False. &gt;&gt;&gt; below_zero([1, 2, 3]) False &gt;&gt;&gt; below_zero([1, 2, -4, 5]) True"""
-    balance = 0
-    for operation in operations:
-        balance += operation
-        if balance &lt; 0:
-            return True
-    return False
-
-
-if __name__ == "__main__":
-    print(below_zero([1, 2, 3]))
-    print(below_zero([1, 2, -4, 5]))&lt;|endoftext|&gt;</code></pre>
-</div>
-</div>
-<p>次に、Speculative Decodingを使ってみます。</p>
-<div class="cell" data-execution_count="89">
-<div class="sourceCode cell-code" id="cb15" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb15-1">start <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> time.time()</span>
-<span id="cb15-2">generated_ids, total_generated, accepted, generated_ids_list <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> speculative_decoding(</span>
-<span id="cb15-3">    big_model,</span>
-<span id="cb15-4">    small_model,</span>
-<span id="cb15-5">    input_ids,</span>
-<span id="cb15-6">    max_length<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">1000</span>,</span>
-<span id="cb15-7">    candidate_length<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
-background-color: null;
-font-style: inherit;">3</span>,</span>
-<span id="cb15-8">    tokenizer<span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span>tokenizer,</span>
-<span id="cb15-9">)</span>
-<span id="cb15-10">cost <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> time.time() <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">-</span> start</span>
-<span id="cb15-11"></span>
-<span id="cb15-12"><span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"Total generated tokens:"</span>, total_generated)</span>
-<span id="cb15-13"><span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"Accepted tokens:"</span>, accepted)</span>
-<span id="cb15-14"><span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"Acceptance rate:"</span>, accepted <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">/</span> total_generated)</span>
-<span id="cb15-15"><span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"Time cost:"</span>, <span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>cost<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">:.2f}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">s"</span>)</span>
-<span id="cb15-16"><span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">print</span>(</span>
-<span id="cb15-17">    <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"Same result generated by big model:"</span>,</span>
-<span id="cb15-18">    (big_model_generated_ids <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">==</span> generated_ids).<span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">all</span>().item(),</span>
-<span id="cb15-19">)</span></code></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Total generated tokens: 63
-Accepted tokens: tensor(51, device='cuda:0')
-Acceptance rate: tensor(0.8095, device='cuda:0')
-Time cost: 8.47s
-Same result generated by big model: True</code></pre>
-</div>
-</div>
-<p>実際にテストしてみると、「Speculative Decoding」を使ってコードを生成する際に、0.5Bモデルが提案したトークンのうち<strong>77%が正しく</strong>、その結果、生成速度が13/8=1.6倍まで<strong>高速化されました</strong>。</p>
-<p>一般的に、コード生成やコード修正などのタスクは、出力のランダム性が低いため、<strong>高いAcceptance Rate（受理率）</strong>が期待できます。そのため、Speculative Decodingは特にこれらのタスクに適しています。 OpenAIの<a href="https://platform.openai.com/docs/guides/predicted-outputs">predicted output</a>機能も、この手法を<strong>利用していると考えられます</strong>。</p>
-<p>実験の最後に、<strong>おまけとして</strong>、生成されたコードのどの部分が0.5Bモデルの提案によるもので、どの部分が7Bモデルの検証結果によるものかを可視化してみましょう。 <strong>緑色の部分が0.5Bモデルの提案、オレンジ色の部分が7Bモデルの検証結果です。</strong></p>
-<div class="cell" data-execution_count="95">
-<details>
-<summary>Click here to show the visualization code</summary>
-<div class="sourceCode cell-code" id="cb17" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb17-1"><span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">from</span> IPython.display <span class="im" style="color: #00769E;
-background-color: null;
-font-style: inherit;">import</span> HTML, display</span>
-<span id="cb17-2"></span>
-<span id="cb17-3">html_output <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"&lt;pre&gt;"</span>  <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Wrap the entire output in &lt;pre&gt; tags</span></span>
-<span id="cb17-4"></span>
-<span id="cb17-5"><span class="cf" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">for</span> <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">type</span>, text <span class="kw" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">in</span> generated_ids_list:</span>
-<span id="cb17-6">    text <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">=</span> text.replace(<span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">" "</span>, <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">" "</span>)  <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Replace spaces with</span></span>
-<span id="cb17-7">    <span class="cf" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">if</span> <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">type</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">==</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"prompt"</span>:</span>
-<span id="cb17-8">        html_output <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+=</span> <span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"&lt;span style='background-color: transparent;'&gt;</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>text<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">&lt;/span&gt;"</span></span>
-<span id="cb17-9">    <span class="cf" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">elif</span> <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">type</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">==</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"accepted"</span>:</span>
-<span id="cb17-10">        html_output <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+=</span> <span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"&lt;span style='background-color: lightgreen;'&gt;</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>text<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">&lt;/span&gt;"</span></span>
-<span id="cb17-11">    <span class="cf" style="color: #003B4F;
-background-color: null;
-font-style: inherit;">elif</span> <span class="bu" style="color: null;
-background-color: null;
-font-style: inherit;">type</span> <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">==</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"generated"</span>:</span>
-<span id="cb17-12">        html_output <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+=</span> <span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">f"&lt;span style='background-color: orange;'&gt;</span><span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">{</span>text<span class="sc" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">}</span><span class="ss" style="color: #20794D;
-background-color: null;
-font-style: inherit;">&lt;/span&gt;"</span></span>
-<span id="cb17-13"></span>
-<span id="cb17-14">html_output <span class="op" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;">+=</span> <span class="st" style="color: #20794D;
-background-color: null;
-font-style: inherit;">"&lt;/pre&gt;"</span>  <span class="co" style="color: #5E5E5E;
-background-color: null;
-font-style: inherit;"># Close the &lt;pre&gt; tag</span></span>
-<span id="cb17-15"></span>
-<span id="cb17-16">display(HTML(html_output))</span></code></pre></div>
-</details>
-<div class="cell-output cell-output-display">
-<pre><span style="background-color: transparent;">from typing import List
-
-
-def below_zero(operations: List[int]) -&gt; bool:
-    """You're given a list of deposit and withdrawal operations on a bank account that starts with zero balance. Your task is to detect if at any point the balance of account fallls below zero, and at that point function should return True. Otherwise it should return False. &gt;&gt;&gt; below_zero([1, 2, 3]) False &gt;&gt;&gt; below_zero([1, 2, -4, 5]) True"""
-</span><span style="background-color: lightgreen;">   </span><span style="background-color: orange;"> balance</span><span style="background-color: lightgreen;"> = 0</span><span style="background-color: orange;">
-</span><span style="background-color: lightgreen;">    for operation</span><span style="background-color: orange;"> in</span><span style="background-color: lightgreen;"> operations:
-       </span><span style="background-color: orange;"> balance</span><span style="background-color: lightgreen;"> += operation
-</span><span style="background-color: orange;">       </span><span style="background-color: lightgreen;"> if balance &lt;</span><span style="background-color: orange;"> </span><span style="background-color: lightgreen;">0:
-           </span><span style="background-color: orange;"> return</span><span style="background-color: lightgreen;"> True
-   </span><span style="background-color: orange;"> return</span><span style="background-color: lightgreen;"> False</span><span style="background-color: orange;">
-
-
-</span><span style="background-color: lightgreen;">if __name</span><span style="background-color: orange;">__</span><span style="background-color: lightgreen;"> ==</span><span style="background-color: orange;"> "__</span><span style="background-color: lightgreen;">main__":
-   </span><span style="background-color: orange;"> print</span><span style="background-color: lightgreen;"></span><span style="background-color: orange;">(b</span><span style="background-color: lightgreen;">elow_zero([</span><span style="background-color: orange;">1</span><span style="background-color: lightgreen;">, 2</span><span style="background-color: orange;">,</span><span style="background-color: lightgreen;"> 3</span><span style="background-color: orange;">]))
-</span><span style="background-color: lightgreen;">   </span><span style="background-color: orange;"> print</span><span style="background-color: lightgreen;">(below_zero</span><span style="background-color: orange;">([</span><span style="background-color: lightgreen;">1, </span><span style="background-color: orange;">2</span><span style="background-color: lightgreen;">, -4</span><span style="background-color: orange;">,</span><span style="background-color: lightgreen;"> 5]))</span><span style="background-color: orange;">&lt;|endoftext|&gt;</span></pre>
-</div>
-</div>
-</section>
-<section id="speculative-decodingを使う際の制限" class="level2">
-<h2 class="anchored" data-anchor-id="speculative-decodingを使う際の制限">Speculative Decodingを使う際の制限</h2>
-<p>Speculative Decodingは生成速度を向上させるための強力な手法ですが、いくつかの制限があります。 まず、提案を検証するためには、小さいモデルと大きいモデルのTokenizerが一緒でないといけません。この点については、Huggingfaceのほうで<a href="https://huggingface.co/blog/universal_assisted_generation">Universal assisted generation</a>を提案しました。つまり、提案したトークンをテキストに変換した後、また大きいモデルのTokenizerにトークンを変換することで、この問題を解決できます。 次に、Speculative Decodingが役に立つ前提としては、計算する際にメモリのスピードがボトルネックになることが必要です。言い換えると、バッチサイズを上げる場合は、メモリスピードより計算スピードがボトルネックになるため、あまりこの手法は効果がありません。</p>
-</section>
-<section id="まとめ" class="level2">
-<h2 class="anchored" data-anchor-id="まとめ">まとめ</h2>
-<p>本文では、Speculative Decodingの仕組みと実装方法について解説しました。この手法は、小さいモデルで提案したトークンを大きいモデルで検証することで、生成速度を向上させることができます。また、実験結果からも、この手法が生成タスクにおいて有効であることがわかりました。最後に、Speculative Decodingを使う際の制限についても触れました。</p>
-</section>
-<section id="参考文献" class="level2">
-<h2 class="anchored" data-anchor-id="参考文献">参考文献</h2>
-<ol type="1">
-<li><a href="https://huggingface.co/blog/assisted-generation">Assisted Generation: a new direction toward low-latency text generation</a></li>
-<li><a href="https://github.com/huggingface/transformers/blob/d7188ba600e36d3fd191b12e19f1b3bb81a8404f/src/transformers/generation/utils.py#L1880">Transformers <code>generate</code> code</a></li>
-<li><a href="https://x.com/karpathy/status/1697318534555336961">Karpathy’s X post on speculative decoding</a></li>
-<li><a href="https://philkrav.com/posts/speculative/">Philkrav’s blog about speculative decoding</a></li>
-</ol>
-
-
-</section>
-
- ]]></description>
-  <category>NLP</category>
-  <category>LLM</category>
-  <guid>https://jiang.jp/posts/20250201_speculative_decoding/index.html</guid>
-  <pubDate>Thu, 22 Feb 2024 15:00:00 GMT</pubDate>
 </item>
 <item>
   <title>LLM版のPyTorchーDSPyの紹介</title>

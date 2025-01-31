@@ -6,7 +6,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="dcterms.date" content="2024-02-23">
+<meta name="dcterms.date" content="2025-01-29">
 <meta name="description" content="LLMの推論速度を劇的に加速するSpeculative Decoding技術を解説。Google DeepMindとUC Berkeley共同開発、精度を落とさず推論速度を2倍に。仕組み、従来手法との違い、ビジネス応用、コード例、実験結果、制限事項まで網羅的に解説。NLP、LLM技術者必見の推論高速化の決定版。">
 
 <title>blog - LLMの推論速度を劇的に加速する方法 Speculative Decoding の解説</title>
@@ -186,7 +186,7 @@ gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">February 23, 2024</p>
+      <p class="date">January 29, 2025</p>
     </div>
   </div>
   
@@ -270,25 +270,25 @@ gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
 <span id="cb1-3"><a href="#cb1-3"></a><span class="im">import</span> time</span>
 <span id="cb1-4"><a href="#cb1-4"></a></span>
 <span id="cb1-5"><a href="#cb1-5"></a><span class="co"># Model Loading and Setup</span></span>
-<span id="cb1-6"><a href="#cb1-6"></a>small_model_name <span class="op">=</span> <span class="st">"Qwen/Qwen2.5-0.5B-Instruct-GPTQ-Int4"</span></span>
-<span id="cb1-7"><a href="#cb1-7"></a>big_model_name <span class="op">=</span> <span class="st">"Qwen/Qwen2.5-3B-Instruct-GPTQ-Int4"</span></span>
+<span id="cb1-6"><a href="#cb1-6"></a>small_model_name <span class="op">=</span> <span class="st">'Qwen/Qwen2.5-0.5B-Instruct-GPTQ-Int4'</span></span>
+<span id="cb1-7"><a href="#cb1-7"></a>big_model_name <span class="op">=</span> <span class="st">'Qwen/Qwen2.5-3B-Instruct-GPTQ-Int4'</span></span>
 <span id="cb1-8"><a href="#cb1-8"></a></span>
 <span id="cb1-9"><a href="#cb1-9"></a><span class="co"># the tokenizer is the same for both models</span></span>
 <span id="cb1-10"><a href="#cb1-10"></a>tokenizer <span class="op">=</span> AutoTokenizer.from_pretrained(small_model_name)</span>
 <span id="cb1-11"><a href="#cb1-11"></a></span>
 <span id="cb1-12"><a href="#cb1-12"></a>small_model <span class="op">=</span> AutoModelForCausalLM.from_pretrained(</span>
-<span id="cb1-13"><a href="#cb1-13"></a>    small_model_name, torch_dtype<span class="op">=</span><span class="st">"auto"</span>, device_map<span class="op">=</span><span class="st">"auto"</span></span>
+<span id="cb1-13"><a href="#cb1-13"></a>    small_model_name, torch_dtype<span class="op">=</span><span class="st">'auto'</span>, device_map<span class="op">=</span><span class="st">'auto'</span></span>
 <span id="cb1-14"><a href="#cb1-14"></a>).<span class="bu">eval</span>()</span>
 <span id="cb1-15"><a href="#cb1-15"></a></span>
 <span id="cb1-16"><a href="#cb1-16"></a>big_model <span class="op">=</span> AutoModelForCausalLM.from_pretrained(</span>
-<span id="cb1-17"><a href="#cb1-17"></a>    big_model_name, torch_dtype<span class="op">=</span><span class="st">"auto"</span>, device_map<span class="op">=</span><span class="st">"auto"</span></span>
+<span id="cb1-17"><a href="#cb1-17"></a>    big_model_name, torch_dtype<span class="op">=</span><span class="st">'auto'</span>, device_map<span class="op">=</span><span class="st">'auto'</span></span>
 <span id="cb1-18"><a href="#cb1-18"></a>).<span class="bu">eval</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <div class="cell" data-execution_count="4">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1"></a>prompt <span class="op">=</span> <span class="st">"The quick brown"</span></span>
-<span id="cb2-2"><a href="#cb2-2"></a>input_ids <span class="op">=</span> tokenizer.encode(prompt, return_tensors<span class="op">=</span><span class="st">"pt"</span>).to(small_model.device)</span>
-<span id="cb2-3"><a href="#cb2-3"></a><span class="bu">print</span>(<span class="st">"Input IDs:"</span>, input_ids[<span class="dv">0</span>].tolist())</span>
-<span id="cb2-4"><a href="#cb2-4"></a><span class="bu">print</span>(<span class="st">"Input tokens:"</span>, tokenizer.decode(input_ids[<span class="dv">0</span>], skip_special_tokens<span class="op">=</span><span class="va">True</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1"></a>prompt <span class="op">=</span> <span class="st">'The quick brown'</span></span>
+<span id="cb2-2"><a href="#cb2-2"></a>input_ids <span class="op">=</span> tokenizer.encode(prompt, return_tensors<span class="op">=</span><span class="st">'pt'</span>).to(small_model.device)</span>
+<span id="cb2-3"><a href="#cb2-3"></a><span class="bu">print</span>(<span class="st">'Input IDs:'</span>, input_ids[<span class="dv">0</span>].tolist())</span>
+<span id="cb2-4"><a href="#cb2-4"></a><span class="bu">print</span>(<span class="st">'Input tokens:'</span>, tokenizer.decode(input_ids[<span class="dv">0</span>], skip_special_tokens<span class="op">=</span><span class="va">True</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Input IDs: [785, 3974, 13876]
 Input tokens: The quick brown</code></pre>
@@ -303,13 +303,13 @@ Input tokens: The quick brown</code></pre>
 <span id="cb4-5"><a href="#cb4-5"></a></span>
 <span id="cb4-6"><a href="#cb4-6"></a><span class="kw">def</span> formatted_print(var_name, var):</span>
 <span id="cb4-7"><a href="#cb4-7"></a>    length_str <span class="op">=</span> <span class="bu">len</span>(var_name)</span>
-<span id="cb4-8"><a href="#cb4-8"></a>    <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>var_name<span class="sc">}</span><span class="ss">:</span><span class="sc">{</span><span class="bu">str</span>(var)<span class="sc">:</span><span class="op">&gt;</span>{<span class="dv">60</span> <span class="op">-</span> length_str}<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb4-8"><a href="#cb4-8"></a>    <span class="bu">print</span>(<span class="ss">f'</span><span class="sc">{</span>var_name<span class="sc">}</span><span class="ss">:</span><span class="sc">{</span><span class="bu">str</span>(var)<span class="sc">:</span><span class="op">&gt;</span>{<span class="dv">60</span> <span class="op">-</span> length_str}<span class="sc">}</span><span class="ss">'</span>)</span>
 <span id="cb4-9"><a href="#cb4-9"></a></span>
 <span id="cb4-10"><a href="#cb4-10"></a></span>
-<span id="cb4-11"><a href="#cb4-11"></a>formatted_print(<span class="st">"Candidate IDs"</span>, candidate_ids[<span class="dv">0</span>].tolist())</span>
-<span id="cb4-12"><a href="#cb4-12"></a>formatted_print(<span class="st">"Candidate new IDs"</span>, candidate_new_ids[<span class="dv">0</span>].tolist())</span>
-<span id="cb4-13"><a href="#cb4-13"></a>formatted_print(<span class="st">"Candidate tokens"</span>, tokenizer.decode(candidate_ids[<span class="dv">0</span>]))</span>
-<span id="cb4-14"><a href="#cb4-14"></a>formatted_print(<span class="st">"Candidate new tokens"</span>, tokenizer.decode(candidate_new_ids[<span class="dv">0</span>]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb4-11"><a href="#cb4-11"></a>formatted_print(<span class="st">'Candidate IDs'</span>, candidate_ids[<span class="dv">0</span>].tolist())</span>
+<span id="cb4-12"><a href="#cb4-12"></a>formatted_print(<span class="st">'Candidate new IDs'</span>, candidate_new_ids[<span class="dv">0</span>].tolist())</span>
+<span id="cb4-13"><a href="#cb4-13"></a>formatted_print(<span class="st">'Candidate tokens'</span>, tokenizer.decode(candidate_ids[<span class="dv">0</span>]))</span>
+<span id="cb4-14"><a href="#cb4-14"></a>formatted_print(<span class="st">'Candidate new tokens'</span>, tokenizer.decode(candidate_new_ids[<span class="dv">0</span>]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Candidate IDs:               [785, 3974, 13876, 38835, 34208]
 Candidate new IDs:                             [38835, 34208]
@@ -322,8 +322,8 @@ Candidate new tokens:                               fox jumps</code></pre>
 <div class="sourceCode cell-code" id="cb6"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1"></a>big_model_logits <span class="op">=</span> big_model(candidate_ids).logits</span>
 <span id="cb6-2"><a href="#cb6-2"></a>big_model_ids <span class="op">=</span> big_model_logits.argmax(dim<span class="op">=-</span><span class="dv">1</span>)  <span class="co"># validation result</span></span>
 <span id="cb6-3"><a href="#cb6-3"></a></span>
-<span id="cb6-4"><a href="#cb6-4"></a>formatted_print(<span class="st">"verified_ids"</span>, big_model_ids.tolist())</span>
-<span id="cb6-5"><a href="#cb6-5"></a>formatted_print(<span class="st">"verified_tokens"</span>, tokenizer.decode(big_model_ids[<span class="dv">0</span>]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb6-4"><a href="#cb6-4"></a>formatted_print(<span class="st">'verified_ids'</span>, big_model_ids.tolist())</span>
+<span id="cb6-5"><a href="#cb6-5"></a>formatted_print(<span class="st">'verified_tokens'</span>, tokenizer.decode(big_model_ids[<span class="dv">0</span>]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>verified_ids:              [[2701, 13876, 38835, 34208, 916]]
 verified_tokens:               following brown fox jumps over</code></pre>
@@ -338,8 +338,8 @@ verified_tokens:               following brown fox jumps over</code></pre>
 次のセルに「fox jumps over」がでましたが、「over」はボーナストークンです。</p>
 <div class="cell" data-execution_count="10">
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1"></a>verified_ids <span class="op">=</span> big_model_ids[:, <span class="op">-</span>(candidate_length <span class="op">+</span> <span class="dv">1</span>) :]</span>
-<span id="cb8-2"><a href="#cb8-2"></a>formatted_print(<span class="st">"verified_ids"</span>, verified_ids[<span class="dv">0</span>].tolist())</span>
-<span id="cb8-3"><a href="#cb8-3"></a>formatted_print(<span class="st">"varified_tokens"</span>, tokenizer.decode(verified_ids[<span class="dv">0</span>]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb8-2"><a href="#cb8-2"></a>formatted_print(<span class="st">'verified_ids'</span>, verified_ids[<span class="dv">0</span>].tolist())</span>
+<span id="cb8-3"><a href="#cb8-3"></a>formatted_print(<span class="st">'varified_tokens'</span>, tokenizer.decode(verified_ids[<span class="dv">0</span>]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>verified_ids:                             [38835, 34208, 916]
 varified_tokens:                               fox jumps over</code></pre>
@@ -355,11 +355,11 @@ varified_tokens:                               fox jumps over</code></pre>
 <span id="cb10-6"><a href="#cb10-6"></a>next_input_ids <span class="op">=</span> torch.cat((input_ids, valid_ids), dim<span class="op">=-</span><span class="dv">1</span>)</span>
 <span id="cb10-7"><a href="#cb10-7"></a></span>
 <span id="cb10-8"><a href="#cb10-8"></a></span>
-<span id="cb10-9"><a href="#cb10-9"></a>formatted_print(<span class="st">"n_matches"</span>, n_matches.item())</span>
-<span id="cb10-10"><a href="#cb10-10"></a>formatted_print(<span class="st">"valid_ids"</span>, valid_ids[<span class="dv">0</span>].tolist())</span>
-<span id="cb10-11"><a href="#cb10-11"></a>formatted_print(<span class="st">"valid_tokens"</span>, tokenizer.decode(valid_ids[<span class="dv">0</span>]))</span>
-<span id="cb10-12"><a href="#cb10-12"></a>formatted_print(<span class="st">"next_input_ids"</span>, next_input_ids[<span class="dv">0</span>].tolist())</span>
-<span id="cb10-13"><a href="#cb10-13"></a>formatted_print(<span class="st">"next_input_tokens"</span>, tokenizer.decode(next_input_ids[<span class="dv">0</span>]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb10-9"><a href="#cb10-9"></a>formatted_print(<span class="st">'n_matches'</span>, n_matches.item())</span>
+<span id="cb10-10"><a href="#cb10-10"></a>formatted_print(<span class="st">'valid_ids'</span>, valid_ids[<span class="dv">0</span>].tolist())</span>
+<span id="cb10-11"><a href="#cb10-11"></a>formatted_print(<span class="st">'valid_tokens'</span>, tokenizer.decode(valid_ids[<span class="dv">0</span>]))</span>
+<span id="cb10-12"><a href="#cb10-12"></a>formatted_print(<span class="st">'next_input_ids'</span>, next_input_ids[<span class="dv">0</span>].tolist())</span>
+<span id="cb10-13"><a href="#cb10-13"></a>formatted_print(<span class="st">'next_input_tokens'</span>, tokenizer.decode(next_input_ids[<span class="dv">0</span>]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>n_matches:                                                  2
 valid_ids:                                [38835, 34208, 916]
@@ -388,7 +388,7 @@ next_input_tokens:             The quick brown fox jumps over</code></pre>
 <span id="cb12-12"><a href="#cb12-12"></a>    generated_ids <span class="op">=</span> input_ids.clone()</span>
 <span id="cb12-13"><a href="#cb12-13"></a>    total_generated <span class="op">=</span> <span class="dv">0</span></span>
 <span id="cb12-14"><a href="#cb12-14"></a>    accepted <span class="op">=</span> <span class="dv">0</span></span>
-<span id="cb12-15"><a href="#cb12-15"></a>    generated_ids_list <span class="op">=</span> [(<span class="st">"prompt"</span>, tokenizer.decode(input_ids[<span class="dv">0</span>]))]</span>
+<span id="cb12-15"><a href="#cb12-15"></a>    generated_ids_list <span class="op">=</span> [(<span class="st">'prompt'</span>, tokenizer.decode(input_ids[<span class="dv">0</span>]))]</span>
 <span id="cb12-16"><a href="#cb12-16"></a></span>
 <span id="cb12-17"><a href="#cb12-17"></a>    <span class="cf">with</span> torch.no_grad():</span>
 <span id="cb12-18"><a href="#cb12-18"></a>        <span class="cf">while</span> generated_ids.shape[<span class="op">-</span><span class="dv">1</span>] <span class="op">&lt;</span> max_length:</span>
@@ -417,10 +417,10 @@ next_input_tokens:             The quick brown fox jumps over</code></pre>
 <span id="cb12-41"><a href="#cb12-41"></a></span>
 <span id="cb12-42"><a href="#cb12-42"></a>            valid_tokens <span class="op">=</span> selected_tokens[:, : n_matches <span class="op">+</span> <span class="dv">1</span>]</span>
 <span id="cb12-43"><a href="#cb12-43"></a>            generated_ids_list.append(</span>
-<span id="cb12-44"><a href="#cb12-44"></a>                (<span class="st">"accepted"</span>, tokenizer.decode(valid_tokens[<span class="dv">0</span>, :n_matches]))</span>
+<span id="cb12-44"><a href="#cb12-44"></a>                (<span class="st">'accepted'</span>, tokenizer.decode(valid_tokens[<span class="dv">0</span>, :n_matches]))</span>
 <span id="cb12-45"><a href="#cb12-45"></a>            )</span>
 <span id="cb12-46"><a href="#cb12-46"></a>            generated_ids_list.append(</span>
-<span id="cb12-47"><a href="#cb12-47"></a>                (<span class="st">"generated"</span>, tokenizer.decode(valid_tokens[<span class="dv">0</span>, <span class="op">-</span><span class="dv">1</span>:]))</span>
+<span id="cb12-47"><a href="#cb12-47"></a>                (<span class="st">'generated'</span>, tokenizer.decode(valid_tokens[<span class="dv">0</span>, <span class="op">-</span><span class="dv">1</span>:]))</span>
 <span id="cb12-48"><a href="#cb12-48"></a>            )</span>
 <span id="cb12-49"><a href="#cb12-49"></a>            <span class="co"># 3. Update Generated Sequence</span></span>
 <span id="cb12-50"><a href="#cb12-50"></a>            generated_ids <span class="op">=</span> torch.cat((generated_ids, valid_tokens), dim<span class="op">=-</span><span class="dv">1</span>)</span>
@@ -446,7 +446,7 @@ next_input_tokens:             The quick brown fox jumps over</code></pre>
 <span id="cb13-4"><a href="#cb13-4"></a><span class="st">def below_zero(operations: List[int]) -&gt; bool:</span></span>
 <span id="cb13-5"><a href="#cb13-5"></a><span class="st">    """You're given a list of deposit and withdrawal operations on a bank account that starts with zero balance. Your task is to detect if at any point the balance of account fallls below zero, and at that point function should return True. Otherwise it should return False. &gt;&gt;&gt; below_zero([1, 2, 3]) False &gt;&gt;&gt; below_zero([1, 2, -4, 5]) True"""</span></span>
 <span id="cb13-6"><a href="#cb13-6"></a><span class="st">'''</span></span>
-<span id="cb13-7"><a href="#cb13-7"></a>input_ids <span class="op">=</span> tokenizer.encode(prompt, return_tensors<span class="op">=</span><span class="st">"pt"</span>).to(big_model.device)</span>
+<span id="cb13-7"><a href="#cb13-7"></a>input_ids <span class="op">=</span> tokenizer.encode(prompt, return_tensors<span class="op">=</span><span class="st">'pt'</span>).to(big_model.device)</span>
 <span id="cb13-8"><a href="#cb13-8"></a></span>
 <span id="cb13-9"><a href="#cb13-9"></a>start <span class="op">=</span> time.time()</span>
 <span id="cb13-10"><a href="#cb13-10"></a><span class="cf">with</span> torch.no_grad():</span>
@@ -455,8 +455,8 @@ next_input_tokens:             The quick brown fox jumps over</code></pre>
 <span id="cb13-13"><a href="#cb13-13"></a>    )</span>
 <span id="cb13-14"><a href="#cb13-14"></a>cost <span class="op">=</span> time.time() <span class="op">-</span> start</span>
 <span id="cb13-15"><a href="#cb13-15"></a></span>
-<span id="cb13-16"><a href="#cb13-16"></a><span class="bu">print</span>(<span class="st">"Time cost:"</span>, <span class="ss">f"</span><span class="sc">{</span>cost<span class="sc">:.2f}</span><span class="ss">s"</span>)</span>
-<span id="cb13-17"><a href="#cb13-17"></a><span class="bu">print</span>(<span class="st">"Generated code:"</span>)</span>
+<span id="cb13-16"><a href="#cb13-16"></a><span class="bu">print</span>(<span class="st">'Time cost:'</span>, <span class="ss">f'</span><span class="sc">{</span>cost<span class="sc">:.2f}</span><span class="ss">s'</span>)</span>
+<span id="cb13-17"><a href="#cb13-17"></a><span class="bu">print</span>(<span class="st">'Generated code:'</span>)</span>
 <span id="cb13-18"><a href="#cb13-18"></a><span class="bu">print</span>(tokenizer.decode(big_model_generated_ids[<span class="dv">0</span>]))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Time cost: 13.21s
@@ -492,12 +492,12 @@ if __name__ == "__main__":
 <span id="cb15-9"><a href="#cb15-9"></a>)</span>
 <span id="cb15-10"><a href="#cb15-10"></a>cost <span class="op">=</span> time.time() <span class="op">-</span> start</span>
 <span id="cb15-11"><a href="#cb15-11"></a></span>
-<span id="cb15-12"><a href="#cb15-12"></a><span class="bu">print</span>(<span class="st">"Total generated tokens:"</span>, total_generated)</span>
-<span id="cb15-13"><a href="#cb15-13"></a><span class="bu">print</span>(<span class="st">"Accepted tokens:"</span>, accepted)</span>
-<span id="cb15-14"><a href="#cb15-14"></a><span class="bu">print</span>(<span class="st">"Acceptance rate:"</span>, accepted <span class="op">/</span> total_generated)</span>
-<span id="cb15-15"><a href="#cb15-15"></a><span class="bu">print</span>(<span class="st">"Time cost:"</span>, <span class="ss">f"</span><span class="sc">{</span>cost<span class="sc">:.2f}</span><span class="ss">s"</span>)</span>
+<span id="cb15-12"><a href="#cb15-12"></a><span class="bu">print</span>(<span class="st">'Total generated tokens:'</span>, total_generated)</span>
+<span id="cb15-13"><a href="#cb15-13"></a><span class="bu">print</span>(<span class="st">'Accepted tokens:'</span>, accepted)</span>
+<span id="cb15-14"><a href="#cb15-14"></a><span class="bu">print</span>(<span class="st">'Acceptance rate:'</span>, accepted <span class="op">/</span> total_generated)</span>
+<span id="cb15-15"><a href="#cb15-15"></a><span class="bu">print</span>(<span class="st">'Time cost:'</span>, <span class="ss">f'</span><span class="sc">{</span>cost<span class="sc">:.2f}</span><span class="ss">s'</span>)</span>
 <span id="cb15-16"><a href="#cb15-16"></a><span class="bu">print</span>(</span>
-<span id="cb15-17"><a href="#cb15-17"></a>    <span class="st">"Same result generated by big model:"</span>,</span>
+<span id="cb15-17"><a href="#cb15-17"></a>    <span class="st">'Same result generated by big model:'</span>,</span>
 <span id="cb15-18"><a href="#cb15-18"></a>    (big_model_generated_ids <span class="op">==</span> generated_ids).<span class="bu">all</span>().item(),</span>
 <span id="cb15-19"><a href="#cb15-19"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
@@ -516,18 +516,18 @@ Same result generated by big model: True</code></pre>
 <summary>Click here to show the visualization code</summary>
 <div class="sourceCode cell-code" id="cb17"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1"></a><span class="im">from</span> IPython.display <span class="im">import</span> HTML, display</span>
 <span id="cb17-2"><a href="#cb17-2"></a></span>
-<span id="cb17-3"><a href="#cb17-3"></a>html_output <span class="op">=</span> <span class="st">"&lt;pre&gt;"</span>  <span class="co"># Wrap the entire output in &lt;pre&gt; tags</span></span>
+<span id="cb17-3"><a href="#cb17-3"></a>html_output <span class="op">=</span> <span class="st">'&lt;pre&gt;'</span>  <span class="co"># Wrap the entire output in &lt;pre&gt; tags</span></span>
 <span id="cb17-4"><a href="#cb17-4"></a></span>
 <span id="cb17-5"><a href="#cb17-5"></a><span class="cf">for</span> <span class="bu">type</span>, text <span class="kw">in</span> generated_ids_list:</span>
-<span id="cb17-6"><a href="#cb17-6"></a>    text <span class="op">=</span> text.replace(<span class="st">" "</span>, <span class="st">" "</span>)  <span class="co"># Replace spaces with</span></span>
-<span id="cb17-7"><a href="#cb17-7"></a>    <span class="cf">if</span> <span class="bu">type</span> <span class="op">==</span> <span class="st">"prompt"</span>:</span>
+<span id="cb17-6"><a href="#cb17-6"></a>    text <span class="op">=</span> text.replace(<span class="st">' '</span>, <span class="st">' '</span>)  <span class="co"># Replace spaces with</span></span>
+<span id="cb17-7"><a href="#cb17-7"></a>    <span class="cf">if</span> <span class="bu">type</span> <span class="op">==</span> <span class="st">'prompt'</span>:</span>
 <span id="cb17-8"><a href="#cb17-8"></a>        html_output <span class="op">+=</span> <span class="ss">f"&lt;span style='background-color: transparent;'&gt;</span><span class="sc">{</span>text<span class="sc">}</span><span class="ss">&lt;/span&gt;"</span></span>
-<span id="cb17-9"><a href="#cb17-9"></a>    <span class="cf">elif</span> <span class="bu">type</span> <span class="op">==</span> <span class="st">"accepted"</span>:</span>
+<span id="cb17-9"><a href="#cb17-9"></a>    <span class="cf">elif</span> <span class="bu">type</span> <span class="op">==</span> <span class="st">'accepted'</span>:</span>
 <span id="cb17-10"><a href="#cb17-10"></a>        html_output <span class="op">+=</span> <span class="ss">f"&lt;span style='background-color: lightgreen;'&gt;</span><span class="sc">{</span>text<span class="sc">}</span><span class="ss">&lt;/span&gt;"</span></span>
-<span id="cb17-11"><a href="#cb17-11"></a>    <span class="cf">elif</span> <span class="bu">type</span> <span class="op">==</span> <span class="st">"generated"</span>:</span>
+<span id="cb17-11"><a href="#cb17-11"></a>    <span class="cf">elif</span> <span class="bu">type</span> <span class="op">==</span> <span class="st">'generated'</span>:</span>
 <span id="cb17-12"><a href="#cb17-12"></a>        html_output <span class="op">+=</span> <span class="ss">f"&lt;span style='background-color: orange;'&gt;</span><span class="sc">{</span>text<span class="sc">}</span><span class="ss">&lt;/span&gt;"</span></span>
 <span id="cb17-13"><a href="#cb17-13"></a></span>
-<span id="cb17-14"><a href="#cb17-14"></a>html_output <span class="op">+=</span> <span class="st">"&lt;/pre&gt;"</span>  <span class="co"># Close the &lt;pre&gt; tag</span></span>
+<span id="cb17-14"><a href="#cb17-14"></a>html_output <span class="op">+=</span> <span class="st">'&lt;/pre&gt;'</span>  <span class="co"># Close the &lt;pre&gt; tag</span></span>
 <span id="cb17-15"><a href="#cb17-15"></a></span>
 <span id="cb17-16"><a href="#cb17-16"></a>display(HTML(html_output))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
