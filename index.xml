@@ -1311,7 +1311,7 @@ font-style: inherit;">;</span></span>
 </item>
 <item>
   <title>LLMの推論速度を劇的に加速する方法 Speculative Decoding の解説</title>
-  <link>https://jiang.jp/posts/20250129_speculative_decoding/index.html</link>
+  <link>https://jiang.jp/posts/20250201_speculative_decoding/index.html</link>
   <description><![CDATA[ 
 
 
@@ -1345,7 +1345,7 @@ font-style: inherit;">;</span></span>
 <h2 class="anchored" data-anchor-id="llmの生成プロセスの説明">LLMの生成プロセスの説明</h2>
 <p>これからコードで「Speculative Decoding」を再現するにあたり、その前に、LLMがどのようにトークンを生成しているかを前置きとして説明します。</p>
 <p>LLMはトークンを生成する際、一つずつ順番に生成します。一つのトークンを生成するプロセスは以下の通りです。</p>
-<p><img src="https://jiang.jp/posts/20250129_speculative_decoding/image-2.png" alt="alt text" height="400"></p>
+<p><img src="https://jiang.jp/posts/20250201_speculative_decoding/image-2.png" alt="alt text" height="400"></p>
 <ol type="1">
 <li><strong>「The quick brown」</strong> の3つのトークンをモデルに入力します。</li>
 <li>モデルは入力トークンに対応する<strong>logits</strong>を出力します。この例では3つのトークンを入力したため、3つのlogitsが出力されます。</li>
@@ -1355,10 +1355,10 @@ font-style: inherit;">;</span></span>
 </ol>
 <p>このプロセスを、必要なトークン数になるまで繰り返すことで、文章を生成することができます。</p>
 <p>ここで重要なポイントは、<strong>LLMが出力するlogitsの数が入力トークン数と同じである</strong>という点です。加えて、<strong>各入力トークンに対応するlogitsは、そのトークンの次のトークンの確率分布を予測するために利用されます。</strong> この特性を利用することで、小さいモデルが提案したトークン列の妥当性を、大きいモデルを使って効率的に検証することができます。</p>
-<p><img src="https://jiang.jp/posts/20250129_speculative_decoding/image-3.png" alt="alt text" height="400"></p>
+<p><img src="https://jiang.jp/posts/20250201_speculative_decoding/image-3.png" alt="alt text" height="400"></p>
 <p>例えば、上の図のように「The quick brown」の3つのトークンを入力として、小さいモデルが「fox jumps」という2つのトークンを提案したとします。この場合、大きいモデルは「The quick brown」を入力とし、3つのlogitsを出力します。これらのlogitsを用いることで、「fox」が「The quick brown」の、そして「jumps」が「The quick brown fox」の次のトークンとして適切かどうかを、一度のフォワードパスで検証できます。さらに、「fox jumps」が正しいと判断された場合、大きいモデルは「jumps」の次のトークンのlogitsも出力していることから、次のトークンの予測も同時に得られます。</p>
 <p>一方、提案が正しくなかった場合、大きいモデルは最初に間違ったトークンを特定し、正しいトークンに修正できます。次のステップでは、修正されたトークンまでを入力として使用します。</p>
-<p><img src="https://jiang.jp/posts/20250129_speculative_decoding/image-4.png" alt="alt text" height="400"></p>
+<p><img src="https://jiang.jp/posts/20250201_speculative_decoding/image-4.png" alt="alt text" height="400"></p>
 <p>例えば、上の図のように小さいモデルの提案が「fox run」で、大きいモデルの出力が「fox jumps over」である場合、「fox」までは正しいが「run」が間違っていると判断できます。この場合、「fox」の次のトークンとして「jumps」を採択します。次のステップでは <strong>「The quick brown fox jumps」</strong> を入力として、再び生成プロセスを続行します。</p>
 <p>仕組みを理解したうえで上の4つの質問を回答することができます。</p>
 <ul>
@@ -1603,7 +1603,7 @@ verified_tokens:               following brown fox jumps over</code></pre>
 もしインプットが「The」の場合は、7Bのモデルによると次のトークンが「following」である確率が最も高いです。<br>
 もしインプットが「The quick」の場合は、7Bのモデルによると次のトークンが「brown」である確率が最も高いです。<br>
 …</p>
-<p><img src="https://jiang.jp/posts/20250129_speculative_decoding/image-5.png" alt="alt text" height="400"></p>
+<p><img src="https://jiang.jp/posts/20250201_speculative_decoding/image-5.png" alt="alt text" height="400"></p>
 <p>最初から一個の予測が間違っていますが、でもこれは大丈夫です。なぜかというと、検証の対象は新しく生成された「fox jumps」だけのためです。<br>
 次のセルに「fox jumps over」がでましたが、「over」はボーナストークンです。</p>
 <div class="cell" data-execution_count="10">
@@ -2278,7 +2278,7 @@ def below_zero(operations: List[int]) -&gt; bool:
  ]]></description>
   <category>NLP</category>
   <category>LLM</category>
-  <guid>https://jiang.jp/posts/20250129_speculative_decoding/index.html</guid>
+  <guid>https://jiang.jp/posts/20250201_speculative_decoding/index.html</guid>
   <pubDate>Thu, 22 Feb 2024 15:00:00 GMT</pubDate>
 </item>
 <item>
