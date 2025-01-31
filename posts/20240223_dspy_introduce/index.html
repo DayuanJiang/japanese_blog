@@ -2,13 +2,13 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.6.40">
+<meta name="generator" content="quarto-1.3.340">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="dcterms.date" content="2024-02-23">
 
-<title>LLM版のPyTorchーDSPyの紹介 – blog</title>
+<title>blog - LLM版のPyTorchーDSPyの紹介</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -23,7 +23,7 @@ ul.task-list li input[type="checkbox"] {
 }
 /* CSS for syntax highlighting */
 pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
 pre > code.sourceCode > span:empty { height: 1.2em; }
 .sourceCode { overflow: visible; }
 code.sourceCode > span { color: inherit; text-decoration: inherit; }
@@ -34,7 +34,7 @@ div.sourceCode { overflow: auto; }
 }
 @media print {
 pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
 }
 pre.numberSource code
   { counter-reset: source-line 0; }
@@ -70,23 +70,17 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="../../site_libs/quarto-html/anchor.min.js"></script>
 <link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-57476271c5f0467c372e20ff5d25630e.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap-edc0777d93aca8f084c81dbc6fa27f8b.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
   "collapse-after": 3,
   "panel-placement": "end",
   "type": "overlay",
-  "limit": 50,
-  "keyboard-shortcut": [
-    "f",
-    "/",
-    "s"
-  ],
-  "show-item-context": false,
+  "limit": 20,
   "language": {
     "search-no-results-text": "No results",
     "search-matching-documents-text": "matching documents",
@@ -95,10 +89,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     "search-more-match-text": "more match in this document",
     "search-more-matches-text": "more matches in this document",
     "search-clear-button-title": "Clear",
-    "search-text-placeholder": "",
     "search-detached-cancel-button-title": "Cancel",
-    "search-submit-button-title": "Submit",
-    "search-label": "Search"
+    "search-submit-button-title": "Submit"
   }
 }</script>
 <script async="" src="https://www.googletagmanager.com/gtag/js?id=G-56TE34D1Z4"></script>
@@ -119,32 +111,32 @@ gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
 
 <div id="quarto-search-results"></div>
   <header id="quarto-header" class="headroom fixed-top">
-    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
       <div class="navbar-container container-fluid">
-      <div class="navbar-brand-container mx-auto">
+      <div class="navbar-brand-container">
     <a class="navbar-brand" href="../../index.html">
     <span class="navbar-title">blog</span>
     </a>
   </div>
             <div id="quarto-search" class="" title="Search"></div>
-          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
   <span class="navbar-toggler-icon"></span>
 </button>
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll ms-auto">
   <li class="nav-item">
-    <a class="nav-link" href="../../about.html"> 
-<span class="menu-text">About</span></a>
+    <a class="nav-link" href="../../about.html" rel="" target="">
+ <span class="menu-text">About</span></a>
   </li>  
   <li class="nav-item compact">
-    <a class="nav-link" href="http://www.linkedin.com/in/jiang-dayuan"> <i class="bi bi-linkedin" role="img">
+    <a class="nav-link" href="http://www.linkedin.com/in/jiang-dayuan" rel="" target=""><i class="bi bi-linkedin" role="img">
 </i> 
-<span class="menu-text"></span></a>
+ <span class="menu-text"></span></a>
   </li>  
 </ul>
-          </div> <!-- /navcollapse -->
             <div class="quarto-navbar-tools">
 </div>
+          </div> <!-- /navcollapse -->
       </div> <!-- /container-fluid -->
     </nav>
 </header>
@@ -197,9 +189,7 @@ gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
   </div>
   
 
-
 </header>
-
 
 <section id="dspyとは" class="level2">
 <h2 class="anchored" data-anchor-id="dspyとは">DSPyとは</h2>
@@ -209,7 +199,7 @@ gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
 <section id="タスクの説明" class="level2">
 <h2 class="anchored" data-anchor-id="タスクの説明">タスクの説明</h2>
 <p>今回の説明に使うデータはアマゾンのレビューのポジネガ分析データです。 ポジネガのラベルは数字で表現され、0はポジティブ、1はニュートラル、2はネガティブです。 学習データとテストデータをそれぞれ50件ずつサンプリングしました。</p>
-<div id="cell-2" class="cell" data-execution_count="49">
+<div class="cell" data-execution_count="49">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1"></a><span class="im">import</span> datasets</span>
 <span id="cb1-2"><a href="#cb1-2"></a><span class="im">import</span> warnings</span>
 <span id="cb1-3"><a href="#cb1-3"></a>warnings.filterwarnings(<span class="st">'ignore'</span>)</span>
@@ -219,8 +209,8 @@ gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
 <span id="cb1-7"><a href="#cb1-7"></a>test_set <span class="op">=</span> dataset[<span class="st">"test"</span>].shuffle(seed<span class="op">=</span><span class="dv">50</span>).select(<span class="bu">range</span>(<span class="dv">50</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>サンプルの例は以下です。</p>
-<div id="cell-4" class="cell" data-execution_count="18">
-<details class="code-fold">
+<div class="cell" data-execution_count="18">
+<details>
 <summary>Show the code</summary>
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1"></a><span class="kw">def</span> print_with_newline(text, max_length<span class="op">=</span><span class="dv">40</span>):</span>
 <span id="cb2-2"><a href="#cb2-2"></a>    <span class="cf">if</span> <span class="bu">len</span>(text) <span class="op">&lt;=</span> max_length:</span>
@@ -259,13 +249,13 @@ gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
 <section id="llmを使う" class="level2">
 <h2 class="anchored" data-anchor-id="llmを使う">LLMを使う</h2>
 <p>DSPyでLLMを利用する際に以下のようにLLMを定義する必要があります。今回例としてはOpenAIのモデルを利用していますが、DSPyはローカルのモデルもサポートしています。</p>
-<div id="cell-7" class="cell" data-execution_count="20">
+<div class="cell" data-execution_count="20">
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1"></a><span class="im">import</span> dspy</span>
 <span id="cb5-2"><a href="#cb5-2"></a>gpt3_turbo <span class="op">=</span> dspy.OpenAI(model<span class="op">=</span><span class="st">'gpt-3.5-turbo-1106'</span>, max_tokens<span class="op">=</span><span class="dv">300</span>)</span>
 <span id="cb5-3"><a href="#cb5-3"></a>dspy.configure(lm<span class="op">=</span>gpt3_turbo)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>おすすめの使い方ではないですが、定義した後、このように直接LLMを使うことができます。</p>
-<div id="cell-9" class="cell" data-execution_count="35">
+<div class="cell" data-execution_count="35">
 <div class="sourceCode cell-code" id="cb6"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1"></a>gpt3_turbo(<span class="st">"hello! this is a raw prompt to GPT-3.5"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="35">
 <pre><code>['Hello! How can I assist you today?']</code></pre>
@@ -276,7 +266,7 @@ gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
 <h2 class="anchored" data-anchor-id="signatureを使う">Signatureを使う</h2>
 <p>SignatureはDSPyの中で独自に使っている概念です。モジュールのインプット、アウトプット、機能を定義するために、Signitureが使われています。</p>
 <p>例えば、感情分析する場合は以下のSignatureで定義することができます。</p>
-<div id="cell-11" class="cell" data-execution_count="33">
+<div class="cell" data-execution_count="33">
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1"></a>sentiment_classifier <span class="op">=</span> dspy.Predict(<span class="st">'sentence -&gt; sentiment'</span>)</span>
 <span id="cb8-2"><a href="#cb8-2"></a>sentiment_classifier(sentence<span class="op">=</span><span class="st">"博多ラーメンがめちゃくちゃうまい"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="33">
@@ -286,7 +276,7 @@ gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
 </div>
 </div>
 <p>以下は実際にGPTに送ったPromptです。</p>
-<div id="cell-13" class="cell" data-execution_count="34">
+<div class="cell" data-execution_count="34">
 <div class="sourceCode cell-code" id="cb10"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1"></a>gpt3_turbo.inspect_history(n<span class="op">=</span><span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>
@@ -313,7 +303,7 @@ Sentiment: Positive
 </div>
 <p>Signature<code>"sentence -&gt; sentiment"</code>の中に、前の部分はタスクのインプット、後半の部分はタスクのアウトプットです。このような<code>"input -&gt; output"</code>で書かれるSignitureは<code>Inline Signature</code>と呼ばれます。</p>
 <p>でも、今回のケースでは、この<code>Inline Signature</code>だけで解決できません。なぜなら、アウトプットが数字であるため、それを定義する必要があるからです。そのために、Signitureを<code>Class</code>として定義する必要があります。また<code>Class</code>でSignitureを定義する際に、モジュールのインプット、アウトプットだけでなく、モジュールの機能もDocstringで定義する必要があります。</p>
-<div id="cell-15" class="cell" data-execution_count="38">
+<div class="cell" data-execution_count="38">
 <div class="sourceCode cell-code" id="cb12"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1"></a><span class="kw">class</span> BasicSentimentClassifier(dspy.Signature):</span>
 <span id="cb12-2"><a href="#cb12-2"></a>    <span class="co">"""アマゾンの商品レビューに対する感情分析を行い、数字の{0, 1, 2} をアウトプットする。 0: ポジティブ, 1: ニュートラル, 2: ネガティブ"""</span></span>
 <span id="cb12-3"><a href="#cb12-3"></a></span>
@@ -330,7 +320,7 @@ Sentiment: Positive
 </div>
 </div>
 <p>これで結果が思う通りに数字で出力されました。ClassでSignitureを定義した実際のPromptも確認しましょう。</p>
-<div id="cell-17" class="cell" data-execution_count="39">
+<div class="cell" data-execution_count="39">
 <div class="sourceCode cell-code" id="cb14"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1"></a>gpt3_turbo.inspect_history(n<span class="op">=</span><span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>
@@ -359,7 +349,7 @@ Answer: 0
 <section id="moduleを利用する" class="level2">
 <h2 class="anchored" data-anchor-id="moduleを利用する">Moduleを利用する</h2>
 <p>ModuleもDSPyの中にある固有概念です。各モジュールがPyTorchのNNモジュールと同じように学習できるパラメータを持っています。現時点ではモジュールの種類は6つのみです。</p>
-<table class="caption-top table">
+<table class="table">
 <colgroup>
 <col style="width: 50%">
 <col style="width: 50%">
@@ -398,7 +388,7 @@ Answer: 0
 </tbody>
 </table>
 <p>前述した感情分析のプログラムを<code>ChainOfThought</code>で書き換えば以下のようになります。</p>
-<div id="cell-19" class="cell" data-execution_count="42">
+<div class="cell" data-execution_count="42">
 <div class="sourceCode cell-code" id="cb16"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1"></a>classify_cot<span class="op">=</span> dspy.ChainOfThought(BasicSentimentClassifier)</span>
 <span id="cb16-2"><a href="#cb16-2"></a>classify_cot(text<span class="op">=</span><span class="st">"博多ラーメンがめちゃくちゃうまいです。今回は一風堂を買いました"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="42">
@@ -409,7 +399,7 @@ Answer: 0
 </div>
 </div>
 <p>これでGPTは直接回答を出すではなく、一回思考したうえで回答することができます。 実際のPromptはどうなっているかを見てみましょう。</p>
-<div id="cell-21" class="cell" data-execution_count="43">
+<div class="cell" data-execution_count="43">
 <div class="sourceCode cell-code" id="cb18"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1"></a>gpt3_turbo.inspect_history(n<span class="op">=</span><span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>
@@ -443,7 +433,7 @@ Answer: 0
 <p>いよいよ一番重要な部分に来ました。DSPyの一番独特のところは、Optimizerを利用してPromptを最適化できることです。</p>
 <p>Optimizerを利用する前にいくつかの準備が必要です。</p>
 <p>まず、プログラムを<code>dspy.Modeule</code>の形式にする必要があります。(かなりPyTorchと似ていますね)</p>
-<div id="cell-24" class="cell" data-execution_count="52">
+<div class="cell" data-execution_count="52">
 <div class="sourceCode cell-code" id="cb20"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1"></a><span class="kw">class</span> CoTSentimentClassifier(dspy.Module):</span>
 <span id="cb20-2"><a href="#cb20-2"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>):</span>
 <span id="cb20-3"><a href="#cb20-3"></a>        <span class="bu">super</span>().<span class="fu">__init__</span>()</span>
@@ -453,7 +443,7 @@ Answer: 0
 <span id="cb20-7"><a href="#cb20-7"></a>        <span class="cf">return</span> <span class="va">self</span>.generate_answer(text<span class="op">=</span>text)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>次に、データを用意する必要があります。また、データを<code>dspy.Example</code>に変換する必要があります。</p>
-<div id="cell-26" class="cell" data-execution_count="50">
+<div class="cell" data-execution_count="50">
 <div class="sourceCode cell-code" id="cb21"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1"></a>train_set <span class="op">=</span> [</span>
 <span id="cb21-2"><a href="#cb21-2"></a>    dspy.Example(text<span class="op">=</span>example[<span class="st">"text"</span>], answer<span class="op">=</span><span class="bu">str</span>(example[<span class="st">"label"</span>])).with_inputs(<span class="st">"text"</span>)</span>
 <span id="cb21-3"><a href="#cb21-3"></a>    <span class="cf">for</span> example <span class="kw">in</span> train_set</span>
@@ -471,7 +461,7 @@ Answer: 0
 <li><code>num_threads</code>: 学習する際の並列処理のスレッド数。</li>
 </ol>
 <p>定義した後、最適化したいプログラムと学習データを渡せばコンパイルできます。</p>
-<div id="cell-28" class="cell">
+<div class="cell">
 <div class="sourceCode cell-code" id="cb22"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1"></a><span class="im">from</span> dspy.teleprompt <span class="im">import</span> BootstrapFewShotWithRandomSearch</span>
 <span id="cb22-2"><a href="#cb22-2"></a>teleprompter <span class="op">=</span> BootstrapFewShotWithRandomSearch(</span>
 <span id="cb22-3"><a href="#cb22-3"></a>    metric<span class="op">=</span>dspy.evaluate.answer_exact_match,</span>
@@ -482,7 +472,7 @@ Answer: 0
 <span id="cb22-8"><a href="#cb22-8"></a>compiled_bsfswrs <span class="op">=</span> teleprompter.<span class="bu">compile</span>(CoTSentimentClassifier(), trainset<span class="op">=</span>train_set)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>Compileしたプログラムの動きを見てみましょう。</p>
-<div id="cell-30" class="cell" data-execution_count="56">
+<div class="cell" data-execution_count="56">
 <div class="sourceCode cell-code" id="cb23"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1"></a>compiled_bsfswrs(<span class="st">"博多ラーメンがめちゃくちゃうまいです。今回は一風堂を買いました"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="56">
 <pre><code>Prediction(
@@ -491,7 +481,7 @@ Answer: 0
 )</code></pre>
 </div>
 </div>
-<div id="cell-31" class="cell" data-execution_count="57">
+<div class="cell" data-execution_count="57">
 <div class="sourceCode cell-code" id="cb25"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1"></a>gpt3_turbo.inspect_history(n<span class="op">=</span><span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>
@@ -566,7 +556,7 @@ Answer: 0
 </div>
 </div>
 <p>APIの履歴から見ると、コンパイルした後にラベル付きのデータ5つ、また、思考過程を見せた例5つをPromptに追加したことがわかります。 これはどれぐらい有効かをテストして比較してみましょう。</p>
-<div id="cell-33" class="cell" data-execution_count="54">
+<div class="cell" data-execution_count="54">
 <div class="sourceCode cell-code" id="cb27"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1"></a><span class="im">from</span> dspy.evaluate.evaluate <span class="im">import</span> Evaluate</span>
 <span id="cb27-2"><a href="#cb27-2"></a></span>
 <span id="cb27-3"><a href="#cb27-3"></a><span class="co"># Set up the `evaluate_on_hotpotqa` function. We'll use this many times below.</span></span>
@@ -574,27 +564,20 @@ Answer: 0
 <span id="cb27-5"><a href="#cb27-5"></a>    devset<span class="op">=</span>test_set, num_threads<span class="op">=</span><span class="dv">5</span>, display_progress<span class="op">=</span><span class="va">True</span>, display_table<span class="op">=</span><span class="dv">5</span></span>
 <span id="cb27-6"><a href="#cb27-6"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div id="cell-34" class="cell" data-execution_count="64">
+<div class="cell" data-execution_count="64">
 <div class="sourceCode cell-code" id="cb28"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1"></a>accuracy_original <span class="op">=</span> evaluate(CoTSentimentClassifier(), metric<span class="op">=</span>dspy.evaluate.answer_exact_match, display_table<span class="op">=</span><span class="dv">0</span>)</span>
 <span id="cb28-2"><a href="#cb28-2"></a>accuracy_compiled <span class="op">=</span> evaluate(compiled_bsfswrs, metric<span class="op">=</span>dspy.evaluate.answer_exact_match, display_table<span class="op">=</span><span class="dv">0</span>)</span>
 <span id="cb28-3"><a href="#cb28-3"></a><span class="bu">print</span>(<span class="ss">f"Original accuracy: </span><span class="sc">{</span>accuracy_original<span class="sc">}</span><span class="ss">"</span>)</span>
 <span id="cb28-4"><a href="#cb28-4"></a><span class="bu">print</span>(<span class="ss">f"Compiled accuracy: </span><span class="sc">{</span>accuracy_compiled<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stderr">
-<pre><code>Average Metric: 27 / 50  (54.0): 100%|██████████| 50/50 [00:00&lt;00:00, 2902.27it/s]</code></pre>
+<pre><code>Average Metric: 27 / 50  (54.0): 100%|██████████| 50/50 [00:00&lt;00:00, 2902.27it/s]
+Average Metric: 47 / 50  (94.0): 100%|██████████| 50/50 [00:00&lt;00:00, 3205.18it/s]</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Average Metric: 27 / 50  (54.0%)</code></pre>
-</div>
-<div class="cell-output cell-output-stderr">
-<pre><code>Average Metric: 47 / 50  (94.0): 100%|██████████| 50/50 [00:00&lt;00:00, 3205.18it/s]</code></pre>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>Average Metric: 47 / 50  (94.0%)
+<pre><code>Average Metric: 27 / 50  (54.0%)
+Average Metric: 47 / 50  (94.0%)
 Original accuracy: 54.0
 Compiled accuracy: 94.0</code></pre>
-</div>
-<div class="cell-output cell-output-stderr">
-<pre><code></code></pre>
 </div>
 </div>
 <p>簡単にコンパイルすることで、精度は54%から94%まで上昇し、50%アップできるのは素晴らしいです。</p>
@@ -656,7 +639,18 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     }
     return false;
   }
-  const onCopySuccess = function(e) {
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
     // button target
     const button = e.trigger;
     // don't keep focus
@@ -688,48 +682,11 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     }, 1000);
     // clear code selection
     e.clearSelection();
-  }
-  const getTextToCopy = function(trigger) {
-      const codeEl = trigger.previousElementSibling.cloneNode(true);
-      for (const childEl of codeEl.children) {
-        if (isCodeAnnotation(childEl)) {
-          childEl.remove();
-        }
-      }
-      return codeEl.innerText;
-  }
-  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
-    text: getTextToCopy
   });
-  clipboard.on('success', onCopySuccess);
-  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
-    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
-      text: getTextToCopy,
-      container: window.document.getElementById('quarto-embedded-source-code-modal')
-    });
-    clipboardModal.on('success', onCopySuccess);
-  }
-    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
-    var mailtoRegex = new RegExp(/^mailto:/);
-      var filterRegex = new RegExp("https:\/\/jiang\.jp");
-    var isInternal = (href) => {
-        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
-    }
-    // Inspect non-navigation links and adorn them if external
- 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
-    for (var i=0; i<links.length; i++) {
-      const link = links[i];
-      if (!isInternal(link.href)) {
-        // undo the damage that might have been done by quarto-nav.js in the case of
-        // links that we want to consider external
-        if (link.dataset.originalHref !== undefined) {
-          link.href = link.dataset.originalHref;
-        }
-      }
-    }
-  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+  function tippyHover(el, contentFn) {
     const config = {
       allowHTML: true,
+      content: contentFn,
       maxWidth: 500,
       delay: 100,
       arrow: false,
@@ -739,17 +696,8 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       interactive: true,
       interactiveBorder: 10,
       theme: 'quarto',
-      placement: 'bottom-start',
+      placement: 'bottom-start'
     };
-    if (contentFn) {
-      config.content = contentFn;
-    }
-    if (onTriggerFn) {
-      config.onTrigger = onTriggerFn;
-    }
-    if (onUntriggerFn) {
-      config.onUntrigger = onUntriggerFn;
-    }
     window.tippy(el, config); 
   }
   const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
@@ -761,129 +709,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       try { href = new URL(href).hash; } catch {}
       const id = href.replace(/^#\/?/, "");
       const note = window.document.getElementById(id);
-      if (note) {
-        return note.innerHTML;
-      } else {
-        return "";
-      }
-    });
-  }
-  const xrefs = window.document.querySelectorAll('a.quarto-xref');
-  const processXRef = (id, note) => {
-    // Strip column container classes
-    const stripColumnClz = (el) => {
-      el.classList.remove("page-full", "page-columns");
-      if (el.children) {
-        for (const child of el.children) {
-          stripColumnClz(child);
-        }
-      }
-    }
-    stripColumnClz(note)
-    if (id === null || id.startsWith('sec-')) {
-      // Special case sections, only their first couple elements
-      const container = document.createElement("div");
-      if (note.children && note.children.length > 2) {
-        container.appendChild(note.children[0].cloneNode(true));
-        for (let i = 1; i < note.children.length; i++) {
-          const child = note.children[i];
-          if (child.tagName === "P" && child.innerText === "") {
-            continue;
-          } else {
-            container.appendChild(child.cloneNode(true));
-            break;
-          }
-        }
-        if (window.Quarto?.typesetMath) {
-          window.Quarto.typesetMath(container);
-        }
-        return container.innerHTML
-      } else {
-        if (window.Quarto?.typesetMath) {
-          window.Quarto.typesetMath(note);
-        }
-        return note.innerHTML;
-      }
-    } else {
-      // Remove any anchor links if they are present
-      const anchorLink = note.querySelector('a.anchorjs-link');
-      if (anchorLink) {
-        anchorLink.remove();
-      }
-      if (window.Quarto?.typesetMath) {
-        window.Quarto.typesetMath(note);
-      }
-      if (note.classList.contains("callout")) {
-        return note.outerHTML;
-      } else {
-        return note.innerHTML;
-      }
-    }
-  }
-  for (var i=0; i<xrefs.length; i++) {
-    const xref = xrefs[i];
-    tippyHover(xref, undefined, function(instance) {
-      instance.disable();
-      let url = xref.getAttribute('href');
-      let hash = undefined; 
-      if (url.startsWith('#')) {
-        hash = url;
-      } else {
-        try { hash = new URL(url).hash; } catch {}
-      }
-      if (hash) {
-        const id = hash.replace(/^#\/?/, "");
-        const note = window.document.getElementById(id);
-        if (note !== null) {
-          try {
-            const html = processXRef(id, note.cloneNode(true));
-            instance.setContent(html);
-          } finally {
-            instance.enable();
-            instance.show();
-          }
-        } else {
-          // See if we can fetch this
-          fetch(url.split('#')[0])
-          .then(res => res.text())
-          .then(html => {
-            const parser = new DOMParser();
-            const htmlDoc = parser.parseFromString(html, "text/html");
-            const note = htmlDoc.getElementById(id);
-            if (note !== null) {
-              const html = processXRef(id, note);
-              instance.setContent(html);
-            } 
-          }).finally(() => {
-            instance.enable();
-            instance.show();
-          });
-        }
-      } else {
-        // See if we can fetch a full url (with no hash to target)
-        // This is a special case and we should probably do some content thinning / targeting
-        fetch(url)
-        .then(res => res.text())
-        .then(html => {
-          const parser = new DOMParser();
-          const htmlDoc = parser.parseFromString(html, "text/html");
-          const note = htmlDoc.querySelector('main.content');
-          if (note !== null) {
-            // This should only happen for chapter cross references
-            // (since there is no id in the URL)
-            // remove the first header
-            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
-              note.children[0].remove();
-            }
-            const html = processXRef(null, note);
-            instance.setContent(html);
-          } 
-        }).finally(() => {
-          instance.enable();
-          instance.show();
-        });
-      }
-    }, function(instance) {
+      return note.innerHTML;
     });
   }
       let selectedAnnoteEl;
@@ -927,7 +753,6 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
             }
             div.style.top = top - 2 + "px";
             div.style.height = height + 4 + "px";
-            div.style.left = 0;
             let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
             if (gutterDiv === null) {
               gutterDiv = window.document.createElement("div");
@@ -953,32 +778,6 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
         });
         selectedAnnoteEl = undefined;
       };
-        // Handle positioning of the toggle
-    window.addEventListener(
-      "resize",
-      throttle(() => {
-        elRect = undefined;
-        if (selectedAnnoteEl) {
-          selectCodeLines(selectedAnnoteEl);
-        }
-      }, 10)
-    );
-    function throttle(fn, ms) {
-    let throttle = false;
-    let timer;
-      return (...args) => {
-        if(!throttle) { // first call gets through
-            fn.apply(this, args);
-            throttle = true;
-        } else { // all the others get throttled
-            if(timer) clearTimeout(timer); // cancel #2
-            timer = setTimeout(() => {
-              fn.apply(this, args);
-              timer = throttle = false;
-            }, ms);
-        }
-      };
-    }
       // Attach click handler to the DT
       const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
       for (const annoteDlNode of annoteDls) {
@@ -1041,7 +840,6 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <script src="https://utteranc.es/client.js" repo="AlbertRapp/blogComments" issue-term="pathname" theme="github-light" crossorigin="anonymous" async="">
 </script>
 </div> <!-- /content -->
-
 
 
 

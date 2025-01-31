@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.340">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="dcterms.date" content="2023-05-15">
+<meta name="description" content="本文はHyDEの概念とLangchainでのその使い方を紹介しました。また、普通のEmbedding手法、HyDE、そして本文で提案したHyDE改善案、この三者の性能を比較しました。結論としてはHyDEはそれほど有効ではないことです。少し改善すれば性能は良くなりますが、検索スピードは非常に遅いですし、コストも大幅増加するので、ほぼ実用ではない手法といえます。">
+
+<title>blog - LangChain Hypothetical Document Embeddings (HyDE) 全面解説</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit"
+  }
+}</script>
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=G-56TE34D1Z4"></script>
+
+<script type="text/javascript">
+
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
+</script>
+<meta name="mermaid-theme" content="neutral">
+<script src="../../site_libs/quarto-diagram/mermaid.min.js"></script>
+<script src="../../site_libs/quarto-diagram/mermaid-init.js"></script>
+<link href="../../site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg==" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script>
+<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
+<script src="https://unpkg.com/@jupyter-widgets/html-manager@*/dist/embed-amd.js" crossorigin="anonymous"></script>
+
+
+<link rel="stylesheet" href="../../styles.css">
+</head>
+
+<body class="nav-fixed fullcontent">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark ">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container">
+    <a class="navbar-brand" href="../../index.html">
+    <span class="navbar-title">blog</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../about.html" rel="" target="">
+ <span class="menu-text">About</span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="http://www.linkedin.com/in/jiang-dayuan" rel="" target=""><i class="bi bi-linkedin" role="img">
+</i> 
+ <span class="menu-text"></span></a>
+  </li>  
+</ul>
+            <div class="quarto-navbar-tools">
+</div>
+          </div> <!-- /navcollapse -->
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">LangChain Hypothetical Document Embeddings (HyDE) 全面解説</h1>
+  <div class="quarto-categories">
+    <div class="quarto-category">NLP</div>
+    <div class="quarto-category">LLMs</div>
+    <div class="quarto-category">LangChain</div>
+  </div>
+  </div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">May 15, 2023</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+</header>
+
+<section id="本文の概要" class="level2">
+<h2 class="anchored" data-anchor-id="本文の概要">本文の概要</h2>
+<p><a href="https://arxiv.org/abs/2204.07496">Hypothetical Document Embeddings (HyDE)</a>は去年提出した情報検索の精度を向上させるための手法です。</p>
+<p>本文はHyDEの概念とLangchainでのその使い方を紹介しました。また、普通のEmbedding手法、HyDE、そして本文で提案したHyDE改善案、この三者の性能を比較しました。以下はテスト結果です。</p>
+<table class="table">
+<thead>
+<tr class="header">
+<th>手法</th>
+<th>正解数(50件の中)</th>
+<th>MRR</th>
+<th>スピード</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>普通のEmbedding</td>
+<td>37</td>
+<td>0.855</td>
+<td>17秒</td>
+</tr>
+<tr class="even">
+<td>HyDE</td>
+<td>37</td>
+<td>0.813</td>
+<td>4分15秒</td>
+</tr>
+<tr class="odd">
+<td>HyDE with title</td>
+<td>40</td>
+<td>0.897</td>
+<td>5分2秒</td>
+</tr>
+</tbody>
+</table>
+<p><span style="background-color: yellow">結論としてはHyDEはそれほど有効ではないことです。</span>少し改善すれば性能は良くなりますが、検索スピードは非常に遅いですし、コストも大幅増加するので、ほぼ実用ではない手法といえます。</p>
+</section>
+<section id="hypothetical-document-embeddings-hydeの詳細" class="level2">
+<h2 class="anchored" data-anchor-id="hypothetical-document-embeddings-hydeの詳細">Hypothetical Document Embeddings (HyDE)の詳細</h2>
+<p>一般的なDense Information Retrievalの手順は以下のステップで行われます。</p>
+<ol type="1">
+<li>QueryとDocument両方ともEmbedding(ベクトル)に変換する</li>
+<li>QueryとDocumentのコサイン類似度を計算する</li>
+<li>コサイン類似度が一番高いDocumentを返す</li>
+</ol>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<div>
+<pre class="mermaid mermaid-js">flowchart LR
+    Input[query]--&gt;Embedding[query embedding]
+    Embedding--&gt;DocumentEmbedding1[document embedding 1]
+    Embedding--&gt;DocumentEmbedding2[document embedding 2]
+    Embedding--&gt;DocumentEmbedding3[document embedding 3]
+
+    subgraph CosineSimilarity[cosine similarity]
+    DocumentEmbedding1--&gt;CosineSimilarity1[0.1]
+    DocumentEmbedding2--&gt;CosineSimilarity2[0.8]
+    DocumentEmbedding3--&gt;CosineSimilarity3[0.3]
+    end
+    CosineSimilarity2--&gt;FinalResult1[final result]
+</pre>
+</div>
+</div>
+</div>
+</div>
+<p>HyDEだと、<code>query embedding</code>のところに工夫しました。直接QueryをEmbeddingに変換するのではなく、まずQueryに答えるドキュメントをLLMに生成させて、生成した仮想な答案をEmbeddingに変換します。</p>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<div>
+<pre class="mermaid mermaid-js">flowchart LR
+    Input[query]--&gt;LLM
+    subgraph HyDE
+    LLM--&gt;FakeAnser[fake answer]
+    end
+        FakeAnser--&gt;QueryEmbedding[query embedding]
+    QueryEmbedding--&gt;DocumentEmbedding1[document embedding 1]
+    QueryEmbedding--&gt;DocumentEmbedding2[document embedding 2]
+    QueryEmbedding--&gt;DocumentEmbedding3[document embedding 3]
+    
+    subgraph CosineSimilarity[cosine similarity]
+    DocumentEmbedding1--&gt;CosineSimilarity1[0.1]
+    DocumentEmbedding2--&gt;CosineSimilarity2[0.8]
+    DocumentEmbedding3--&gt;CosineSimilarity3[0.3]
+    end
+    CosineSimilarity2--&gt;FinalResult1[final result]
+    style HyDE  stroke:#333,stroke-width:4px
+</pre>
+</div>
+</div>
+</div>
+</div>
+<p>実際にLangChainで使いましょう。</p>
+<div class="cell" data-execution_count="235">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1"></a><span class="im">from</span> langchain.embeddings <span class="im">import</span> OpenAIEmbeddings</span>
+<span id="cb1-2"><a href="#cb1-2"></a><span class="im">from</span> langchain.chains <span class="im">import</span> LLMChain, HypotheticalDocumentEmbedder</span>
+<span id="cb1-3"><a href="#cb1-3"></a><span class="im">from</span> langchain.prompts <span class="im">import</span> PromptTemplate</span>
+<span id="cb1-4"><a href="#cb1-4"></a><span class="im">from</span> langchain.chat_models <span class="im">import</span> ChatOpenAI</span>
+<span id="cb1-5"><a href="#cb1-5"></a><span class="im">from</span> dotenv <span class="im">import</span> load_dotenv</span>
+<span id="cb1-6"><a href="#cb1-6"></a><span class="co"># set the environment variables</span></span>
+<span id="cb1-7"><a href="#cb1-7"></a>load_dotenv()</span>
+<span id="cb1-8"><a href="#cb1-8"></a></span>
+<span id="cb1-9"><a href="#cb1-9"></a><span class="co"># prepare the prompt template for document generation</span></span>
+<span id="cb1-10"><a href="#cb1-10"></a>prompt_template <span class="op">=</span> <span class="st">"""質問を回答しなさい。</span></span>
+<span id="cb1-11"><a href="#cb1-11"></a><span class="st">質問：</span><span class="sc">{question}</span></span>
+<span id="cb1-12"><a href="#cb1-12"></a><span class="st">回答："""</span></span>
+<span id="cb1-13"><a href="#cb1-13"></a>llm <span class="op">=</span> ChatOpenAI()</span>
+<span id="cb1-14"><a href="#cb1-14"></a><span class="co"># multi_llm = ChatOpenAI(n=4)</span></span>
+<span id="cb1-15"><a href="#cb1-15"></a>prompt <span class="op">=</span> PromptTemplate(input_variables<span class="op">=</span>[<span class="st">"question"</span>], template<span class="op">=</span>prompt_template)</span>
+<span id="cb1-16"><a href="#cb1-16"></a>llm_chain <span class="op">=</span> LLMChain(llm<span class="op">=</span>llm, prompt<span class="op">=</span>prompt, verbose<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb1-17"><a href="#cb1-17"></a></span>
+<span id="cb1-18"><a href="#cb1-18"></a><span class="co"># initialize the hypothetical document embedder</span></span>
+<span id="cb1-19"><a href="#cb1-19"></a>base_embeddings <span class="op">=</span> OpenAIEmbeddings()</span>
+<span id="cb1-20"><a href="#cb1-20"></a>embeddings <span class="op">=</span> HypotheticalDocumentEmbedder(llm_chain<span class="op">=</span>llm_chain, base_embeddings<span class="op">=</span>base_embeddings)</span>
+<span id="cb1-21"><a href="#cb1-21"></a></span>
+<span id="cb1-22"><a href="#cb1-22"></a>result <span class="op">=</span> embeddings.embed_query(<span class="st">"ゼルダの伝説の主人公は誰ですか？"</span>)</span>
+<span id="cb1-23"><a href="#cb1-23"></a><span class="bu">len</span>(result)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="235">
+<pre><code>1536</code></pre>
+</div>
+</div>
+<p>LangchainでHyDEを使うには、まずは<code>HypotheticalDocumentEmbedder</code>を初期化する必要があります。初期化する際に必要なのは、仮想な答案を生成する<code>llm_chain</code>と生成したテキストをEmbeddingに変換する<code>base_embeddings</code>です。</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tip
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p><code>llm</code>を定義する時、一度生成するドキュメントの数を指定できます。例えば<code>n</code>を<code>4</code>に指定すると、一度4つのドキュメントを生成します。</p>
+</div>
+</div>
+<p>使用する際には、<code>embedding.embed_query</code>を使ってQueryをEmbeddingに変換します。これで最終的に1536次元のベクトルが得られます。</p>
+</section>
+<section id="hypotheticaldocumentembedderの内部処理" class="level2">
+<h2 class="anchored" data-anchor-id="hypotheticaldocumentembedderの内部処理"><code>HypotheticalDocumentEmbedder</code>の内部処理</h2>
+<p>次に<code>HypotheticalDocumentEmbedder</code>の内部は同様な処理になっているかを見ましょう。コアの関数は以下の2つです。</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1"></a>    <span class="kw">def</span> combine_embeddings(<span class="va">self</span>, embeddings: List[List[<span class="bu">float</span>]]) <span class="op">-&gt;</span> List[<span class="bu">float</span>]:</span>
+<span id="cb3-2"><a href="#cb3-2"></a>        <span class="co">"""Combine embeddings into final embeddings."""</span></span>
+<span id="cb3-3"><a href="#cb3-3"></a>        <span class="cf">return</span> <span class="bu">list</span>(np.array(embeddings).mean(axis<span class="op">=</span><span class="dv">0</span>))</span>
+<span id="cb3-4"><a href="#cb3-4"></a></span>
+<span id="cb3-5"><a href="#cb3-5"></a>    <span class="kw">def</span> embed_query(<span class="va">self</span>, text: <span class="bu">str</span>) <span class="op">-&gt;</span> List[<span class="bu">float</span>]:</span>
+<span id="cb3-6"><a href="#cb3-6"></a>        <span class="co">"""Generate a hypothetical document and embedded it."""</span></span>
+<span id="cb3-7"><a href="#cb3-7"></a>        <span class="co"># generate n hypothetical documents</span></span>
+<span id="cb3-8"><a href="#cb3-8"></a>        var_name <span class="op">=</span> <span class="va">self</span>.llm_chain.input_keys[<span class="dv">0</span>]</span>
+<span id="cb3-9"><a href="#cb3-9"></a>        result <span class="op">=</span> <span class="va">self</span>.llm_chain.generate([{var_name: text}])</span>
+<span id="cb3-10"><a href="#cb3-10"></a>        <span class="co"># get all the hypothetical documents from result</span></span>
+<span id="cb3-11"><a href="#cb3-11"></a>        documents <span class="op">=</span> [generation.text <span class="cf">for</span> generation <span class="kw">in</span> result.generations[<span class="dv">0</span>]]</span>
+<span id="cb3-12"><a href="#cb3-12"></a>        <span class="co"># embed the hypothetical documents</span></span>
+<span id="cb3-13"><a href="#cb3-13"></a>        embeddings <span class="op">=</span> <span class="va">self</span>.embed_documents(documents)</span>
+<span id="cb3-14"><a href="#cb3-14"></a>        <span class="co"># combine the embeddings by averaging</span></span>
+<span id="cb3-15"><a href="#cb3-15"></a>        <span class="cf">return</span> <span class="va">self</span>.combine_embeddings(embeddings)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>毎回2つ仮想な答案を生成する場合のフロー図にすると以下のようになります。</p>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<div>
+<pre class="mermaid mermaid-js">flowchart LR
+    Input([query])--&gt;llm_chain
+    subgraph HypotheticalDocumentEmbedder
+    llm_chain--&gt;ga1([generated answer 1])
+    llm_chain--&gt;ga2([generated answer 2])
+    ga1--&gt;OpenAIEmbeddings
+    ga2--&gt;OpenAIEmbeddings
+    OpenAIEmbeddings --&gt;embed1([embedding 1])
+    OpenAIEmbeddings --&gt;embed2([embedding 2])
+    end
+    embed1--&gt;combine([averaged embedding])
+    embed2--&gt;combine
+    style llm_chain  stroke:#333,stroke-width:4px
+    style OpenAIEmbeddings stroke:#333,stroke-width:4px
+
+</pre>
+</div>
+<p>HypotheticalDocumentEmbedderの処理の流れ</p>
+</div>
+</div>
+</div>
+</section>
+<section id="実際のパフォーマンステスト" class="level2">
+<h2 class="anchored" data-anchor-id="実際のパフォーマンステスト">実際のパフォーマンステスト</h2>
+<p>HyDEは普通のEmbedding手法と比べてどのぐらい優れているかを実際に確認しましょう。</p>
+<p>使うデータは多言語質問応答データセットである「Mr.TyDi」にある日本語データです。各Queryに対して、Positive DocumentとNegative Documentが与えられています。また、Queryの内容は基本的にWikiで検索できる一般的な知識です。なので、今回のHyDEには非常に適していると思います。</p>
+<p>データはHuggingFaceのdatasetsからダウンロードします。データセットは7千件ありますが、コストを考慮して今回は100件のデータのみを使用します。また、テストする使うQueryの数は50件のみにします。つまり、50件のQueryに対して、合計200件(Pos + Neg)のドキュメントのランキングを行います。</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1"></a><span class="im">from</span> datasets <span class="im">import</span> load_dataset</span>
+<span id="cb4-2"><a href="#cb4-2"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb4-3"><a href="#cb4-3"></a><span class="co"># to load all train, dev and test sets</span></span>
+<span id="cb4-4"><a href="#cb4-4"></a>dataset <span class="op">=</span> load_dataset(<span class="st">'castorini/mr-tydi'</span>, <span class="st">"japanese"</span>, split<span class="op">=</span><span class="st">"train"</span>)</span>
+<span id="cb4-5"><a href="#cb4-5"></a>tydi_df <span class="op">=</span> pd.DataFrame(dataset).sample(<span class="dv">100</span>, random_state<span class="op">=</span><span class="dv">42</span>)</span>
+<span id="cb4-6"><a href="#cb4-6"></a><span class="cf">for</span> col <span class="kw">in</span> [<span class="st">"positive_passages"</span>, <span class="st">"negative_passages"</span>]:</span>
+<span id="cb4-7"><a href="#cb4-7"></a>    tydi_df[col] <span class="op">=</span> tydi_df[col].<span class="bu">apply</span>(<span class="kw">lambda</span> x: x[<span class="dv">0</span>][<span class="st">"text"</span>])</span>
+<span id="cb4-8"><a href="#cb4-8"></a>tydi_df_sample <span class="op">=</span> tydi_df.iloc[:<span class="dv">50</span>,:].copy()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="288">
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1"></a>tydi_df_sample.head(<span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="288">
+<div>
+
+
+<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<thead>
+<tr class="header">
+<th data-quarto-table-cell-role="th"></th>
+<th data-quarto-table-cell-role="th">query_id</th>
+<th data-quarto-table-cell-role="th">query</th>
+<th data-quarto-table-cell-role="th">positive_passages</th>
+<th data-quarto-table-cell-role="th">negative_passages</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td data-quarto-table-cell-role="th">1041</td>
+<td>1320</td>
+<td>有価証券とはなんですか？</td>
+<td>有価証券（ゆうかしょうけん）とは、伝統的には財産的価値のある私権を表章する証券で、その権利の...</td>
+<td>有価証券届出書の提出日以降、当該有価証券届出書の効力が発生する以前において、有価証券届出書に...</td>
+</tr>
+<tr class="even">
+<td data-quarto-table-cell-role="th">670</td>
+<td>862</td>
+<td>浅草寺はいつ建設された</td>
+<td>推古天皇36年（628年）、宮戸川（現・隅田川）で漁をしていた檜前浜成・竹成（ひのくまのはま...</td>
+<td>1907年（明治40年）、昆虫学者名和靖は日露戦争の勝利記念に昆虫館を建設したいと考え、東京...</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<p>確認する内容としては以下の3つとします。</p>
+<ol type="1">
+<li>MRR: <a href="https://en.wikipedia.org/wiki/Mean_reciprocal_rank">Mean Reciprocal Rank</a>、平均逆順位です。総合的にパフォーマンスを確認することができます。</li>
+<li>正解数：上位1位は正解の数です。直感的にわかりやすいです。</li>
+<li>検索にかかる時間：HyDEはLLMでテキスト生成を行なうため、検索時間が大幅に増える予想です。</li>
+</ol>
+<p>まずは、普通のEmbedding手法を使って場合のパフォーマンスをテストしてみましょう。</p>
+<div class="cell" data-execution_count="301">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1"></a><span class="im">from</span> langchain.embeddings.openai <span class="im">import</span> OpenAIEmbeddings</span>
+<span id="cb6-2"><a href="#cb6-2"></a><span class="im">from</span> langchain.vectorstores <span class="im">import</span> FAISS</span>
+<span id="cb6-3"><a href="#cb6-3"></a><span class="im">from</span> tqdm.auto <span class="im">import</span> tqdm</span>
+<span id="cb6-4"><a href="#cb6-4"></a></span>
+<span id="cb6-5"><a href="#cb6-5"></a><span class="kw">def</span> get_rank(query, docs):</span>
+<span id="cb6-6"><a href="#cb6-6"></a>    <span class="cf">for</span> i, doc <span class="kw">in</span> <span class="bu">enumerate</span>(docs, start<span class="op">=</span><span class="dv">1</span>):</span>
+<span id="cb6-7"><a href="#cb6-7"></a>        <span class="cf">if</span> query <span class="op">==</span> doc.metadata[<span class="st">"query"</span>]:</span>
+<span id="cb6-8"><a href="#cb6-8"></a>            <span class="cf">return</span> i</span>
+<span id="cb6-9"><a href="#cb6-9"></a></span>
+<span id="cb6-10"><a href="#cb6-10"></a><span class="kw">def</span> test(test_query_list, vectorstore):</span>
+<span id="cb6-11"><a href="#cb6-11"></a>    <span class="co"># fetch the documents</span></span>
+<span id="cb6-12"><a href="#cb6-12"></a>    rank_list <span class="op">=</span> []</span>
+<span id="cb6-13"><a href="#cb6-13"></a>    <span class="cf">for</span> title <span class="kw">in</span> tqdm(test_query_list):</span>
+<span id="cb6-14"><a href="#cb6-14"></a>        docs <span class="op">=</span> vectorstore.similarity_search(title, k<span class="op">=</span><span class="dv">200</span>)</span>
+<span id="cb6-15"><a href="#cb6-15"></a>        rank_list.append(get_rank(title, docs))</span>
+<span id="cb6-16"><a href="#cb6-16"></a></span>
+<span id="cb6-17"><a href="#cb6-17"></a>    <span class="co"># summarize the results</span></span>
+<span id="cb6-18"><a href="#cb6-18"></a>    <span class="cf">return</span> rank_list</span>
+<span id="cb6-19"><a href="#cb6-19"></a></span>
+<span id="cb6-20"><a href="#cb6-20"></a><span class="kw">def</span> get_mrr(rank_list):</span>
+<span id="cb6-21"><a href="#cb6-21"></a>    <span class="cf">return</span> <span class="bu">sum</span>([<span class="dv">1</span><span class="op">/</span>rank <span class="cf">for</span> rank <span class="kw">in</span> rank_list])<span class="op">/</span><span class="bu">len</span>(rank_list)</span>
+<span id="cb6-22"><a href="#cb6-22"></a><span class="kw">def</span> get_correct_num(rank_list):</span>
+<span id="cb6-23"><a href="#cb6-23"></a>    <span class="cf">return</span> <span class="bu">len</span>([rank <span class="cf">for</span> rank <span class="kw">in</span> rank_list <span class="cf">if</span> rank <span class="op">==</span> <span class="dv">1</span>])</span>
+<span id="cb6-24"><a href="#cb6-24"></a></span>
+<span id="cb6-25"><a href="#cb6-25"></a><span class="co"># prepare the vectorstore</span></span>
+<span id="cb6-26"><a href="#cb6-26"></a>docs <span class="op">=</span> tydi_df[<span class="st">"positive_passages"</span>].tolist() <span class="op">+</span> tydi_df[<span class="st">"negative_passages"</span>].tolist()</span>
+<span id="cb6-27"><a href="#cb6-27"></a>meta_datas <span class="op">=</span> [{<span class="st">"query"</span>: q} <span class="cf">for</span> q <span class="kw">in</span> tydi_df[<span class="st">"query"</span>].tolist()] <span class="op">+</span> [{<span class="st">"query"</span>: <span class="st">""</span>} <span class="cf">for</span> q <span class="kw">in</span> tydi_df[<span class="st">"query"</span>].tolist()]</span>
+<span id="cb6-28"><a href="#cb6-28"></a>base_embeddings <span class="op">=</span> OpenAIEmbeddings()</span>
+<span id="cb6-29"><a href="#cb6-29"></a>vectorstore <span class="op">=</span> FAISS.from_texts(</span>
+<span id="cb6-30"><a href="#cb6-30"></a>    texts<span class="op">=</span>docs,</span>
+<span id="cb6-31"><a href="#cb6-31"></a>    embedding<span class="op">=</span>base_embeddings,</span>
+<span id="cb6-32"><a href="#cb6-32"></a>    metadatas<span class="op">=</span>meta_datas,</span>
+<span id="cb6-33"><a href="#cb6-33"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="302">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1"></a>rank_list <span class="op">=</span> test(tydi_df_sample[<span class="st">"query"</span>].tolist(), vectorstore)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<script type="application/vnd.jupyter.widget-view+json">
+{"model_id":"16b703a5ba7d438a8c0cf142d81c6992","version_major":2,"version_minor":0,"quarto_mimetype":"application/vnd.jupyter.widget-view+json"}
+</script>
+</div>
+</div>
+<div class="cell" data-execution_count="308">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1"></a><span class="bu">print</span>(<span class="ss">f"mrr: </span><span class="sc">{</span>get_mrr(rank_list)<span class="sc">:.3f}</span><span class="ss">"</span>)</span>
+<span id="cb8-2"><a href="#cb8-2"></a><span class="bu">print</span>(<span class="ss">f"correct num: </span><span class="sc">{</span>get_correct_num(rank_list)<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>mrr: 0.855
+correct num: 37</code></pre>
+</div>
+</div>
+<p>普通のEmbedding手法だと、50件のQueryの中、37件のドキュメントを正しく返せました。MRRは0.855、また、処理時間は17秒でした。</p>
+<p>次にHyDEを使ってテストします。</p>
+<div class="cell" data-execution_count="309">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1"></a><span class="im">from</span> langchain.chat_models <span class="im">import</span> ChatOpenAI</span>
+<span id="cb10-2"><a href="#cb10-2"></a>prompt_template <span class="op">=</span> <span class="st">"""質問に答えてください。</span></span>
+<span id="cb10-3"><a href="#cb10-3"></a><span class="st">質問：</span><span class="sc">{question}</span></span>
+<span id="cb10-4"><a href="#cb10-4"></a><span class="st">答案："""</span></span>
+<span id="cb10-5"><a href="#cb10-5"></a>llm <span class="op">=</span> ChatOpenAI(verbose<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb10-6"><a href="#cb10-6"></a>prompt <span class="op">=</span> PromptTemplate(input_variables<span class="op">=</span>[<span class="st">"question"</span>], template<span class="op">=</span>prompt_template)</span>
+<span id="cb10-7"><a href="#cb10-7"></a>llm_chain <span class="op">=</span> LLMChain(llm<span class="op">=</span>llm, prompt<span class="op">=</span>prompt, verbose<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb10-8"><a href="#cb10-8"></a>embeddings <span class="op">=</span> HypotheticalDocumentEmbedder(llm_chain<span class="op">=</span>llm_chain, base_embeddings<span class="op">=</span>base_embeddings)</span>
+<span id="cb10-9"><a href="#cb10-9"></a>vectorstore.embedding_function <span class="op">=</span> embeddings.embed_query</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="310">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1"></a>hyde_rank_list <span class="op">=</span> test(tydi_df_sample[<span class="st">"query"</span>].tolist(), vectorstore)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<script type="application/vnd.jupyter.widget-view+json">
+{"model_id":"622d58a347414a179630883cb6a6777a","version_major":2,"version_minor":0,"quarto_mimetype":"application/vnd.jupyter.widget-view+json"}
+</script>
+</div>
+</div>
+<div class="cell" data-execution_count="312">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1"></a><span class="bu">print</span>(<span class="ss">f"mrr: </span><span class="sc">{</span>get_mrr(hyde_rank_list)<span class="sc">:.3f}</span><span class="ss">"</span>)</span>
+<span id="cb12-2"><a href="#cb12-2"></a><span class="bu">print</span>(<span class="ss">f"correct num: </span><span class="sc">{</span>get_correct_num(hyde_rank_list)<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>mrr: 0.813
+correct num: 35</code></pre>
+</div>
+</div>
+<p>意外ですが、HyDEを使うと逆に正解数が減りました。正解数は35件、MRRは0.813、処理時間は4分15秒でした。</p>
+</section>
+<section id="hydeの改善" class="level2">
+<h2 class="anchored" data-anchor-id="hydeの改善">HyDEの改善</h2>
+<p>HyDEは生成した仮想な答案をEmbeddingにしていますが、逆に重要なQueryの情報を捨てています。なので、仮想な答案をEmbeddingする前にQueryの情報を仮想な答案に加えることができれば、もっとパフォーマンスを改善できると考えられます。</p>
+<p>その改善をしてみましょう。そのためには、まず<code>HypotheticalDocumentEmbedder</code>を継承したクラスを作り、<code>embed_query</code>を再定義する必要があります。</p>
+<div class="cell" data-execution_count="314">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1"></a><span class="kw">class</span> HyDEWithTitle(HypotheticalDocumentEmbedder):</span>
+<span id="cb14-2"><a href="#cb14-2"></a></span>
+<span id="cb14-3"><a href="#cb14-3"></a>    <span class="kw">def</span> embed_query(<span class="va">self</span>, text: <span class="bu">str</span>):</span>
+<span id="cb14-4"><a href="#cb14-4"></a>        <span class="co">"""Generate a hypothetical document and embedded it."""</span></span>
+<span id="cb14-5"><a href="#cb14-5"></a>        var_name <span class="op">=</span> <span class="va">self</span>.llm_chain.input_keys[<span class="dv">0</span>]</span>
+<span id="cb14-6"><a href="#cb14-6"></a>        result <span class="op">=</span> <span class="va">self</span>.llm_chain.generate([{var_name: text}])</span>
+<span id="cb14-7"><a href="#cb14-7"></a>        documents <span class="op">=</span> [generation.text <span class="cf">for</span> generation <span class="kw">in</span> result.generations[<span class="dv">0</span>]]</span>
+<span id="cb14-8"><a href="#cb14-8"></a>        <span class="co"># add query to the beginning of the document</span></span>
+<span id="cb14-9"><a href="#cb14-9"></a>        documents <span class="op">=</span> [<span class="ss">f"</span><span class="sc">{</span>text<span class="sc">}</span><span class="ch">\n</span><span class="sc">{</span>document<span class="sc">}</span><span class="ss">"</span> <span class="cf">for</span> document <span class="kw">in</span> documents]</span>
+<span id="cb14-10"><a href="#cb14-10"></a>        embeddings <span class="op">=</span> <span class="va">self</span>.embed_documents(documents)</span>
+<span id="cb14-11"><a href="#cb14-11"></a>        <span class="cf">return</span> <span class="va">self</span>.combine_embeddings(embeddings)</span>
+<span id="cb14-12"><a href="#cb14-12"></a></span>
+<span id="cb14-13"><a href="#cb14-13"></a>embeddings <span class="op">=</span> HyDEWithTitle(llm_chain<span class="op">=</span>llm_chain, base_embeddings<span class="op">=</span>base_embeddings)</span>
+<span id="cb14-14"><a href="#cb14-14"></a>vectorstore.embedding_function <span class="op">=</span> embeddings.embed_query</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell" data-execution_count="316">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1"></a>hyde_with_title_rank_list <span class="op">=</span> test(tydi_df_sample[<span class="st">"query"</span>].tolist(), vectorstore)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<script type="application/vnd.jupyter.widget-view+json">
+{"model_id":"c4b1d066e40b4a55805e3acbc74b3bf4","version_major":2,"version_minor":0,"quarto_mimetype":"application/vnd.jupyter.widget-view+json"}
+</script>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Retrying langchain.chat_models.openai.ChatOpenAI.completion_with_retry.&lt;locals&gt;._completion_with_retry in 1.0 seconds as it raised RateLimitError: That model is currently overloaded with other requests. You can retry your request, or contact us through our help center at help.openai.com if the error persists. (Please include the request ID 0d85be599b6abc67a7a59f467a5101cd in your message.).</code></pre>
+</div>
+</div>
+<div class="cell" data-execution_count="317">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1"></a><span class="bu">print</span>(<span class="ss">f"mrr: </span><span class="sc">{</span>get_mrr(hyde_with_title_rank_list)<span class="sc">:.3f}</span><span class="ss">"</span>)</span>
+<span id="cb17-2"><a href="#cb17-2"></a><span class="bu">print</span>(<span class="ss">f"correct num: </span><span class="sc">{</span>get_correct_num(hyde_with_title_rank_list)<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>mrr: 0.897
+correct num: 40</code></pre>
+</div>
+</div>
+<p>検索するQueryを仮想な答案に追加することにより、正解数がお送りましたし、全体のランクも上がりました。</p>
+</section>
+<section id="まとめ" class="level2">
+<h2 class="anchored" data-anchor-id="まとめ">まとめ</h2>
+<p>HyDEは予想より精度の改善が得られなかったです。Queryを仮想な答案に追加することにより、精度は普通のEmbedding手法より上がりました。しかし、処理時間が大幅に増えてしまいました。また、今回は測っていないですが、1件あたりのコストも何倍になると思うので、実際に使う場合は、精度と処理時間、コストを総合的に考えて使う必要があります。</p>
+<table class="table">
+<thead>
+<tr class="header">
+<th>手法</th>
+<th>正解数(50件の中)</th>
+<th>MRR</th>
+<th>スピード</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>普通のEmbedding</td>
+<td>37</td>
+<td>0.855</td>
+<td>17秒</td>
+</tr>
+<tr class="even">
+<td>HyDE</td>
+<td>37</td>
+<td>0.813</td>
+<td>4分15秒</td>
+</tr>
+<tr class="odd">
+<td>HyDE with title</td>
+<td>40</td>
+<td>0.897</td>
+<td>5分2秒</td>
+</tr>
+</tbody>
+</table>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>
