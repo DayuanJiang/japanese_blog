@@ -1,8 +1,0 @@
-/.quarto/
-/_site/
-.quarto/*
-.env
-/draft/
-*.pkl
-/data/
-/opt/
