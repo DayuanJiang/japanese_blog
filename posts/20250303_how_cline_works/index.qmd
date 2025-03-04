@@ -1,0 +1,286 @@
+---
+title: "Cline"
+date: 2023-05-19
+description-meta: "OpenAIのAPIを活用して日本語校正機能と原文と結果のDiff機能を組み込んだ日本語文書校正アシスタントを開発した。"
+categories: [NLP, LLMs ]
+---
+
+
+
+## Clineとは？
+
+ClientはLLMを活用した開発者支援ツールです。オープソース版のCursorとも言われています。Cursorと比べて特徴は三つあります。
+
+1.  Opensource: Clineはオープンソースのソフトなので、誰でも内部の構造を見る/改造できる。
+2.  VScode Plugin: Cursorとは違い、Clineはエディターではなく、VScode上のPluginとして存在するため、Editorを変えずに便利に使える
+3.  料金体系：ClineはOpensourceのゆえ、本体は無料で使えます。選択したAIプロバイダーのAPI料金のみが発生します。（GoogleのGemini Flash ２.0を利用すれば無料で使えます）
+
+Clineの機能については、具体的に言うと以下のことができます。
+
+-   プロジェクト内のファイルを編集および作成
+
+-   ターミナルコマンドの実行
+
+-   コードの検索と分析
+
+-   デバッグと問題の修正支援
+
+-   ルーチン作業の自動化
+
+-   外部ツールとの統合
+
+さて、これらの機能がどのように実現されているかについて探ってみましょう。
+
+## Clineの処理の全体像
+
+Clienの処理は初回のステップと２回目以降の処理に分けることができます。`README.md` のファイルを編集してもらうこと例として、それぞれどのように動作しているかを紹介したいです。
+
+### 最初のステップ
+
+最初のステップのフロー図はこちらです。
+
+![Step 1 Process FLow](images/paste-6.png){fig-alt="Step 1 Process FLow" width="661"}
+
+ユーザーのインプットは以下です。
+
+```         
+@/temp/README.md  give me a sample README.md
+```
+
+それにより、生成された`User Message`は以下になります。
+
+``` xml
+<task>
+'temp/README.md' (see below for file content)  give me a sample README.md
+</task>
+
+<file_content path="temp/README.md">
+This is a example title
+</file_content>
+<environment_details>
+# VSCode Visible Files
+temp/README.md
+
+# VSCode Open Tabs
+temp/README.md
+
+# Current Time
+3/4/2025, 3:54:45 PM (Asia/Tokyo, UTC+9:00)
+
+# Current Working Directory (/Users/Downloads/tmp) Files
+No files found.
+
+# Current Mode
+ACT MODE
+</environment_details>
+```
+
+その中には三つのセッションがあります。
+
+1.  \<task\>: ユーザーがインプットしたテキストそのもの
+2.  \<file_content\>: ユーザーがメンションしたファイルの内容。システムから取得する。
+3.  \<environment_details\>: 現時点のシステムの情報。詳細としては
+    1.  VSCode Visible Files: 現在VSCodeで見えているファイル
+    2.  VSCode Open Tabs: 現在VSCodeで開いているタブ
+    3.  Current Time: 現在の時間
+    4.  Current Working Directory Files: 現在の作業ディレクトリのファイル
+    5.  Current Mode: 現在のモード, ACT MODEかPLAN MODEか（後ほど説明します）
+
+それが`System Prompt`と一緒にLLMに渡され、LLMに`Assistant Message`が生成されます。 （`System Prompt`の内容が多いため、後ほど単独で説明します）。
+
+生成された`Assistant Message`は以下です。
+
+``` xml
+<write_to_file>
+<path>temp/README.md</path>
+<content>
+# Project Title
+(中略)
+Project Link: [https://github.com/yourusername/yourproject](https://github.com/yourusername/yourproject)
+</content>
+</write_to_file>
+```
+
+これはClineの中のツールの利用規約です。Clineの中ではXML形式でツールを呼びことになっています。形式は以下です：
+
+``` xml
+<tool_name>
+<parameter1_name>value1</parameter1_name>
+<parameter2_name>value2</parameter2_name>
+...
+</tool_name>
+```
+
+そのため、上記のメッセージは`write_to_file`のツールをコールし、`path`と`coneten`の二つのパラメータを渡しています。
+
+### ステップ２以降の処理
+
+次のフロー図はこちらです。
+
+![](images/paste-8.png){width="623"}
+
+まず、システムがStep１で生成した`xml`形式の`Assistant Message`を解析し、ツールをコールします。その結果を`System Feedback`としてLLMに返します。以下は今回得た実際の結果です：
+
+``` xml
+[write_to_file for 'temp/README.md'] Result:
+The content was successfully saved to temp/README.md.
+
+Here is the full, updated content of the file that was saved:
+
+<final_file_content path="temp/README.md">
+# Project Title
+A brief description of what this project does and who it's for.
+(中略)
+Project Link: [https://github.com/yourusername/yourproject](https://github.com/yourusername/yourproject)
+
+</final_file_content>
+
+IMPORTANT: For any future changes to this file, use the final_file_content shown above as your reference. This content reflects the current state of the file, including any auto-formatting (e.g., if you used single quotes but the formatter converted them to double quotes). Always base your SEARCH/REPLACE operations on this final version to ensure accuracy.
+```
+
+また、同時に返すこととしては、今までの会話の履歴と、その時点の環境情報も含まれます。LLMがそれを受けて、次の`Assistant Message`を生成します。これでループが成立します。
+
+### 中止条件
+
+上記のループの中止条件としては、LLMの方が`<attempt_completion>`を返すことです。例えば、この例では、Step2の方でLLMがすでに必要なファイルを生成したため、`<attempt_completion>`を返しました。以下は実際の結果です。
+
+``` xml
+<attempt_completion>
+<result>
+The `README.md` file has been successfully updated with a sample template. This template includes sections for project title, installation instructions, usage examples, contribution guidelines, license information, and contact details. You can customize these sections to fit the specific needs of your project.
+</result>
+</attempt_completion>
+```
+
+これで、Clineの処理の全体像について説明しました。次にまで触れてない細かい部分について一個一個説明していきます。
+
+## Tools
+
+Agentとは、ツールを使えるLLMのことなので、Toolは非常に大事な部分です。Clienの中にあるツールはデフォルトのツールとMCP(Model Context Protocol）の２種類に分けることができます。
+
+### MCP
+
+MCPは2024年11月にAnthropicが提唱した様々なデータソースやツールと連携できるオープンプロトコルのことです。名前がややこしいですが、ユーザーがカスタマイズできるツールと理解すれば良いです。
+
+-   `use_mcp_tool` (MCPツール使用)
+
+-   `access_mcp_resource` (MCPリソースアクセス)
+
+TODO：両者の違いを説明する
+
+### Default Tools
+
+重点はデフォルトツールです。以下はツールの一覧です。ちなみに、Default Toolsの定義は[System Prompt](https://github.com/cline/cline/blob/main/src/core/prompts/system.ts)で確認できます。
+
+-   ファイル操作系
+
+    -   `read_file` (ファイル読み込み)
+
+    -   `write_to_file` (ファイル書き込み)
+
+    -   `replace_in_file` (ファイル内置換)
+
+    -   `search_files` (ファイル検索)
+
+    -   `list_files` (ファイル一覧表示)
+
+-   その他の操作系
+
+    -   `execute_command` (コマンド実行)
+
+    -   `list_code_definition_names` (コード定義名一覧表示)
+
+    -   `browser_action` (ブラウザ操作、Compute useをサポートするモデルのみ使える)
+
+-   タスク制御系
+
+    -   `ask_followup_question` (追跡質問)
+
+    -   `attempt_completion` (完了試行)
+
+    -   `plan_mode_response` (計画モード応答)
+
+その中に、ファイル操作とその他の操作については名前を読めば何をするツールかがわかると思うので、説明を割愛します。タスク制御系の三つのツールの説明のみ和訳して載せます。
+
+#### `ask_followup_question`
+
+> 説明: タスクを完了するために必要な追加情報を収集するためにユーザーに質問をすること。このツールは、曖昧さに直面した場合、明確化が必要な場合、または効果的に進行するために詳細が必要な場合に使用されるべき。ユーザーとの直接コミュニケーションを可能にすることで、対話的な問題解決を可能にします。必要な情報を収集しつつ、過度な往復を避けるために慎重にこのツールを使用してください。
+>
+> パラメータ:
+>
+> -   question: (必須) ユーザーに尋ねる質問。必要な情報に対応する明確で具体的な質問であるべき。
+
+ツールの説明の和訳が以上です。ユーザーに質問することで情報を収集するツールです。ユーザーからの指示が曖昧の場合や、または認証ようのキーが必要場合にはこのツールを使ってユーザーとコミュニケーションすることができます。
+
+#### **`attempt_completion`**
+
+> 説明: 各ツールを使用した後、ユーザーはその結果（成功または失敗）および失敗の理由を応答する。ツールの使用結果を受け取り、作業が完了したことを確認できた場合、このツールを使用して結果を提示する。オプションとして、作業結果を示すCLIコマンドを提供することもできる。ユーザーが結果に満足しない場合、フィードバックを返すことがあり、それを基に改善し、再試行することが可能である。
+>
+> 重要な注意: 本ツールを使用する前に、以前のツールの使用が成功したことをユーザーから確認したかどうかをタグ内で自問しなければならない。確認が取れていない場合、本ツールを使用してはならない。これを怠ると、コードの破損やシステム障害を招く恐れがある。
+>
+> パラメータ
+>
+> -   result（必須）: タスクの最終結果を示す。結果は確定的なものであり、ユーザーからのさらなる入力を必要としないように記述すること。結果を質問形や支援の申し出で終わらせることは避けるべし。
+>
+> <!-- -->
+>
+> -   command（任意）: 作業結果のライブデモを示すためのCLIコマンド。
+
+#### `plan_mode_response`
+
+> 説明: ユーザーの問い合わせに応じ、ユーザーのタスクに対する解決策を計画するための応答を行う。このツールは、ユーザーの質問や発言に対して、どのようにタスクを達成するかの計画を提示する必要がある場合に使用する。なお、このツールはPLAN MODEのときのみ利用可能であり、現在のモードはenvironment_detailsに記載されている。PLAN MODEでない場合は使用してはならない。
+>
+> ユーザーのメッセージ内容に応じて、リクエストに関する詳細を尋ねたり、タスクの解決策を設計したり、ユーザーとアイデアをブレインストーミングすることが可能である。例えば、ユーザーのタスクがウェブサイトの作成である場合、いくつかの確認の質問を行った後、与えられた条件に基づいてタスクを達成するための詳細な計画を提示し、ユーザーとやり取りを行って詳細を確定させることが考えられる。その後、ユーザーがACT MODEへ切り替えた際に、計画を実行に移す。
+>
+> パラメータ:
+>
+> • response: (必須) ユーザーに提供する応答。このパラメータ内でツールを使用してはならず、単なるチャット応答として扱う。
+
+TODO: Plan modeの説明
+
+## System Prompt
+
+[System Prompt](https://github.com/cline/cline/blob/main/src/core/prompts/system.ts)はいくつかのセクションがあり、非常に長いので、ここでは各セクションの内容を一言でまとめます。
+
+```         
+# Capabilities
+提供されたツールの説明と、エージェントがそれらのツールをどのように使用して、ユーザーのタスクを達成できるかについての概要。
+
+# Tool Use
+エージェントが利用できるツールのリストと、各ツールの使用方法に関する詳細な説明。XML形式でのツールの使い方、各パラメータの説明も含む。
+
+# Tool Use Examples
+各ツールの使用例をXML形式で示す。
+
+# Tool Use Guidelines
+ツール使用のステップ、ツール使用後のユーザーからのレスポンスの重要性、反復的な問題解決のアプローチについて。
+
+# Editing Files
+`write_to_file` と `replace_in_file` ツールの使い分けと、それぞれのツールの適切な使用状況、自動フォーマットに関する考慮事項について。
+
+# ACT MODE V.S. PLAN MODE
+`ACT MODE` と `PLAN MODE` の違い、それぞれのモードで利用可能なツール、`PLAN MODE` での計画策定プロセスについて。
+
+# MCP Servers
+MCP (Model Context Protocol) サーバーの概要と、接続されたサーバーが提供するツールとリソースの使用方法。MCPサーバーの作成例を含む詳細な説明。
+
+# Rules
+エージェントが従うべきルール。現在の作業ディレクトリ、コマンド実行時の注意点、ファイル検索や変更時の注意点、対話に関する制限など。
+
+# System Information
+ユーザーのオペレーティングシステム、デフォルトシェル、ホームディレクトリ、現在の作業ディレクトリに関する情報。
+
+# Objective
+ユーザーのタスクを達成するための段階的なアプローチ、ツールの使用方法、問題解決プロセスについて。
+
+# USER'S CUSTOM INSTRUCTIONS
+ユーザーによって提供される追加の指示。
+```
+
+ここで注目すべきのは、最後のユーザー指示です。つまり、`System Prompt`の中で、ユーザーの意思を入れることができます。
+
+懸念点としては、Prompt自体が長すぎることです。GPT4oのTokeinzerでカウントしてみたら4658トークンです。こんなに長いかつ複雑な指示を与えてどのぐらい指示通り動作するかが疑問です。実際に試す際に、指令を遵守しないケースが出てきました。幸いClineの制御
+
+### 欠点
+
+トークンを消耗する RAGを利用していない。
