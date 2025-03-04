@@ -1,0 +1,33 @@
+---
+title: "InPars V2 論文解読"
+date: "2023-05-01"
+description-meta: "InPars V2論文では、Query生成に使用するLLMがGPT3からオープンソースのGPT-J(6B)に変更され、生成したQueryのフィルタリング方法がLog Probabilityからmonot5(3B)をRerankerとして利用する方法に変更された点を挙げている。実験結果としては、V2の精度がV1と比べてわずかに向上したことが報告されている。"
+categories: [NLP, Information_retrieval, paper]
+---
+
+InPars V2論文では、Query生成に使用するLLMがGPT3からオープンソースのGPT-J(6B)に変更され、生成したQueryのフィルタリング方法がLog Probabilityからmonot5(3B)をRerankerとして利用する方法に変更された点を挙げている。実験結果としては、V2の精度がV1と比べてわずかに向上したことが報告されている。
+
+論文URL：<https://arxiv.org/abs/2301.01820>
+
+## 1 Introduction
+
+InPars v1とv2の違いは、主に以下の2点：
+
+| Difference                        | InPars v1                               | InPars v2                                |
+|------------------------|------------------------|------------------------|
+| Queryを生成するLLM                | GPT3                                    | GPT-J(6B) (オープンソース)               |
+| 生成したQueryのフィルタリング方法 | 生成時のLog Probabilityでフィルタリング | monot5(3B)をRerankerとしてフィルタリング |
+
+## 2 Methodology
+
+BEIRの各データセットに対して100kのドキュメントをサンプリングする。MS MARCOからの3つの例を利用してGBQの形式でPromptを作成し、各ドキュメントに対して一個のQueryを生成する。GPT-J(6B)を利用してQueryを生成した。A100一枚で100kのQueryを生成するためには30時間かかる。
+
+フィルタリングについては以前は生成時のLog Probabilityが上位の10kのペアを選んだが、今回はMS-MARCOでFine-tuningしたものT5-3BをRerankerとして使った。100kのQueryとDocumentのペアについて相関度を出して、上位の10kペアを利用した。
+
+Negative sampleはまた各QueryについてBM25で上位1000ドキュメント中で1個ランダム選んだ。
+
+## 3 Result
+
+![result](images/paste-1.png){fig-alt="result" width="500"}
+
+実験結果を見ると、v2はv1と比べて精度が少し良くなった(0.006)。

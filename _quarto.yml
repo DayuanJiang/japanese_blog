@@ -1,0 +1,26 @@
+project:
+  type: website
+
+website:
+  title: "blog"
+  google-analytics: "G-56TE34D1Z4"
+  navbar:
+    right:
+      - about.qmd
+      - icon: linkedin
+        href: http://www.linkedin.com/in/jiang-dayuan
+  site-url: 'https://jiang.jp'
+  site-path: '/'
+  
+format:
+  html:
+    theme: cosmo
+    css: styles.css
+    code-line-numbers: true
+    code-annotations: below
+
+highlight-style: atom-one
+
+
+
+

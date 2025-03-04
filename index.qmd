@@ -1,0 +1,18 @@
+---
+title: "自然言語処理技術ブログ"
+listing:
+  contents: posts
+  sort: "date desc"
+  feed: true
+  type: default
+  categories: true
+  sort-ui: true
+  filter-ui: true
+  fields: [image, date, title,  description, categories]
+page-layout: full
+title-block-banner: true
+
+---
+
+
+
