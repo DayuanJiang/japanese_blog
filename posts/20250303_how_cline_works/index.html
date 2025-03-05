@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.6.42">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="dcterms.date" content="2025-03-05">
+<meta name="description" content="ClineはLLMを活用したAIのコーディングアシスタントです。本文では、Clineのソースコードを解析し、処理フローやツールの詳細、改善点まで徹底解説します。">
+
+<title>Cline - AIのコーディングアシスタントの仕組みを徹底解説 – blog</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../../">
+<script src="../../site_libs/quarto-html/quarto.js"></script>
+<script src="../../site_libs/quarto-html/popper.min.js"></script>
+<script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-2fa0555fe88427c29efa1b60aaf9e62d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../../site_libs/bootstrap/bootstrap-dd22361eb0a00faaf46e9ac2450f3ce0.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<script async="" src="https://www.googletagmanager.com/gtag/js?id=G-56TE34D1Z4"></script>
+
+<script type="text/javascript">
+
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
+</script>
+
+
+<link rel="stylesheet" href="../../styles.css">
+</head>
+
+<body class="nav-fixed">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="../../index.html">
+    <span class="navbar-title">blog</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../../about.html"> 
+<span class="menu-text">About</span></a>
+  </li>  
+  <li class="nav-item compact">
+    <a class="nav-link" href="http://www.linkedin.com/in/jiang-dayuan"> <i class="bi bi-linkedin" role="img">
+</i> 
+<span class="menu-text"></span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#tldr" id="toc-tldr" class="nav-link active" data-scroll-target="#tldr">TL;DR</a></li>
+  <li><a href="#clineとは" id="toc-clineとは" class="nav-link" data-scroll-target="#clineとは">Clineとは？</a></li>
+  <li><a href="#clineの処理の全体像" id="toc-clineの処理の全体像" class="nav-link" data-scroll-target="#clineの処理の全体像">Clineの処理の全体像</a>
+  <ul class="collapse">
+  <li><a href="#最初のステップ" id="toc-最初のステップ" class="nav-link" data-scroll-target="#最初のステップ">最初のステップ</a></li>
+  <li><a href="#ステップ２以降の処理" id="toc-ステップ２以降の処理" class="nav-link" data-scroll-target="#ステップ２以降の処理">ステップ２以降の処理</a></li>
+  <li><a href="#中止条件" id="toc-中止条件" class="nav-link" data-scroll-target="#中止条件">中止条件</a></li>
+  </ul></li>
+  <li><a href="#tools" id="toc-tools" class="nav-link" data-scroll-target="#tools">Tools</a>
+  <ul class="collapse">
+  <li><a href="#mcp" id="toc-mcp" class="nav-link" data-scroll-target="#mcp">MCP</a></li>
+  <li><a href="#default-tools" id="toc-default-tools" class="nav-link" data-scroll-target="#default-tools">Default Tools</a></li>
+  </ul></li>
+  <li><a href="#system-prompt" id="toc-system-prompt" class="nav-link" data-scroll-target="#system-prompt">System Prompt</a></li>
+  <li><a href="#ユーザーメッセージ" id="toc-ユーザーメッセージ" class="nav-link" data-scroll-target="#ユーザーメッセージ">ユーザーメッセージ</a></li>
+  <li><a href="#その他" id="toc-その他" class="nav-link" data-scroll-target="#その他">その他</a>
+  <ul class="collapse">
+  <li><a href="#context-window超過時の動作" id="toc-context-window超過時の動作" class="nav-link" data-scroll-target="#context-window超過時の動作">Context Window超過時の動作</a></li>
+  <li><a href="#メンションの動作" id="toc-メンションの動作" class="nav-link" data-scroll-target="#メンションの動作">メンションの動作</a></li>
+  </ul></li>
+  <li><a href="#cline-の改善点" id="toc-cline-の改善点" class="nav-link" data-scroll-target="#cline-の改善点">Cline の改善点</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Cline - AIのコーディングアシスタントの仕組みを徹底解説</h1>
+  <div class="quarto-categories">
+    <div class="quarto-category">LLMs</div>
+    <div class="quarto-category">Agent</div>
+  </div>
+  </div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">March 5, 2025</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="tldr" class="level2">
+<h2 class="anchored" data-anchor-id="tldr">TL;DR</h2>
+<p>Clineのソースコードを読んでわかったこと：</p>
+<ul>
+<li>XML形式でツールを呼び出している。</li>
+<li>ユーザーが入力する際、VSCodeの状態もLLMに送信される。</li>
+<li>メッセージの履歴は要約せずに使用し、長くなった場合は古いメッセージを削除する。</li>
+<li>ファイルを修正する際、全体を再生成するのを避けるため、置換ツールを使用している（Speculative Decodingは未使用）。</li>
+<li>System Messageが長いことが、指令を聞かない理由の一つかもしれない。</li>
+<li>Agentがツールを正しく使用していない場合、LLMにツールの使い方をリマインドするフィードバックを送る。</li>
+<li>Embedding検索は使用していない。メンションでフォルダーを指定する際、<code>@path</code>を使うと直下のすべてのファイルがメッセージに含まれる。</li>
+</ul>
+</section>
+<section id="clineとは" class="level2">
+<h2 class="anchored" data-anchor-id="clineとは">Clineとは？</h2>
+<p>ClientはLLMを活用した開発者支援ツールです。開発者向けの支援ツールです。オープンソース版の「Cursor」とも呼ばれ、Cursorと比較して以下の3つの特徴を持っています。</p>
+<ul>
+<li><p><strong>オープンソース</strong><br>
+Clineはオープンソースソフトウェアであり、誰でもその内部構造を確認したり、カスタマイズしたりできます。これにより、透明性と柔軟性が確保されています。</p></li>
+<li><p><strong>VSCodeプラグイン</strong> Cursorが独立したエディターであるのに対し、ClineはVisual Studio Code（VSCode）のプラグインとして動作します。これにより、既存のエディター環境を変更せずに開発をすることができます。</p></li>
+<li><p><strong>料金体系</strong> Cline自体は無料で利用可能です。使用するAIプロバイダーのAPI料金のみが発生するため、例えばGoogleのGemini Flash 2.0を利用すればコストをかけずに使えます。</p></li>
+</ul>
+<p>Clineが提供する主な機能は以下の通りです。</p>
+<ul>
+<li><p>プロジェクト内のファイルを編集および作成</p></li>
+<li><p>ターミナルコマンドの実行</p></li>
+<li><p>コードの検索と分析</p></li>
+<li><p>デバッグと問題の修正支援</p></li>
+<li><p>ルーチン作業の自動化</p></li>
+<li><p>外部ツールとの統合</p></li>
+</ul>
+<p>これらの機能がどのように実現されているのか、具体的な処理の流れを通して見ていきましょう。</p>
+</section>
+<section id="clineの処理の全体像" class="level2">
+<h2 class="anchored" data-anchor-id="clineの処理の全体像">Clineの処理の全体像</h2>
+<p>Clineの処理は、初回のステップと2回目以降の処理に分かれます。ここでは、例として<code>README.md</code> ファイルを編集するケースを挙げて、その動作を詳しく説明します。</p>
+<section id="最初のステップ" class="level3">
+<h3 class="anchored" data-anchor-id="最初のステップ">最初のステップ</h3>
+<p>最初のステップのフロー図はこちらです。</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="images/step1.png" class="img-fluid figure-img" alt="step1-process-flow"></p>
+<figcaption>step1-process-flow</figcaption>
+</figure>
+</div>
+<p>ユーザーのインプットは以下です。</p>
+<pre><code>@/temp/README.md  give me a sample README.md</code></pre>
+<p>この入力により、生成された<code>User Message</code>は以下になります。</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode numberSource xml number-lines code-with-copy"><code class="sourceCode xml"><span id="cb2-1"><a href="#cb2-1"></a>&lt;<span class="kw">task</span>&gt;</span>
+<span id="cb2-2"><a href="#cb2-2"></a>'temp/README.md' (see below for file content)  give me a sample README.md</span>
+<span id="cb2-3"><a href="#cb2-3"></a>&lt;/<span class="kw">task</span>&gt;</span>
+<span id="cb2-4"><a href="#cb2-4"></a></span>
+<span id="cb2-5"><a href="#cb2-5"></a>&lt;<span class="kw">file_content</span><span class="ot"> path=</span><span class="st">"temp/README.md"</span>&gt;</span>
+<span id="cb2-6"><a href="#cb2-6"></a>This is a example title</span>
+<span id="cb2-7"><a href="#cb2-7"></a>&lt;/<span class="kw">file_content</span>&gt;</span>
+<span id="cb2-8"><a href="#cb2-8"></a>&lt;<span class="kw">environment_details</span>&gt;</span>
+<span id="cb2-9"><a href="#cb2-9"></a># VSCode Visible Files</span>
+<span id="cb2-10"><a href="#cb2-10"></a>temp/README.md</span>
+<span id="cb2-11"><a href="#cb2-11"></a></span>
+<span id="cb2-12"><a href="#cb2-12"></a># VSCode Open Tabs</span>
+<span id="cb2-13"><a href="#cb2-13"></a>temp/README.md</span>
+<span id="cb2-14"><a href="#cb2-14"></a></span>
+<span id="cb2-15"><a href="#cb2-15"></a># Current Time</span>
+<span id="cb2-16"><a href="#cb2-16"></a>3/4/2025, 3:54:45 PM (Asia/Tokyo, UTC+9:00)</span>
+<span id="cb2-17"><a href="#cb2-17"></a></span>
+<span id="cb2-18"><a href="#cb2-18"></a># Current Working Directory (/Users/Downloads/tmp) Files</span>
+<span id="cb2-19"><a href="#cb2-19"></a>No files found.</span>
+<span id="cb2-20"><a href="#cb2-20"></a></span>
+<span id="cb2-21"><a href="#cb2-21"></a># Current Mode</span>
+<span id="cb2-22"><a href="#cb2-22"></a>ACT MODE</span>
+<span id="cb2-23"><a href="#cb2-23"></a>&lt;/<span class="kw">environment_details</span>&gt;</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>その中には三つのセクションがあります。</p>
+<ol type="1">
+<li>&lt;task&gt;: ユーザーがインプットしたテキストそのもの</li>
+<li>&lt;file_content&gt;: ユーザーがメンションしたファイルの内容。システムから取得する。</li>
+<li>&lt;environment_details&gt;: 現時点のシステムの情報。詳細としては
+<ol type="1">
+<li>VSCode Visible Files: 現在VSCodeで見えているファイル</li>
+<li>VSCode Open Tabs: 現在VSCodeで開いているタブ</li>
+<li>Current Time: 現在の時間</li>
+<li>Current Working Directory Files: 現在の作業ディレクトリのファイル</li>
+<li>Current Mode: 現在のモード, ACT MODEかPLAN MODEか（後ほど説明します）</li>
+</ol></li>
+</ol>
+<p>この<code>User Message</code>は<code>System Prompt</code>（後述）と一緒にLLMに送信され、LLMが以下の<code>Assistant Message</code>を生成します。</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode numberSource xml number-lines code-with-copy"><code class="sourceCode xml"><span id="cb3-1"><a href="#cb3-1"></a>&lt;<span class="kw">write_to_file</span>&gt;</span>
+<span id="cb3-2"><a href="#cb3-2"></a>&lt;<span class="kw">path</span>&gt;temp/README.md&lt;/<span class="kw">path</span>&gt;</span>
+<span id="cb3-3"><a href="#cb3-3"></a>&lt;<span class="kw">content</span>&gt;</span>
+<span id="cb3-4"><a href="#cb3-4"></a># Project Title</span>
+<span id="cb3-5"><a href="#cb3-5"></a>(中略)</span>
+<span id="cb3-6"><a href="#cb3-6"></a>Project Link: [https://github.com/yourusername/yourproject](https://github.com/yourusername/yourproject)</span>
+<span id="cb3-7"><a href="#cb3-7"></a>&lt;/<span class="kw">content</span>&gt;</span>
+<span id="cb3-8"><a href="#cb3-8"></a>&lt;/<span class="kw">write_to_file</span>&gt;</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>これはClineの中のツールの利用規約です。Clineの中ではXML形式でツールを呼びことになっています。形式は以下です：</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode numberSource xml number-lines code-with-copy"><code class="sourceCode xml"><span id="cb4-1"><a href="#cb4-1"></a>&lt;<span class="kw">tool_name</span>&gt;</span>
+<span id="cb4-2"><a href="#cb4-2"></a>&lt;<span class="kw">parameter1_name</span>&gt;value1&lt;/<span class="kw">parameter1_name</span>&gt;</span>
+<span id="cb4-3"><a href="#cb4-3"></a>&lt;<span class="kw">parameter2_name</span>&gt;value2&lt;/<span class="kw">parameter2_name</span>&gt;</span>
+<span id="cb4-4"><a href="#cb4-4"></a>...</span>
+<span id="cb4-5"><a href="#cb4-5"></a>&lt;/<span class="kw">tool_name</span>&gt;</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>上記のメッセージは<code>write_to_file</code>のツールをコールし、<code>path</code>と<code>coneten</code>の二つのパラメータを渡しています。</p>
+</section>
+<section id="ステップ２以降の処理" class="level3">
+<h3 class="anchored" data-anchor-id="ステップ２以降の処理">ステップ２以降の処理</h3>
+<p>次のフロー図はこちらです。</p>
+<p><img src="images/step2.png" class="img-fluid" width="623"></p>
+<p>システムは、LLMが生成した<code>Assistant Message</code>を解析し、指定されたツール（この場合は<code>write_to_file</code>）を実行します。実行結果は<code>System Feedback</code>としてLLMに返されます。以下は今回の例での実際のフィードバックです。</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode numberSource xml number-lines code-with-copy"><code class="sourceCode xml"><span id="cb5-1"><a href="#cb5-1"></a>[write_to_file for 'temp/README.md'] Result:</span>
+<span id="cb5-2"><a href="#cb5-2"></a>The content was successfully saved to temp/README.md.</span>
+<span id="cb5-3"><a href="#cb5-3"></a></span>
+<span id="cb5-4"><a href="#cb5-4"></a>Here is the full, updated content of the file that was saved:</span>
+<span id="cb5-5"><a href="#cb5-5"></a></span>
+<span id="cb5-6"><a href="#cb5-6"></a>&lt;<span class="kw">final_file_content</span><span class="ot"> path=</span><span class="st">"temp/README.md"</span>&gt;</span>
+<span id="cb5-7"><a href="#cb5-7"></a># Project Title</span>
+<span id="cb5-8"><a href="#cb5-8"></a>A brief description of what this project does and who it's for.</span>
+<span id="cb5-9"><a href="#cb5-9"></a>(中略)</span>
+<span id="cb5-10"><a href="#cb5-10"></a>Project Link: [https://github.com/yourusername/yourproject](https://github.com/yourusername/yourproject)</span>
+<span id="cb5-11"><a href="#cb5-11"></a></span>
+<span id="cb5-12"><a href="#cb5-12"></a>&lt;/<span class="kw">final_file_content</span>&gt;</span>
+<span id="cb5-13"><a href="#cb5-13"></a></span>
+<span id="cb5-14"><a href="#cb5-14"></a>IMPORTANT: For any future changes to this file, use the final_file_content shown above as your reference. This content reflects the current state of the file, including any auto-formatting (e.g., if you used single quotes but the formatter converted them to double quotes). Always base your SEARCH/REPLACE operations on this final version to ensure accuracy.</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>このフィードバックには、実行結果に加えて、更新されたファイルの完全な内容（<code>&lt;final_file_content&gt;</code>）が含まれます。また、過去の会話履歴やその時点の環境情報も同時にLLMに返され、LLMはこれをもとに次の<code>Assistant Message</code>を生成します。このプロセスがループし、タスクが完了するまで続きます。</p>
+</section>
+<section id="中止条件" class="level3">
+<h3 class="anchored" data-anchor-id="中止条件">中止条件</h3>
+<p>上記のループの中止条件としては、LLMの方が<code>&lt;attempt_completion&gt;</code>を返すことです。例えば、この例では、Step2の方でLLMがすでに必要なファイルを生成したため、<code>&lt;attempt_completion&gt;</code>を返しました。以下は実際の結果です。</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode numberSource xml number-lines code-with-copy"><code class="sourceCode xml"><span id="cb6-1"><a href="#cb6-1"></a>&lt;<span class="kw">attempt_completion</span>&gt;</span>
+<span id="cb6-2"><a href="#cb6-2"></a>&lt;<span class="kw">result</span>&gt;</span>
+<span id="cb6-3"><a href="#cb6-3"></a>The `README.md` file has been successfully updated with a sample template. This template includes sections for project title, installation instructions, usage examples, contribution guidelines, license information, and contact details. You can customize these sections to fit the specific needs of your project.</span>
+<span id="cb6-4"><a href="#cb6-4"></a>&lt;/<span class="kw">result</span>&gt;</span>
+<span id="cb6-5"><a href="#cb6-5"></a>&lt;/<span class="kw">attempt_completion</span>&gt;</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>これで、Clineの処理の全体像について説明しました。次にまで触れてない細かい部分について一個一個説明していきます。</p>
+</section>
+</section>
+<section id="tools" class="level2">
+<h2 class="anchored" data-anchor-id="tools">Tools</h2>
+<p>Clineは、ツールを利用可能なLLM（エージェント）として動作します。利用できるツールは、「デフォルトツール」と「MCP（Model Context Protocol）」によって提供されるツールの2種類に分類されます。</p>
+<section id="mcp" class="level3">
+<h3 class="anchored" data-anchor-id="mcp">MCP</h3>
+<p>MCPは2024年11月にAnthropicが提唱した様々なデータソースやツールと連携できるオープンプロトコルのことです。名前がややこしいですが、ユーザーがカスタマイズできるツールと理解すれば良いです。</p>
+<ul>
+<li><p><code>access_mcp_resource</code> (MCPリソースアクセス)</p></li>
+<li><p><code>use_mcp_tool</code> (MCPツール使用)</p></li>
+</ul>
+<p>この二つのツールは名前の通り、<code>access_mcp_resource</code> はMCPリソースへアクセスするリクエストするツールで、　<code>use_mcp_tool</code> はMCPツールを使用するリクエストするツールです。MCPのリソースとツールはユーザーが自由に追加できるため、Clineの機能を拡張することができます。</p>
+</section>
+<section id="default-tools" class="level3">
+<h3 class="anchored" data-anchor-id="default-tools">Default Tools</h3>
+<p>重点はデフォルトツールです。以下はツールの一覧です。ちなみに、Default Toolsの定義は<a href="https://github.com/cline/cline/blob/main/src/core/prompts/system.ts">System Prompt</a>で確認できます。</p>
+<ul>
+<li><p>ファイル操作系</p>
+<ul>
+<li><p><code>read_file</code> (ファイル読み込み)</p></li>
+<li><p><code>write_to_file</code> (ファイル書き込み)</p></li>
+<li><p><code>replace_in_file</code> (ファイル内置換)</p></li>
+<li><p><code>search_files</code> (ファイル検索)</p></li>
+<li><p><code>list_files</code> (ファイル一覧表示)</p></li>
+</ul></li>
+<li><p>その他の操作系</p>
+<ul>
+<li><p><code>execute_command</code> (コマンド実行)</p></li>
+<li><p><code>list_code_definition_names</code> (コード定義名一覧表示)</p></li>
+<li><p><code>browser_action</code> (ブラウザ操作、Compute useをサポートするモデルのみ使える)</p></li>
+</ul></li>
+<li><p>タスク制御系</p>
+<ul>
+<li><p><code>ask_followup_question</code> (追跡質問)</p></li>
+<li><p><code>attempt_completion</code> (完了試行)</p></li>
+<li><p><code>plan_mode_response</code> (計画モード応答)</p></li>
+</ul></li>
+</ul>
+<p>ツールが結構多いので、一部抜粋して説明します。</p>
+<section id="replace_in_file" class="level4">
+<h4 class="anchored" data-anchor-id="replace_in_file"><code>replace_in_file</code></h4>
+<p>ファイル操作系の中で面白いのは<code>replace_in_file</code>です。これは、ファイル内の文字列を置換するツールです。ファイルの一部を編集する際に使用できるため、トークン数を節約できます。かなり詳細なルールを指定し、正しく動作させるために相当苦労したように思います。実際の動作を確認すると、置換が失敗する例をよく見かけます。以下はその説明の和訳です。</p>
+<blockquote class="blockquote">
+<p><strong>説明:</strong> 既存のファイル内のコンテンツの特定部分を、SEARCH/REPLACE ブロックを使用して置換するリクエスト。このツールは、ファイル内の特定の部分に対して、的を絞った変更を加える必要がある場合に使用します。SEARCH/REPLACE ブロックは、ファイル内の特定部分に対する正確な変更を定義します。</p>
+<p><strong>パラメータ:</strong></p>
+<ul>
+<li><p><code>path</code>: (必須) 変更するファイルのパス (現在の作業ディレクトリからの相対パス)。</p></li>
+<li><p><code>diff</code>: (必須) 以下の正確なフォーマットに従った、1つ以上の SEARCH/REPLACE ブロック:</p>
+<pre><code>&lt;&lt;&lt;&lt;&lt;&lt;&lt; SEARCH
+[検索する正確な内容]
+=======
+[置換する新しい内容]
+&gt;&gt;&gt;&gt;&gt;&gt;&gt; REPLACE</code></pre></li>
+</ul>
+<p><strong>重要なルール:</strong></p>
+<ol type="1">
+<li>SEARCH の内容は、検索対象となるファイルのセクションと<strong>正確に</strong>一致する必要があります。
+<ul>
+<li>空白、インデント、改行を含む、文字単位で一致させること。</li>
+<li>すべてのコメント、ドキュメンテーション文字列などを含めること。</li>
+</ul></li>
+<li>SEARCH/REPLACE ブロックは、<strong>最初に一致した箇所のみ</strong>を置換します。
+<ul>
+<li>複数の変更を行う必要がある場合は、複数のユニークな SEARCH/REPLACE ブロックを含めること。</li>
+<li>変更が必要な各行のセットを一意に識別するために、各 SEARCH セクションには十分な行を含めてください。</li>
+<li>複数の SEARCH/REPLACE ブロックを使用する場合は、ファイル内での出現順にリストしてください。</li>
+</ul></li>
+<li>SEARCH/REPLACE ブロックは<strong>簡潔</strong>に保つこと:
+<ul>
+<li>大きな SEARCH/REPLACE ブロックは、ファイルの小さな部分をそれぞれ変更する一連の小さなブロックに分割してください。</li>
+<li>変更する行と、一意性を確保するために必要な場合は周囲の数行だけを含めてください。</li>
+<li>SEARCH/REPLACE ブロックに、変更のない長い行を含めないでください。</li>
+<li>各行は完全である必要があります。 途中で行を切り捨てないでください。マッチングの失敗につながる可能性があります。</li>
+</ul></li>
+<li><strong>特別な操作:</strong>
+<ul>
+<li>コードを移動する場合: 2つの SEARCH/REPLACE ブロックを使用します (1つは元の場所から削除するため、もう1つは新しい場所に挿入するため)。</li>
+<li>コードを削除する場合: 空の REPLACE セクションを使用します。</li>
+</ul></li>
+</ol>
+</blockquote>
+<p>他のツールについて、タスク制御系の三つのツール以外は大体名前を見れば何をしているかがわかるので、タスク制御系の三つのみ説明を和訳して載せます。</p>
+</section>
+<section id="ask_followup_question" class="level4">
+<h4 class="anchored" data-anchor-id="ask_followup_question"><code>ask_followup_question</code></h4>
+<blockquote class="blockquote">
+<p>説明: タスクを完了するために必要な追加情報を収集するためにユーザーに質問をすること。このツールは、曖昧さに直面した場合、明確化が必要な場合、または効果的に進行するために詳細が必要な場合に使用されるべき。ユーザーとの直接コミュニケーションを可能にすることで、対話的な問題解決を可能にします。必要な情報を収集しつつ、過度な往復を避けるために慎重にこのツールを使用してください。</p>
+<p>パラメータ:</p>
+<ul>
+<li>question: (必須) ユーザーに尋ねる質問。必要な情報に対応する明確で具体的な質問であるべき。</li>
+</ul>
+</blockquote>
+<p>ツールの説明の和訳は以上です。これは、ユーザーに質問して情報を収集するツールです。ユーザーの指示が曖昧な場合や、認証用のキーが必要な場合に、このツールを使ってユーザーとコミュニケーションを取ることができます。また、複数回失敗した場合にも、これを利用してユーザーに助けを求めることがあります。</p>
+</section>
+<section id="attempt_completion" class="level4">
+<h4 class="anchored" data-anchor-id="attempt_completion"><code>attempt_completion</code></h4>
+<blockquote class="blockquote">
+<p>説明: 各ツールを使用した後、ユーザーはその結果（成功または失敗）および失敗の理由を応答する。ツールの使用結果を受け取り、作業が完了したことを確認できた場合、このツールを使用して結果を提示する。オプションとして、作業結果を示すCLIコマンドを提供することもできる。ユーザーが結果に満足しない場合、フィードバックを返すことがあり、それを基に改善し、再試行することが可能である。</p>
+<p>重要な注意: 本ツールを使用する前に、以前のツールの使用が成功したことをユーザーから確認したかどうかをタグ内で自問しなければならない。確認が取れていない場合、本ツールを使用してはならない。これを怠ると、コードの破損やシステム障害を招く恐れがある。</p>
+<p>パラメータ</p>
+<ul>
+<li><p>result（必須）: タスクの最終結果を示す。結果は確定的なものであり、ユーザーからのさらなる入力を必要としないように記述すること。結果を質問形や支援の申し出で終わらせることは避けるべし。</p></li>
+<li><p>command（任意）: 作業結果のライブデモを示すためのCLIコマンド。</p></li>
+</ul>
+</blockquote>
+<p>このツールの利用はプロセスの終了条件となるため、Agentがプログラムを終了したい場合は、必ずこのツールを呼び出されます。逆に、このツールを呼び出さずに終了しようとするとエラーが発生し、「もう一度考えて」とClineからLLMに送信されます。メッセージの制御については後ほど説明します。</p>
+</section>
+<section id="plan_mode_response" class="level4">
+<h4 class="anchored" data-anchor-id="plan_mode_response"><code>plan_mode_response</code></h4>
+<blockquote class="blockquote">
+<p>説明: ユーザーの問い合わせに応じ、ユーザーのタスクに対する解決策を計画するための応答を行う。このツールは、ユーザーの質問や発言に対して、どのようにタスクを達成するかの計画を提示する必要がある場合に使用する。なお、このツールはPLAN MODEのときのみ利用可能であり、現在のモードはenvironment_detailsに記載されている。PLAN MODEでない場合は使用してはならない。</p>
+<p>ユーザーのメッセージ内容に応じて、リクエストに関する詳細を尋ねたり、タスクの解決策を設計したり、ユーザーとアイデアをブレインストーミングすることが可能である。例えば、ユーザーのタスクがウェブサイトの作成である場合、いくつかの確認の質問を行った後、与えられた条件に基づいてタスクを達成するための詳細な計画を提示し、ユーザーとやり取りを行って詳細を確定させることが考えられる。その後、ユーザーがACT MODEへ切り替えた際に、計画を実行に移す。</p>
+<p>パラメータ:</p>
+<p>• response: (必須) ユーザーに提供する応答。このパラメータ内でツールを使用してはならず、単なるチャット応答として扱う。</p>
+</blockquote>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="images/plan-act-button.png" class="img-fluid figure-img" width="293"></p>
+<figcaption>Plan Mode And Act Mode</figcaption>
+</figure>
+</div>
+<p>インプットウィンドウ内に<code>Plan</code>と<code>Act</code>のモードを切り替えるボタンがあります。しかし、ソースコードを読む限り、この二つのモードに仕組み上の大きな違いはありません。唯一の違いは、<code>Plan</code>モードでは<code>plan_mode_response</code>が使用できる点です。一方、<code>Act</code>モードでも通常の<code>&lt;thinking&gt;...&lt;/thinking&gt;</code>の形式で思考を行うため、手動でモードを切り替えてまで<code>plan_mode_response</code>をLLMに使わせるメリットは感じられません。基本的に<code>Act</code>モードを常駐させれば十分だと考えます。</p>
+<p>以下はSystem Promptから抜粋した定義です。興味のある方はご覧ください。</p>
+<blockquote class="blockquote">
+<p><strong>ACT MODEとPLAN MODE</strong></p>
+<p>各ユーザーメッセージにおいて、environment_detailsで現在のモードが指定されます。モードは2種類あります。</p>
+<ul>
+<li><p>ACT MODE：このモードでは、plan_mode_responseツールを除くすべてのツールにアクセスできます。</p></li>
+<li><p>ACT MODEでは、ツールを使用してユーザーのタスクを完了させます。ユーザーのタスクが完了したら、attempt_completionツールを使用してタスクの結果をユーザーに提示します。</p></li>
+<li><p>PLAN MODE：この特別なモードでは、plan_mode_responseツールにアクセスできます。</p></li>
+<li><p>PLAN MODEでは、タスクを達成するための詳細な計画を作成するために、情報を収集し、コンテキストを取得することが目標です。ユーザーは、あなたが解決策を実行するためにACT MODEに切り替える前に、この計画を確認し、承認します。</p></li>
+<li><p>PLAN MODEでは、ユーザーと会話したり、計画を提示したりする必要がある場合、&lt;thinking&gt;タグを使用していつ応答するかを分析するのではなく、plan_mode_responseツールを使用して直接応答を配信する必要があります。plan_mode_responseの使用について言及しないでください。考えを共有し、役立つ回答を提供するために、直接使用してください。</p></li>
+</ul>
+<p><strong>PLAN MODEとは？</strong></p>
+<ul>
+<li><p>通常はACT MODEですが、ユーザーはタスクを最適に達成する方法を計画するために、PLAN MODEに切り替えることがあります。</p></li>
+<li><p>PLAN MODEで開始する場合、ユーザーのリクエストに応じて、タスクに関するより多くのコンテキストを取得するために、read_fileやsearch_filesなどを使用して情報収集が必要になる場合があります。また、タスクをより深く理解するために、ユーザーに明確化のための質問をすることもできます。理解を視覚的に表示するために、mermaidダイアグラムを返すこともできます。</p></li>
+<li><p>ユーザーのリクエストについてより多くのコンテキストを得たら、タスクを達成するための詳細な計画を設計する必要があります。ここでもmermaidダイアグラムを返すことが役立つ場合があります。</p></li>
+<li><p>次に、ユーザーにこの計画に満足しているかどうか、または変更を加えたいかどうかを尋ねます。これは、タスクについて話し合い、最適な実行方法を計画するブレインストーミングセッションと考えてください。</p></li>
+<li><p>計画をユーザーが構造をすばやく理解できるように、mermaidダイアグラムを使用すると計画がより明確になる場合は、応答にMermaidコードブロックを含めることをお勧めします。（注：mermaidダイアグラムで色を使用する場合は、テキストが読みやすくなるように、コントラストの高い色を使用してください。）</p></li>
+<li><p>最後に、良い計画に到達したと思われる場合は、解決策を実行するためにACT MODEに戻すようにユーザーに依頼してください。</p></li>
+</ul>
+</blockquote>
+</section>
+</section>
+</section>
+<section id="system-prompt" class="level2">
+<h2 class="anchored" data-anchor-id="system-prompt">System Prompt</h2>
+<p><a href="https://github.com/cline/cline/blob/main/src/core/prompts/system.ts">System Prompt</a>はいくつかのセクションがあり、非常に長いので、ここでは各セクションの内容を一言でまとめます。</p>
+<ul>
+<li><p><strong>Capabilities</strong>: 提供されたツールの説明と、エージェントがそれらのツールをどのように使用して、ユーザーのタスクを達成できるかについての概要。</p></li>
+<li><p><strong>Tool Use</strong>: エージェントが利用できるツールのリストと、各ツールの使用方法に関する詳細な説明。XML形式でのツールの使い方、各パラメータの説明も含む。</p></li>
+<li><p><strong>Tool Use Examples</strong>: 各ツールの使用例をXML形式で示す。</p></li>
+<li><p><strong>Tool Use Guidelines</strong>: ツール使用のステップ、ツール使用後のユーザーからのレスポンスの重要性、反復的な問題解決のアプローチについて。</p></li>
+<li><p><strong>Editing Files</strong>: <code>write_to_file</code> と <code>replace_in_file</code> ツールの使い分けと、それぞれのツールの適切な使用状況、自動フォーマットに関する考慮事項について。</p></li>
+<li><p><strong>ACT MODE V.S. PLAN MODE</strong>: <code>ACT MODE</code> と <code>PLAN MODE</code> の違い、それぞれのモードで利用可能なツール、<code>PLAN MODE</code> での計画策定プロセスについて。</p></li>
+<li><p><strong>MCP Servers</strong>: MCP (Model Context Protocol) サーバーの概要と、接続されたサーバーが提供するツールとリソースの使用方法。MCPサーバーの作成例を含む詳細な説明。</p></li>
+<li><p><strong>Rules</strong>: エージェントが従うべきルール。現在の作業ディレクトリ、コマンド実行時の注意点、ファイル検索や変更時の注意点、対話に関する制限など。</p></li>
+<li><p><strong>System Information</strong>: ユーザーのオペレーティングシステム、デフォルトシェル、ホームディレクトリ、現在の作業ディレクトリに関する情報。</p></li>
+<li><p><strong>Objective</strong>: ユーザーのタスクを達成するための段階的なアプローチ、ツールの使用方法、問題解決プロセスについて。</p></li>
+<li><p><strong>USER’S CUSTOM INSTRUCTIONS</strong>: ユーザーによって提供される追加の指示。</p></li>
+</ul>
+<p>ここで注目すべきのは、最後のユーザー指示です。つまり、<code>System Prompt</code>の中で、ユーザーの意思を入れることができます。</p>
+<p>懸念点としては、プロンプト自体が長すぎることです。GPT-4oのトークナイザーでカウントしたところ、4658トークンでした。これほど長く複雑な指示を与えた場合に、どの程度指示通りに動作するかが疑問です。実際に試したところ、指示を遵守しないケースが見られました。幸い、Clineの制御がしっかりしているため、遵守しなくても問題は発生しませんでした。</p>
+</section>
+<section id="ユーザーメッセージ" class="level2">
+<h2 class="anchored" data-anchor-id="ユーザーメッセージ">ユーザーメッセージ</h2>
+<p>LLMから出力したメッセージを解析した後、システムで実行した結果をLLMにフィットバックする必要があります。各条件にLLMへのリスポンスを以下のように定義されています。</p>
+<p><code>toolDenied</code>:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode numberSource xml number-lines code-with-copy"><code class="sourceCode xml"><span id="cb8-1"><a href="#cb8-1"></a>ユーザーがこの操作を拒否しました。</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><code>toolError</code>:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode numberSource xml number-lines code-with-copy"><code class="sourceCode xml"><span id="cb9-1"><a href="#cb9-1"></a>ツールの実行が次のエラーで失敗しました:</span>
+<span id="cb9-2"><a href="#cb9-2"></a>&lt;<span class="kw">error</span>&gt;</span>
+<span id="cb9-3"><a href="#cb9-3"></a>{error}</span>
+<span id="cb9-4"><a href="#cb9-4"></a>&lt;/<span class="kw">error</span>&gt;</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><code>clineIgnoreError</code>:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode numberSource xml number-lines code-with-copy"><code class="sourceCode xml"><span id="cb10-1"><a href="#cb10-1"></a>{path} へのアクセスは .clineignore ファイルの設定によってブロックされています。このファイルを使用せずにタスクを続行するか、ユーザーに .clineignore ファイルの更新を依頼してください。</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><code>noToolsUsed</code>:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode numberSource xml number-lines code-with-copy"><code class="sourceCode xml"><span id="cb11-1"><a href="#cb11-1"></a>\[エラー\] 前回の応答でツールを使用しませんでした！ツールを使用して再試行してください。</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><code>tooManyMistakes</code>:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode numberSource xml number-lines code-with-copy"><code class="sourceCode xml"><span id="cb12-1"><a href="#cb12-1"></a>処理を進めるのに問題があるようです。ユーザーから、あなたを導くための次のフィードバックが提供されています</span>
+<span id="cb12-2"><a href="#cb12-2"></a>&lt;<span class="kw">feedback</span>&gt;</span>
+<span id="cb12-3"><a href="#cb12-3"></a>{feedback}</span>
+<span id="cb12-4"><a href="#cb12-4"></a>&lt;/<span class="kw">feedback</span>&gt;</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p><code>toolResult</code>:</p>
+<ul>
+<li>画像がない場合: {text}</li>
+<li>画像がある場合: {text} と {images}を結合した配列</li>
+</ul>
+<p><code>formatFilesList</code>:</p>
+<ul>
+<li>ファイル数上限に達した場合: {ファイルリスト}(ファイルリストが切り詰められました。さらに探索する必要がある場合は、特定のサブディレクトリで list_files を使用してください。)</li>
+<li>ファイルがない場合: ファイルが見つかりません。</li>
+<li>それ以外: {ファイルリスト}</li>
+</ul>
+<p>また、上記の条件の中で、<code>noToolsUsed</code>と<code>missingToolParameterError</code>の二つの状況について、上記のメッセージ以外に<code>Reminder: Instructions for Tool Use</code>をタイトルとしたTool Useの使い方をリマインドするメッセージも最後に追加されます。</p>
+</section>
+<section id="その他" class="level2">
+<h2 class="anchored" data-anchor-id="その他">その他</h2>
+<p>Clineの主要部分については上記で説明しましたが、その他の細かな点について本章でまとめます。</p>
+<section id="context-window超過時の動作" class="level3">
+<h3 class="anchored" data-anchor-id="context-window超過時の動作">Context Window超過時の動作</h3>
+<p>普段から1MのContext Windowを持つGemini Flash 2.0を使用しているため、Context Windowの制限をあまり意識していませんでしたが、他のモデルを使用している場合はContext Windowを超過しやすいです。その場合、Clineは単純に古いメッセージを捨てています。　<a href="https://github.com/cline/cline/blob/0ce66efc19834b7fbdf31ed431b5b821d5242c0d/src/core/sliding-window/index.ts">コード</a>の中にこのようなコメントがあります：</p>
+<blockquote class="blockquote">
+<p>If a user reaches a 200k context, we can assume that the first half is likely irrelevant to their current task.</p>
+</blockquote>
+<p>つまり、200kのContext Windowを超えた場合、最初の半分は現在のタスクとは関係がないと仮定しているようです。少々乱暴な仮説と言わざるを得ません。せめて省略した部分を要約して返すなどの対応が望ましいと考えられます。</p>
+<p>実際の動作としては、最初のメッセージ、つまりユーザーからの直接のインプットのみを残し、2回目以降のメッセージは削除されます。</p>
+</section>
+<section id="メンションの動作" class="level3">
+<h3 class="anchored" data-anchor-id="メンションの動作">メンションの動作</h3>
+<p>「<code>@src/index.ts</code>を修正してください」のようにファイルなどをメンションして、LLMに指示を出すことができます。それがサポートされている形式を以下の表にまとめました。</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 16%">
+<col style="width: 83%">
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Mention</th>
+<th style="text-align: left;">Messageに追加される情報</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><code>@/path/to/file</code></td>
+<td style="text-align: left;"><ul>
+<li><p>ファイルの内容を表示する</p></li>
+<li><p>ファイルがバイナリファイル（テキストではないファイル）の場合は、「バイナリファイルのため、内容を表示できません」と表示する</p></li>
+</ul></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>@/path/to/directory/</code></td>
+<td style="text-align: left;"><ul>
+<li><p>ディレクトリ内のファイルとサブディレクトリの名前をリスト表示する。 サブディレクトリの内容は再帰的に表示しない</p></li>
+<li><p>ディレクトリ内の各<em>ファイル</em>については、ファイルの内容を表示する（バイナリファイルを除く）</p></li>
+</ul></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>@problems</code></td>
+<td style="text-align: left;"><ul>
+<li>VS Code ワークスペース内のエラーや警告のリストを表示する</li>
+</ul></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>@terminal</code></td>
+<td style="text-align: left;"><ul>
+<li>ターミナルの最新のインプットとアウトプットを表示する。</li>
+</ul></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>@http://example.com</code></td>
+<td style="text-align: left;"><ul>
+<li>指定されたURLのWebページの内容をMarkdown形式で表示する</li>
+</ul></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>@git-changes</code></td>
+<td style="text-align: left;"><ul>
+<li>プロジェクトのGitの作業ディレクトリの変更差分（diff）を表示する</li>
+</ul></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>@a1b2c3d</code></td>
+<td style="text-align: left;"><ul>
+<li>指定されたGitコミットのメッセージ、作成者、および日付を表示する</li>
+</ul></td>
+</tr>
+</tbody>
+</table>
+<p>メンション機能は便利ですが、大量のファイルを含むフォルダをメンションすると、コンテキストウィンドウがすぐに埋まってしまうため、注意が必要です。</p>
+</section>
+</section>
+<section id="cline-の改善点" class="level2">
+<h2 class="anchored" data-anchor-id="cline-の改善点">Cline の改善点</h2>
+<p>ソースコードの分析から見つかった改善点を以下にまとめます。</p>
+<ol type="1">
+<li><p><strong>Embedding 検索の未活用</strong>: 現状の Cline では、LLM へのファイル連携はファイル名やファイル全体を LLM に渡す形で行われています。Embedding を利用した検索を導入することで、より効率的なファイル連携が可能になる可能性があります。</p></li>
+<li><p><strong>入力圧縮方法の改善</strong>: Context Window のサイズを超過しそうな場合、古いメッセージを単純に削除するのではなく、要約処理を挟むなど、より洗練された方法で入力情報を圧縮するべきです。</p></li>
+<li><p><strong>トークン消費量の最適化</strong>: 上記の2点 (Embedding の活用、入力圧縮方法の改善) に関連しますが、現状ではトークン消費量が非常に多いと感じられます。特に、Gemini Flash 2.0 ではなく、Claude のような高性能モデルを使用する場合、コストが大きな課題となります。</p></li>
+<li><p><strong>System Prompt の最適化</strong>: 現在の System Prompt は非常に長く複雑です。これにより、指示が適切に反映されない可能性があります。チューニングの結果であることは理解していますが、よりシンプルかつ効果的な System Prompt を検討する必要があります。</p></li>
+<li><p><strong>コマンドライン実行のリスク管理</strong>: LLM が承認した場合、ユーザーに確認を求めた上でコマンドが実行されますが、この仕組みは完全ではありません (Fool-proof ではない)。LLM が <code>rm -rf /</code> のような危険なコマンドを誤って承認した場合、自動的に実行されてしまうリスクがあります。機械的なリスク検出方法を導入するなど、より安全な仕組みを構築する必要があります。 (あるいは、重要なコマンドは、確認ダイアログを出すなど)</p></li>
+</ol>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp("https:\/\/jiang\.jp");
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+<script src="https://utteranc.es/client.js" repo="AlbertRapp/blogComments" issue-term="pathname" theme="github-light" crossorigin="anonymous" async="">
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

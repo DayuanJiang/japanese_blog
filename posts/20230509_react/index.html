@@ -2,14 +2,14 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.3.340">
+<meta name="generator" content="quarto-1.6.42">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="dcterms.date" content="2023-05-09">
 <meta name="description" content="本文ではAgentの使い方から、インプットからアウトプットまでの流れを説明していきます。AgentExecutorの詳細を徹底的に解説します。">
 
-<title>blog - LangChain Agentの全面解説</title>
+<title>LangChain Agentの全面解説 – blog</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -24,7 +24,7 @@ ul.task-list li input[type="checkbox"] {
 }
 /* CSS for syntax highlighting */
 pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span { line-height: 1.25; }
 pre > code.sourceCode > span:empty { height: 1.2em; }
 .sourceCode { overflow: visible; }
 code.sourceCode > span { color: inherit; text-decoration: inherit; }
@@ -35,7 +35,7 @@ div.sourceCode { overflow: auto; }
 }
 @media print {
 pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
 }
 pre.numberSource code
   { counter-reset: source-line 0; }
@@ -71,17 +71,23 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="../../site_libs/quarto-html/anchor.min.js"></script>
 <link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-2fa0555fe88427c29efa1b60aaf9e62d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-dd22361eb0a00faaf46e9ac2450f3ce0.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
   "collapse-after": 3,
   "panel-placement": "end",
   "type": "overlay",
-  "limit": 20,
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
   "language": {
     "search-no-results-text": "No results",
     "search-matching-documents-text": "matching documents",
@@ -90,8 +96,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     "search-more-match-text": "more match in this document",
     "search-more-matches-text": "more matches in this document",
     "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
     "search-detached-cancel-button-title": "Cancel",
-    "search-submit-button-title": "Submit"
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
   }
 }</script>
 <script async="" src="https://www.googletagmanager.com/gtag/js?id=G-56TE34D1Z4"></script>
@@ -112,32 +120,32 @@ gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
 
 <div id="quarto-search-results"></div>
   <header id="quarto-header" class="headroom fixed-top">
-    <nav class="navbar navbar-expand-lg navbar-dark ">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
       <div class="navbar-container container-fluid">
-      <div class="navbar-brand-container">
+      <div class="navbar-brand-container mx-auto">
     <a class="navbar-brand" href="../../index.html">
     <span class="navbar-title">blog</span>
     </a>
   </div>
             <div id="quarto-search" class="" title="Search"></div>
-          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
   <span class="navbar-toggler-icon"></span>
 </button>
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll ms-auto">
   <li class="nav-item">
-    <a class="nav-link" href="../../about.html" rel="" target="">
- <span class="menu-text">About</span></a>
+    <a class="nav-link" href="../../about.html"> 
+<span class="menu-text">About</span></a>
   </li>  
   <li class="nav-item compact">
-    <a class="nav-link" href="http://www.linkedin.com/in/jiang-dayuan" rel="" target=""><i class="bi bi-linkedin" role="img">
+    <a class="nav-link" href="http://www.linkedin.com/in/jiang-dayuan"> <i class="bi bi-linkedin" role="img">
 </i> 
- <span class="menu-text"></span></a>
+<span class="menu-text"></span></a>
   </li>  
 </ul>
+          </div> <!-- /navcollapse -->
             <div class="quarto-navbar-tools">
 </div>
-          </div> <!-- /navcollapse -->
       </div> <!-- /container-fluid -->
     </nav>
 </header>
@@ -193,7 +201,9 @@ gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
   </div>
   
 
+
 </header>
+
 
 <p>LangChainの中に最もハイレベルな概念としてはAgentです。以前の投稿の中でも話ましたが、LangChainはまだ未熟なライブラリなので、Agentの実装は複雑なものになっていますし、中身の挙動を説明するドキュメントもなかったので、本文ではAgentの使い方から、インプットからアウトプットまでの流れを説明していきます。</p>
 <section id="reactを例にlangchainのagentを紹介する" class="level2">
@@ -201,7 +211,7 @@ gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
 <p>LangChainのAgentとは、簡単に言うとツールを利用できるLLMです。</p>
 <p>典型の例としては「ReAct」が挙げられます。去年出されている「ReAct: Synergizing Reasoning and Acting in Language Models」の論文の中で、思考だけではなく、思考に基づいて行動を起こし、さらに行動の結果から思考を行うLLMsの利用方法を提案した。そのやり方はReasoningとActingの結合なので、「ReAct」と名付けられました。</p>
 <p>実際の例で見ましょう。下記のコードはLangChainで定義したReActのAgentです。このAgentは検索と照応の2つのツールを持っています。人間と同じように、質問が投げられた後、Wikipediaで検査し、検索した結果からコピペー(照応)しながら答案を作ることができます。</p>
-<div class="cell" data-execution_count="26">
+<div id="cell-3" class="cell" data-execution_count="26">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1"></a><span class="im">from</span> langchain <span class="im">import</span> OpenAI, Wikipedia</span>
 <span id="cb1-2"><a href="#cb1-2"></a><span class="im">from</span> langchain.agents <span class="im">import</span> initialize_agent, Tool</span>
 <span id="cb1-3"><a href="#cb1-3"></a><span class="im">from</span> langchain.agents <span class="im">import</span> AgentType</span>
@@ -228,7 +238,7 @@ gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
 <span id="cb1-24"><a href="#cb1-24"></a>react <span class="op">=</span> initialize_agent(tools, llm, agent<span class="op">=</span>AgentType.REACT_DOCSTORE, verbose<span class="op">=</span><span class="va">True</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>クリントンの奥さんが何をしているかを聞いてみましょう。</p>
-<div class="cell" data-execution_count="23">
+<div id="cell-5" class="cell" data-execution_count="23">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1"></a>react.run(<span class="st">"What do Bill Clinton's wife do for a living?"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>
@@ -284,8 +294,8 @@ Action: Finish[politician, diplomat, lawyer]
 <span id="cb5-6"><a href="#cb5-6"></a>    <span class="st">"hiroko is 10 years old"</span>,</span>
 <span id="cb5-7"><a href="#cb5-7"></a>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>コードが100行ぐらいあります。こからステップ・バイ・ステップで説明するのでなので、一旦折りたたみます。下の矢印をクリックすると、コードが表示されます。</p>
-<div class="cell" data-execution_count="69">
-<details>
+<div id="cell-8" class="cell" data-execution_count="69">
+<details class="code-fold">
 <summary>Click here to show the agent definition code</summary>
 <div class="sourceCode cell-code" id="cb6"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1"></a><span class="im">from</span> langchain <span class="im">import</span> OpenAI, LLMChain</span>
 <span id="cb6-2"><a href="#cb6-2"></a><span class="im">from</span> langchain.agents <span class="im">import</span> Tool, AgentExecutor, LLMSingleActionAgent, AgentOutputParser</span>
@@ -402,7 +412,7 @@ Action: Finish[politician, diplomat, lawyer]
 </details>
 </div>
 <p>定義した後実行して見ましょう。</p>
-<div class="cell" data-execution_count="70">
+<div id="cell-10" class="cell" data-execution_count="70">
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1"></a>agent_executor <span class="op">=</span> AgentExecutor.from_agent_and_tools(agent<span class="op">=</span>agent, tools<span class="op">=</span>tools, verbose<span class="op">=</span><span class="va">True</span>)</span>
 <span id="cb7-2"><a href="#cb7-2"></a>agent_executor.run(<span class="st">"What is hiroko's father's ocupation?"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
@@ -453,7 +463,7 @@ Final Answer: Takuma is a teacher.
 <span id="cb10-17"><a href="#cb10-17"></a>    ),</span>
 <span id="cb10-18"><a href="#cb10-18"></a>]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>今回使うツールはDBからテキストを検索するツールです。ツールが使わる時、ツールの<code>func</code>が<code>AgentAction</code>よりコールされ、<code>Observation</code>が返されます。例えば、下記で<code>tool</code>にHirokoさんの年齢を入れたら、<code>tool</code>はDBにあるドキュメントを検索し、それに関連するテキストを返します。</p>
-<div class="cell" data-execution_count="71">
+<div id="cell-13" class="cell" data-execution_count="71">
 <div class="sourceCode cell-code" id="cb11"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1"></a>tool <span class="op">=</span> tools[<span class="dv">0</span>]</span>
 <span id="cb11-2"><a href="#cb11-2"></a>query <span class="op">=</span> <span class="st">"hiroko's age"</span></span>
 <span id="cb11-3"><a href="#cb11-3"></a>observation <span class="op">=</span> tool(query)</span>
@@ -520,7 +530,7 @@ Final Answer: Takuma is a teacher.
 <span id="cb14-27"><a href="#cb14-27"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p><code>prompt</code>を初期化する際に<code>tools</code>を渡したため、テンプレートに埋める時に<code>["input", "intermediate_steps"]</code>があれば良いです。<code>intermediate_steps</code>には途中の結果が全部は入っていて、それを使って<code>prompt</code>にある<code>agent_scratchpad</code>を埋めます。</p>
 <p>Hirokoさんのお父さんの職業を聞く場合、最初の<code>prompt</code>はどんなものかを実際に見てみましょう。</p>
-<div class="cell" data-execution_count="72">
+<div id="cell-16" class="cell" data-execution_count="72">
 <div class="sourceCode cell-code" id="cb15"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1"></a>query <span class="op">=</span> <span class="st">"What is hiroko's father's ocupation?"</span></span>
 <span id="cb15-2"><a href="#cb15-2"></a>formatted_prompt <span class="op">=</span> prompt.<span class="bu">format</span>(<span class="bu">input</span><span class="op">=</span>query,  intermediate_steps<span class="op">=</span>[])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
@@ -537,7 +547,7 @@ Search: useful for when you need to ask with search
 <section id="最初のプランを建てる" class="level3">
 <h3 class="anchored" data-anchor-id="最初のプランを建てる">最初のプランを建てる</h3>
 <p>この<code>prompt</code>を<code>llm</code>に渡すと、<code>llm</code>は<code>prompt</code>を補完します。そのアウトプットは以下のようになります。</p>
-<div class="cell" data-execution_count="75">
+<div id="cell-18" class="cell" data-execution_count="75">
 <div class="sourceCode cell-code" id="cb16"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1"></a>output <span class="op">=</span> llm(formatted_prompt)</span>
 <span id="cb16-2"><a href="#cb16-2"></a><span class="bu">print</span>(output)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
@@ -550,7 +560,7 @@ Final Answer: Hiroko's father is a doctor.</code></pre>
 </div>
 </div>
 <p>ここで、<code>llm</code>は<code>prompt</code>が決めたパターンに沿ってアウトプットを出しました。この中で、<code>Observation:</code>以降のものは全部捏造したものです。なぜかというと、ここまではまだDBに検索することをやっていなくて、<code>llm</code>はまだ何も知らないからです。ここで<code>llm</code>をやってもらいたいことはつぎのステップを決めてもらうだけです。 なので、<code>output</code>の<code>Observation:</code>以降のものを全部切って、それを<code>OutputParser</code>に渡して、つぎのアクションを抽出してもらいます。</p>
-<div class="cell" data-execution_count="102">
+<div id="cell-20" class="cell" data-execution_count="102">
 <div class="sourceCode cell-code" id="cb18"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1"></a><span class="kw">class</span> CustomOutputParser(AgentOutputParser):</span>
 <span id="cb18-2"><a href="#cb18-2"></a>    </span>
 <span id="cb18-3"><a href="#cb18-3"></a>    <span class="kw">def</span> parse(<span class="va">self</span>, llm_output: <span class="bu">str</span>) <span class="op">-&gt;</span> Union[AgentAction, AgentFinish]:</span>
@@ -581,7 +591,7 @@ Final Answer: Hiroko's father is a doctor.</code></pre>
 <li><code>tool</code>: <code>parser</code>が抽出したツールの名前</li>
 <li><code>tool_input</code>: <code>parser</code>が抽出したツールにインプットするもの</li>
 </ol>
-<div class="cell" data-execution_count="103">
+<div id="cell-22" class="cell" data-execution_count="103">
 <div class="sourceCode cell-code" id="cb19"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1"></a><span class="cf">for</span> variable <span class="kw">in</span> [<span class="st">"log"</span>,<span class="st">"tool"</span>,<span class="st">"tool_input"</span>]:</span>
 <span id="cb19-2"><a href="#cb19-2"></a>    <span class="bu">print</span>(variable, <span class="st">":"</span>)</span>
 <span id="cb19-3"><a href="#cb19-3"></a>    <span class="bu">print</span>(<span class="bu">getattr</span>(action, variable).strip())</span>
@@ -604,7 +614,7 @@ Hiroko's father's occupation
 <section id="第一ステップを実行する" class="level3">
 <h3 class="anchored" data-anchor-id="第一ステップを実行する">第一ステップを実行する</h3>
 <p>これでつぎのステップがわかったので、<code>tool</code>を実行します。この例でいうと、DBに<code>Hiroko's father's occupation</code>を検索することです。その結果は<code>action</code>を実行した後の<code>observation</code>です。</p>
-<div class="cell" data-execution_count="104">
+<div id="cell-24" class="cell" data-execution_count="104">
 <div class="sourceCode cell-code" id="cb21"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1"></a>tool <span class="op">=</span> tools[<span class="dv">0</span>]</span>
 <span id="cb21-2"><a href="#cb21-2"></a>observation <span class="op">=</span> tool.run(action.tool_input)</span>
 <span id="cb21-3"><a href="#cb21-3"></a><span class="bu">print</span>(observation)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -617,7 +627,7 @@ Hiroko's father's occupation
 <h3 class="anchored" data-anchor-id="実行した結果を観察しつぎのステップを決める">実行した結果を観察し、つぎのステップを決める</h3>
 <p>この第一ステップにより、Hirokoさんのお父さんはTakumaさんということがわかります。この中間結果を<code>intermediate_steps</code>に追加して、再度<code>llm</code>に問い合わせする必要があります。</p>
 <p>また、<code>prompt</code>と<code>llm</code>とつないて、<code>Chain</code>を作ることができます。それで中間のステップが省くことができるのて、より便利になります。</p>
-<div class="cell" data-execution_count="107">
+<div id="cell-26" class="cell" data-execution_count="107">
 <div class="sourceCode cell-code" id="cb23"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1"></a>llm_chain <span class="op">=</span> LLMChain(llm<span class="op">=</span>llm, prompt<span class="op">=</span>prompt, verbose<span class="op">=</span><span class="va">True</span>)</span>
 <span id="cb23-2"><a href="#cb23-2"></a></span>
 <span id="cb23-3"><a href="#cb23-3"></a>intermediate_steps <span class="op">=</span> [(action, observation)]</span>
@@ -652,7 +662,7 @@ Thought:
 &gt; Finished chain.</code></pre>
 </div>
 </div>
-<div class="cell" data-execution_count="108">
+<div id="cell-27" class="cell" data-execution_count="108">
 <div class="sourceCode cell-code" id="cb25"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1"></a><span class="bu">print</span>(second_step_output)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code> I need to find out what Takuma does for a living.
@@ -667,7 +677,7 @@ Final Answer: Takuma is a fisherman.</code></pre>
 <section id="終了条件" class="level3">
 <h3 class="anchored" data-anchor-id="終了条件">終了条件</h3>
 <p>これで1循環が終わりました。今までわかったこととしては、Hirokoさんのお父さんはTakumaさんということです。また、次にTakumaさんの職業を聞くことも決めました。 そのつぎのステップは今までと全く同じです。</p>
-<div class="cell" data-execution_count="112">
+<div id="cell-29" class="cell" data-execution_count="112">
 <div class="sourceCode cell-code" id="cb27"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1"></a>truncated_output <span class="op">=</span> second_step_output.split(<span class="st">"Observation:"</span>)[<span class="dv">0</span>]</span>
 <span id="cb27-2"><a href="#cb27-2"></a>action <span class="op">=</span> parser.parse(truncated_output)</span>
 <span id="cb27-3"><a href="#cb27-3"></a>observation <span class="op">=</span> tool.run(action.tool_input)</span>
@@ -713,7 +723,7 @@ Final Answer: Takuma is a teacher.</code></pre>
 </div>
 </div>
 <p>今回のアウトプットはつぎのアクションがなくて、直接<code>Observation</code>から<code>Final Answer</code>が出たので、これを<code>OutputParser</code>に渡せば<code>AgentFinish</code>を抽出できます。<code>AgentFinish</code>が抽出した時点で、全体の処理が終わります。</p>
-<div class="cell" data-execution_count="121">
+<div id="cell-31" class="cell" data-execution_count="121">
 <div class="sourceCode cell-code" id="cb29"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1"></a>action <span class="op">=</span> parser.parse(third_step_output)</span>
 <span id="cb29-2"><a href="#cb29-2"></a><span class="bu">print</span>(action)</span>
 <span id="cb29-3"><a href="#cb29-3"></a><span class="bu">print</span>()</span>
@@ -766,18 +776,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     }
     return false;
   }
-  const clipboard = new window.ClipboardJS('.code-copy-button', {
-    text: function(trigger) {
-      const codeEl = trigger.previousElementSibling.cloneNode(true);
-      for (const childEl of codeEl.children) {
-        if (isCodeAnnotation(childEl)) {
-          childEl.remove();
-        }
-      }
-      return codeEl.innerText;
-    }
-  });
-  clipboard.on('success', function(e) {
+  const onCopySuccess = function(e) {
     // button target
     const button = e.trigger;
     // don't keep focus
@@ -809,11 +808,48 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     }, 1000);
     // clear code selection
     e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
   });
-  function tippyHover(el, contentFn) {
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp("https:\/\/jiang\.jp");
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
     const config = {
       allowHTML: true,
-      content: contentFn,
       maxWidth: 500,
       delay: 100,
       arrow: false,
@@ -823,8 +859,17 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       interactive: true,
       interactiveBorder: 10,
       theme: 'quarto',
-      placement: 'bottom-start'
+      placement: 'bottom-start',
     };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
     window.tippy(el, config); 
   }
   const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
@@ -836,7 +881,129 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       try { href = new URL(href).hash; } catch {}
       const id = href.replace(/^#\/?/, "");
       const note = window.document.getElementById(id);
-      return note.innerHTML;
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
     });
   }
       let selectedAnnoteEl;
@@ -880,6 +1047,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
             }
             div.style.top = top - 2 + "px";
             div.style.height = height + 4 + "px";
+            div.style.left = 0;
             let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
             if (gutterDiv === null) {
               gutterDiv = window.document.createElement("div");
@@ -905,6 +1073,32 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
         });
         selectedAnnoteEl = undefined;
       };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
       // Attach click handler to the DT
       const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
       for (const annoteDlNode of annoteDls) {
@@ -967,6 +1161,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <script src="https://utteranc.es/client.js" repo="AlbertRapp/blogComments" issue-term="pathname" theme="github-light" crossorigin="anonymous" async="">
 </script>
 </div> <!-- /content -->
+
 
 
 

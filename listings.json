@@ -2,9 +2,10 @@
   {
     "listing": "/index.html",
     "items": [
-      "/posts/20250129_speculative_decoding/index.html",
+      "/posts/20250303_how_cline_works/index.html",
       "/posts/20250124_LLM_efficiency/index.html",
       "/posts/20240815_ai_sdk/index.html",
+      "/posts/20250129_speculative_decoding/index.html",
       "/posts/20240223_dspy_introduce/index.html",
       "/posts/20231109_multi_vector_retrieval/index.html",
       "/posts/20231014_cs224n_lecture_3/index.html",

@@ -2,14 +2,14 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.3.340">
+<meta name="generator" content="quarto-1.6.42">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="dcterms.date" content="2023-05-15">
 <meta name="description" content="本文はHyDEの概念とLangchainでのその使い方を紹介しました。また、普通のEmbedding手法、HyDE、そして本文で提案したHyDE改善案、この三者の性能を比較しました。結論としてはHyDEはそれほど有効ではないことです。少し改善すれば性能は良くなりますが、検索スピードは非常に遅いですし、コストも大幅増加するので、ほぼ実用ではない手法といえます。">
 
-<title>blog - LangChain Hypothetical Document Embeddings (HyDE) 全面解説</title>
+<title>LangChain Hypothetical Document Embeddings (HyDE) 全面解説 – blog</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -24,7 +24,7 @@ ul.task-list li input[type="checkbox"] {
 }
 /* CSS for syntax highlighting */
 pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span { line-height: 1.25; }
 pre > code.sourceCode > span:empty { height: 1.2em; }
 .sourceCode { overflow: visible; }
 code.sourceCode > span { color: inherit; text-decoration: inherit; }
@@ -35,7 +35,7 @@ div.sourceCode { overflow: auto; }
 }
 @media print {
 pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
 }
 pre.numberSource code
   { counter-reset: source-line 0; }
@@ -59,7 +59,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </style>
 
 
-<script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script><script src="../../site_libs/quarto-nav/quarto-nav.js"></script>
 <script src="../../site_libs/quarto-nav/headroom.min.js"></script>
 <script src="../../site_libs/clipboard/clipboard.min.js"></script>
 <script src="../../site_libs/quarto-search/autocomplete.umd.js"></script>
@@ -71,17 +71,23 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../../site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="../../site_libs/quarto-html/anchor.min.js"></script>
 <link href="../../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../../site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="../../site_libs/quarto-html/quarto-syntax-highlighting-2fa0555fe88427c29efa1b60aaf9e62d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../../site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<link href="../../site_libs/bootstrap/bootstrap-dd22361eb0a00faaf46e9ac2450f3ce0.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
   "collapse-after": 3,
   "panel-placement": "end",
   "type": "overlay",
-  "limit": 20,
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
   "language": {
     "search-no-results-text": "No results",
     "search-matching-documents-text": "matching documents",
@@ -90,8 +96,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     "search-more-match-text": "more match in this document",
     "search-more-matches-text": "more matches in this document",
     "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
     "search-detached-cancel-button-title": "Cancel",
-    "search-submit-button-title": "Submit"
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
   }
 }</script>
 <script async="" src="https://www.googletagmanager.com/gtag/js?id=G-56TE34D1Z4"></script>
@@ -108,7 +116,7 @@ gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
 <script src="../../site_libs/quarto-diagram/mermaid-init.js"></script>
 <link href="../../site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg==" crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script>
+
 <script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
 <script src="https://unpkg.com/@jupyter-widgets/html-manager@*/dist/embed-amd.js" crossorigin="anonymous"></script>
 
@@ -120,32 +128,32 @@ gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
 
 <div id="quarto-search-results"></div>
   <header id="quarto-header" class="headroom fixed-top">
-    <nav class="navbar navbar-expand-lg navbar-dark ">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
       <div class="navbar-container container-fluid">
-      <div class="navbar-brand-container">
+      <div class="navbar-brand-container mx-auto">
     <a class="navbar-brand" href="../../index.html">
     <span class="navbar-title">blog</span>
     </a>
   </div>
             <div id="quarto-search" class="" title="Search"></div>
-          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
   <span class="navbar-toggler-icon"></span>
 </button>
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll ms-auto">
   <li class="nav-item">
-    <a class="nav-link" href="../../about.html" rel="" target="">
- <span class="menu-text">About</span></a>
+    <a class="nav-link" href="../../about.html"> 
+<span class="menu-text">About</span></a>
   </li>  
   <li class="nav-item compact">
-    <a class="nav-link" href="http://www.linkedin.com/in/jiang-dayuan" rel="" target=""><i class="bi bi-linkedin" role="img">
+    <a class="nav-link" href="http://www.linkedin.com/in/jiang-dayuan"> <i class="bi bi-linkedin" role="img">
 </i> 
- <span class="menu-text"></span></a>
+<span class="menu-text"></span></a>
   </li>  
 </ul>
+          </div> <!-- /navcollapse -->
             <div class="quarto-navbar-tools">
 </div>
-          </div> <!-- /navcollapse -->
       </div> <!-- /container-fluid -->
     </nav>
 </header>
@@ -196,13 +204,15 @@ gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
   </div>
   
 
+
 </header>
+
 
 <section id="本文の概要" class="level2">
 <h2 class="anchored" data-anchor-id="本文の概要">本文の概要</h2>
 <p><a href="https://arxiv.org/abs/2204.07496">Hypothetical Document Embeddings (HyDE)</a>は去年提出した情報検索の精度を向上させるための手法です。</p>
 <p>本文はHyDEの概念とLangchainでのその使い方を紹介しました。また、普通のEmbedding手法、HyDE、そして本文で提案したHyDE改善案、この三者の性能を比較しました。以下はテスト結果です。</p>
-<table class="table">
+<table class="caption-top table">
 <thead>
 <tr class="header">
 <th>手法</th>
@@ -242,9 +252,10 @@ gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
 <li>QueryとDocumentのコサイン類似度を計算する</li>
 <li>コサイン類似度が一番高いDocumentを返す</li>
 </ol>
-<div class="cell">
+<div class="cell" data-layout-align="default">
 <div class="cell-output-display">
 <div>
+<p></p><figure class="figure"><p></p>
 <div>
 <pre class="mermaid mermaid-js">flowchart LR
     Input[query]--&gt;Embedding[query embedding]
@@ -260,13 +271,15 @@ gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
     CosineSimilarity2--&gt;FinalResult1[final result]
 </pre>
 </div>
+<p></p></figure><p></p>
 </div>
 </div>
 </div>
 <p>HyDEだと、<code>query embedding</code>のところに工夫しました。直接QueryをEmbeddingに変換するのではなく、まずQueryに答えるドキュメントをLLMに生成させて、生成した仮想な答案をEmbeddingに変換します。</p>
-<div class="cell">
+<div class="cell" data-layout-align="default">
 <div class="cell-output-display">
 <div>
+<p></p><figure class="figure"><p></p>
 <div>
 <pre class="mermaid mermaid-js">flowchart LR
     Input[query]--&gt;LLM
@@ -287,11 +300,12 @@ gtag('config', 'G-56TE34D1Z4', { 'anonymize_ip': true});
     style HyDE  stroke:#333,stroke-width:4px
 </pre>
 </div>
+<p></p></figure><p></p>
 </div>
 </div>
 </div>
 <p>実際にLangChainで使いましょう。</p>
-<div class="cell" data-execution_count="235">
+<div id="cell-3" class="cell" data-execution_count="235">
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1"></a><span class="im">from</span> langchain.embeddings <span class="im">import</span> OpenAIEmbeddings</span>
 <span id="cb1-2"><a href="#cb1-2"></a><span class="im">from</span> langchain.chains <span class="im">import</span> LLMChain, HypotheticalDocumentEmbedder</span>
 <span id="cb1-3"><a href="#cb1-3"></a><span class="im">from</span> langchain.prompts <span class="im">import</span> PromptTemplate</span>
@@ -354,9 +368,10 @@ Tip
 <span id="cb3-14"><a href="#cb3-14"></a>        <span class="co"># combine the embeddings by averaging</span></span>
 <span id="cb3-15"><a href="#cb3-15"></a>        <span class="cf">return</span> <span class="va">self</span>.combine_embeddings(embeddings)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <p>毎回2つ仮想な答案を生成する場合のフロー図にすると以下のようになります。</p>
-<div class="cell">
+<div class="cell" data-layout-align="default">
 <div class="cell-output-display">
 <div>
+<p></p><figure class="figure"><p></p>
 <div>
 <pre class="mermaid mermaid-js">flowchart LR
     Input([query])--&gt;llm_chain
@@ -375,7 +390,7 @@ Tip
 
 </pre>
 </div>
-<p>HypotheticalDocumentEmbedderの処理の流れ</p>
+<p></p><figcaption> HypotheticalDocumentEmbedderの処理の流れ</figcaption> </figure><p></p>
 </div>
 </div>
 </div>
@@ -385,7 +400,7 @@ Tip
 <p>HyDEは普通のEmbedding手法と比べてどのぐらい優れているかを実際に確認しましょう。</p>
 <p>使うデータは多言語質問応答データセットである「Mr.TyDi」にある日本語データです。各Queryに対して、Positive DocumentとNegative Documentが与えられています。また、Queryの内容は基本的にWikiで検索できる一般的な知識です。なので、今回のHyDEには非常に適していると思います。</p>
 <p>データはHuggingFaceのdatasetsからダウンロードします。データセットは7千件ありますが、コストを考慮して今回は100件のデータのみを使用します。また、テストする使うQueryの数は50件のみにします。つまり、50件のQueryに対して、合計200件(Pos + Neg)のドキュメントのランキングを行います。</p>
-<div class="cell">
+<div id="cell-7" class="cell">
 <div class="sourceCode cell-code" id="cb4"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1"></a><span class="im">from</span> datasets <span class="im">import</span> load_dataset</span>
 <span id="cb4-2"><a href="#cb4-2"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
 <span id="cb4-3"><a href="#cb4-3"></a><span class="co"># to load all train, dev and test sets</span></span>
@@ -395,13 +410,13 @@ Tip
 <span id="cb4-7"><a href="#cb4-7"></a>    tydi_df[col] <span class="op">=</span> tydi_df[col].<span class="bu">apply</span>(<span class="kw">lambda</span> x: x[<span class="dv">0</span>][<span class="st">"text"</span>])</span>
 <span id="cb4-8"><a href="#cb4-8"></a>tydi_df_sample <span class="op">=</span> tydi_df.iloc[:<span class="dv">50</span>,:].copy()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell" data-execution_count="288">
+<div id="cell-8" class="cell" data-execution_count="288">
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1"></a>tydi_df_sample.head(<span class="dv">2</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display" data-execution_count="288">
 <div>
 
 
-<table class="dataframe table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
+<table class="dataframe caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-border="1">
 <thead>
 <tr class="header">
 <th data-quarto-table-cell-role="th"></th>
@@ -439,7 +454,7 @@ Tip
 <li>検索にかかる時間：HyDEはLLMでテキスト生成を行なうため、検索時間が大幅に増える予想です。</li>
 </ol>
 <p>まずは、普通のEmbedding手法を使って場合のパフォーマンスをテストしてみましょう。</p>
-<div class="cell" data-execution_count="301">
+<div id="cell-10" class="cell" data-execution_count="301">
 <div class="sourceCode cell-code" id="cb6"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1"></a><span class="im">from</span> langchain.embeddings.openai <span class="im">import</span> OpenAIEmbeddings</span>
 <span id="cb6-2"><a href="#cb6-2"></a><span class="im">from</span> langchain.vectorstores <span class="im">import</span> FAISS</span>
 <span id="cb6-3"><a href="#cb6-3"></a><span class="im">from</span> tqdm.auto <span class="im">import</span> tqdm</span>
@@ -474,7 +489,7 @@ Tip
 <span id="cb6-32"><a href="#cb6-32"></a>    metadatas<span class="op">=</span>meta_datas,</span>
 <span id="cb6-33"><a href="#cb6-33"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell" data-execution_count="302">
+<div id="cell-11" class="cell" data-execution_count="302">
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1"></a>rank_list <span class="op">=</span> test(tydi_df_sample[<span class="st">"query"</span>].tolist(), vectorstore)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
 <script type="application/vnd.jupyter.widget-view+json">
@@ -482,7 +497,7 @@ Tip
 </script>
 </div>
 </div>
-<div class="cell" data-execution_count="308">
+<div id="cell-12" class="cell" data-execution_count="308">
 <div class="sourceCode cell-code" id="cb8"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1"></a><span class="bu">print</span>(<span class="ss">f"mrr: </span><span class="sc">{</span>get_mrr(rank_list)<span class="sc">:.3f}</span><span class="ss">"</span>)</span>
 <span id="cb8-2"><a href="#cb8-2"></a><span class="bu">print</span>(<span class="ss">f"correct num: </span><span class="sc">{</span>get_correct_num(rank_list)<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
@@ -492,7 +507,7 @@ correct num: 37</code></pre>
 </div>
 <p>普通のEmbedding手法だと、50件のQueryの中、37件のドキュメントを正しく返せました。MRRは0.855、また、処理時間は17秒でした。</p>
 <p>次にHyDEを使ってテストします。</p>
-<div class="cell" data-execution_count="309">
+<div id="cell-14" class="cell" data-execution_count="309">
 <div class="sourceCode cell-code" id="cb10"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1"></a><span class="im">from</span> langchain.chat_models <span class="im">import</span> ChatOpenAI</span>
 <span id="cb10-2"><a href="#cb10-2"></a>prompt_template <span class="op">=</span> <span class="st">"""質問に答えてください。</span></span>
 <span id="cb10-3"><a href="#cb10-3"></a><span class="st">質問：</span><span class="sc">{question}</span></span>
@@ -503,7 +518,7 @@ correct num: 37</code></pre>
 <span id="cb10-8"><a href="#cb10-8"></a>embeddings <span class="op">=</span> HypotheticalDocumentEmbedder(llm_chain<span class="op">=</span>llm_chain, base_embeddings<span class="op">=</span>base_embeddings)</span>
 <span id="cb10-9"><a href="#cb10-9"></a>vectorstore.embedding_function <span class="op">=</span> embeddings.embed_query</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell" data-execution_count="310">
+<div id="cell-15" class="cell" data-execution_count="310">
 <div class="sourceCode cell-code" id="cb11"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1"></a>hyde_rank_list <span class="op">=</span> test(tydi_df_sample[<span class="st">"query"</span>].tolist(), vectorstore)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
 <script type="application/vnd.jupyter.widget-view+json">
@@ -511,7 +526,7 @@ correct num: 37</code></pre>
 </script>
 </div>
 </div>
-<div class="cell" data-execution_count="312">
+<div id="cell-16" class="cell" data-execution_count="312">
 <div class="sourceCode cell-code" id="cb12"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1"></a><span class="bu">print</span>(<span class="ss">f"mrr: </span><span class="sc">{</span>get_mrr(hyde_rank_list)<span class="sc">:.3f}</span><span class="ss">"</span>)</span>
 <span id="cb12-2"><a href="#cb12-2"></a><span class="bu">print</span>(<span class="ss">f"correct num: </span><span class="sc">{</span>get_correct_num(hyde_rank_list)<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
@@ -525,7 +540,7 @@ correct num: 35</code></pre>
 <h2 class="anchored" data-anchor-id="hydeの改善">HyDEの改善</h2>
 <p>HyDEは生成した仮想な答案をEmbeddingにしていますが、逆に重要なQueryの情報を捨てています。なので、仮想な答案をEmbeddingする前にQueryの情報を仮想な答案に加えることができれば、もっとパフォーマンスを改善できると考えられます。</p>
 <p>その改善をしてみましょう。そのためには、まず<code>HypotheticalDocumentEmbedder</code>を継承したクラスを作り、<code>embed_query</code>を再定義する必要があります。</p>
-<div class="cell" data-execution_count="314">
+<div id="cell-18" class="cell" data-execution_count="314">
 <div class="sourceCode cell-code" id="cb14"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1"></a><span class="kw">class</span> HyDEWithTitle(HypotheticalDocumentEmbedder):</span>
 <span id="cb14-2"><a href="#cb14-2"></a></span>
 <span id="cb14-3"><a href="#cb14-3"></a>    <span class="kw">def</span> embed_query(<span class="va">self</span>, text: <span class="bu">str</span>):</span>
@@ -541,7 +556,7 @@ correct num: 35</code></pre>
 <span id="cb14-13"><a href="#cb14-13"></a>embeddings <span class="op">=</span> HyDEWithTitle(llm_chain<span class="op">=</span>llm_chain, base_embeddings<span class="op">=</span>base_embeddings)</span>
 <span id="cb14-14"><a href="#cb14-14"></a>vectorstore.embedding_function <span class="op">=</span> embeddings.embed_query</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<div class="cell" data-execution_count="316">
+<div id="cell-19" class="cell" data-execution_count="316">
 <div class="sourceCode cell-code" id="cb15"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1"></a>hyde_with_title_rank_list <span class="op">=</span> test(tydi_df_sample[<span class="st">"query"</span>].tolist(), vectorstore)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
 <script type="application/vnd.jupyter.widget-view+json">
@@ -552,7 +567,7 @@ correct num: 35</code></pre>
 <pre><code>Retrying langchain.chat_models.openai.ChatOpenAI.completion_with_retry.&lt;locals&gt;._completion_with_retry in 1.0 seconds as it raised RateLimitError: That model is currently overloaded with other requests. You can retry your request, or contact us through our help center at help.openai.com if the error persists. (Please include the request ID 0d85be599b6abc67a7a59f467a5101cd in your message.).</code></pre>
 </div>
 </div>
-<div class="cell" data-execution_count="317">
+<div id="cell-20" class="cell" data-execution_count="317">
 <div class="sourceCode cell-code" id="cb17"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1"></a><span class="bu">print</span>(<span class="ss">f"mrr: </span><span class="sc">{</span>get_mrr(hyde_with_title_rank_list)<span class="sc">:.3f}</span><span class="ss">"</span>)</span>
 <span id="cb17-2"><a href="#cb17-2"></a><span class="bu">print</span>(<span class="ss">f"correct num: </span><span class="sc">{</span>get_correct_num(hyde_with_title_rank_list)<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
@@ -565,7 +580,7 @@ correct num: 40</code></pre>
 <section id="まとめ" class="level2">
 <h2 class="anchored" data-anchor-id="まとめ">まとめ</h2>
 <p>HyDEは予想より精度の改善が得られなかったです。Queryを仮想な答案に追加することにより、精度は普通のEmbedding手法より上がりました。しかし、処理時間が大幅に増えてしまいました。また、今回は測っていないですが、1件あたりのコストも何倍になると思うので、実際に使う場合は、精度と処理時間、コストを総合的に考えて使う必要があります。</p>
-<table class="table">
+<table class="caption-top table">
 <thead>
 <tr class="header">
 <th>手法</th>
@@ -635,18 +650,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     }
     return false;
   }
-  const clipboard = new window.ClipboardJS('.code-copy-button', {
-    text: function(trigger) {
-      const codeEl = trigger.previousElementSibling.cloneNode(true);
-      for (const childEl of codeEl.children) {
-        if (isCodeAnnotation(childEl)) {
-          childEl.remove();
-        }
-      }
-      return codeEl.innerText;
-    }
-  });
-  clipboard.on('success', function(e) {
+  const onCopySuccess = function(e) {
     // button target
     const button = e.trigger;
     // don't keep focus
@@ -678,11 +682,48 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     }, 1000);
     // clear code selection
     e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
   });
-  function tippyHover(el, contentFn) {
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp("https:\/\/jiang\.jp");
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
     const config = {
       allowHTML: true,
-      content: contentFn,
       maxWidth: 500,
       delay: 100,
       arrow: false,
@@ -692,8 +733,17 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       interactive: true,
       interactiveBorder: 10,
       theme: 'quarto',
-      placement: 'bottom-start'
+      placement: 'bottom-start',
     };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
     window.tippy(el, config); 
   }
   const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
@@ -705,7 +755,129 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       try { href = new URL(href).hash; } catch {}
       const id = href.replace(/^#\/?/, "");
       const note = window.document.getElementById(id);
-      return note.innerHTML;
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
     });
   }
       let selectedAnnoteEl;
@@ -749,6 +921,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
             }
             div.style.top = top - 2 + "px";
             div.style.height = height + 4 + "px";
+            div.style.left = 0;
             let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
             if (gutterDiv === null) {
               gutterDiv = window.document.createElement("div");
@@ -774,6 +947,32 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
         });
         selectedAnnoteEl = undefined;
       };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
       // Attach click handler to the DT
       const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
       for (const annoteDlNode of annoteDls) {
@@ -836,6 +1035,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 <script src="https://utteranc.es/client.js" repo="AlbertRapp/blogComments" issue-term="pathname" theme="github-light" crossorigin="anonymous" async="">
 </script>
 </div> <!-- /content -->
+
 
 
 
