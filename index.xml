@@ -10,7 +10,651 @@
 <atom:link href="https://jiang.jp/index.xml" rel="self" type="application/rss+xml"/>
 <description></description>
 <generator>quarto-1.6.42</generator>
-<lastBuildDate>Tue, 04 Mar 2025 15:00:00 GMT</lastBuildDate>
+<lastBuildDate>Thu, 06 Mar 2025 15:00:00 GMT</lastBuildDate>
+<item>
+  <title>LLMエージェントの新常識「MCP」とは？開発者必見の徹底解説！</title>
+  <link>https://jiang.jp/posts/20250307_what_is_mcp/</link>
+  <description><![CDATA[ 
+
+
+
+
+<section id="tldl" class="level2">
+<h2 class="anchored" data-anchor-id="tldl">TL;DL</h2>
+<ul>
+<li><strong>MCP (Model Context Protocol) は、LLMエージェントが様々なデータソース (コンテンツ、ツールなど) に接続するためのプロトコルです。</strong></li>
+<li><strong>目的:</strong> 接続の標準化と、AIシステムの管理の簡素化。</li>
+<li><strong>ツールとの違い:</strong> MCP は<strong>プロトコル</strong>であり、ツールは MCP を通じて公開される機能の一つ。</li>
+<li><strong>従来の問題:</strong> LLM と異なるデータソースを繋ぐには、カスタム実装が必要だった。</li>
+<li><strong>MCP の利点:</strong> 標準化されたプロトコルのため、カスタム実装なしで様々なデータソースに接続可能 (REST API に類似)。</li>
+<li><strong>構成:</strong>
+<ul>
+<li><strong>MCP クライアント:</strong> LLMエージェントやアプリケーション (例: Claude Desktop、IDE)。</li>
+<li><strong>MCP サーバー:</strong> 特定のデータソースやツールに接続し、機能を公開する軽量プログラム。</li>
+</ul></li>
+<li><strong>MCP サーバーでできること:</strong>
+<ul>
+<li><strong>ツール:</strong> 実行可能な機能をクライアントに公開 (例: 計算、検索)。</li>
+<li><strong>リソース:</strong> データやコンテンツを公開。</li>
+<li>プロンプト、サンプリング、ルート (現状ではツールとリソースが主に利用)。</li>
+</ul></li>
+<li><strong>現状:</strong> 2024年11月発表の新しい技術で、発展途上。ツールとリソースアクセスが主な用途。</li>
+<li><strong>将来性:</strong> エージェントの流行に伴い、飛躍的に発展するになる可能性が高い。</li>
+</ul>
+</section>
+<section id="mcpとは" class="level2">
+<h2 class="anchored" data-anchor-id="mcpとは">MCPとは？</h2>
+<p><strong>MCP（Model Context Protocol）とは、LLMエージェントがコンテンツ、ツールなど、様々なデータソースに接続できるようにするためのプロトコルです。</strong> 単一のプロトコルで接続を標準化することで、AIシステムの管理を容易にすることを目指しています。2024年11月にAnthropicが発表して以来、MCPはCursorなどのLLMベースのアプリケーションで利用されており、LLMエージェントの発展において重要な役割を果たしています。</p>
+</section>
+<section id="mcpが解決する問題ツールとの違い" class="level2">
+<h2 class="anchored" data-anchor-id="mcpが解決する問題ツールとの違い">MCPが解決する問題（ツールとの違い）</h2>
+<p>筆者はCline（オープンソース版Cursor）でMCPのことを知りました。当初は、「わざわざ難しい名前を付けているが、これは単純にツールではないか？」と感じました。しかし、詳細に調べていくうちに、<strong>MCPはプロトコルであり、ツールとは異なる</strong>ことがわかりました。</p>
+<p>例として、二つのシナリオを考えてみましょう。</p>
+<ol type="1">
+<li><p>AさんはLlamaIndexでLLMエージェントアプリケーションを開発しています。LangChainにあるツールを利用したいのですが、それが可能かどうか不明なため、調査が必要です。</p></li>
+<li><p>BさんはTypeScriptでLLMエージェントアプリケーションを開発しています。エージェント用の検索ツールが必要ですが、LangChainのPythonライブラリには<code>duckduckgo</code>の検索ツールがあるものの、言語が異なるため利用できません。</p></li>
+</ol>
+<p>従来、このようにLLMと異なるデータソースに接続するには、それぞれカスタム実装が必要でした。しかし、MCPという標準化されたプロトコルがあれば、カスタム実装なしで、様々なデータソースに容易に接続できます（REST APIとよく似ています）。</p>
+</section>
+<section id="mcpの構成" class="level2">
+<h2 class="anchored" data-anchor-id="mcpの構成">MCPの構成</h2>
+<p>MCPはクライアント-サーバーアーキテクチャを採用しています：</p>
+<ul>
+<li><p><strong>MCPクライアント:</strong> LLMエージェントやアプリケーションで、データにアクセスするためにMCPを使用します（例: Claude Desktop、IDE、AIツール）。</p></li>
+<li><p><strong>MCPサーバー:</strong> 特定のデータソースやツールに接続し、その機能をMCPを通じて公開する軽量プログラムです（例: ファイルシステム、データベース、Webサービス）。</p></li>
+</ul>
+<p>ホストは複数のサーバーに接続でき、各サーバーが異なるデータソースへのアクセスを提供します。この設計により、AIはカスタム統合なしで多様なデータにアクセスできます。プロトコルはJSON-RPCに基づいており、多くのプログラミング言語と互換性があります。</p>
+</section>
+<section id="mcpサーバーを実際に作ってみる" class="level2">
+<h2 class="anchored" data-anchor-id="mcpサーバーを実際に作ってみる">MCPサーバーを実際に作ってみる</h2>
+<p>MCPはあくまでもプロトコルなので、プログラミング言語に関わらずサーバーを構築/アクセスすることができます。ただし、まだ発展途上であり、現在サポートされている(SDKが提供されている)言語はPython, TypeScript, Java, Kotlinです。今回はPythonで実装してみます。</p>
+<section id="環境準備" class="level3">
+<h3 class="anchored" data-anchor-id="環境準備">環境準備</h3>
+<p>Pythonでサーバーを構築する際には<code>uv</code>というパッケージ管理ツールを利用しているので、まずそれをインストールします。</p>
+<div class="sourceCode" id="cb1" style="background: #f1f3f5;"><pre class="sourceCode numberSource cmd number-lines code-with-copy"><code class="sourceCode dosbat"><span id="cb1-1">curl <span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">-LsSf</span> https:/<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">/astral</span>.sh<span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">/uv/install</span>.sh <span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">|</span> sh</span></code></pre></div>
+<p>次に再起動し、Python環境をインストールします。</p>
+<div class="sourceCode" id="cb2" style="background: #f1f3f5;"><pre class="sourceCode numberSource bash number-lines code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># 新しいプロジェクトディレクトリを作成</span></span>
+<span id="cb2-2"><span class="ex" style="color: null;
+background-color: null;
+font-style: inherit;">uv</span> init calculator</span>
+<span id="cb2-3"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">cd</span> calculator</span>
+<span id="cb2-4"></span>
+<span id="cb2-5"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># 仮想環境を作成し、アクティベート</span></span>
+<span id="cb2-6"><span class="ex" style="color: null;
+background-color: null;
+font-style: inherit;">uv</span> venv</span>
+<span id="cb2-7"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">source</span> .venv/bin/activate</span>
+<span id="cb2-8"></span>
+<span id="cb2-9"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># 依存関係をインストール</span></span>
+<span id="cb2-10"><span class="ex" style="color: null;
+background-color: null;
+font-style: inherit;">uv</span> add <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"mcp[cli]"</span></span>
+<span id="cb2-11"></span>
+<span id="cb2-12"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># サーバーファイルを作成</span></span>
+<span id="cb2-13"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">touch</span> calculator.py</span></code></pre></div>
+</section>
+<section id="サーバーロジックの実装" class="level3">
+<h3 class="anchored" data-anchor-id="サーバーロジックの実装">サーバーロジックの実装</h3>
+<p>以下のスクリプトを<code>calculator.py</code>に記述すれば完了です。これにより、入力された数式を計算し、結果を返すツールを持つMCPサーバーが作成されます。</p>
+<div class="sourceCode" id="cb3" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb3-1"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> typing <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> Any</span>
+<span id="cb3-2"></span>
+<span id="cb3-3"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> mcp.server.fastmcp <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> FastMCP</span>
+<span id="cb3-4"></span>
+<span id="cb3-5">mcp <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> FastMCP(<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"calculator"</span>)</span>
+<span id="cb3-6"></span>
+<span id="cb3-7"></span>
+<span id="cb3-8"><span class="at" style="color: #657422;
+background-color: null;
+font-style: inherit;">@mcp.tool</span>()</span>
+<span id="cb3-9"><span class="kw" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">def</span> calculator(expression: <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">str</span>) <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">-&gt;</span> Any:</span>
+<span id="cb3-10">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">"""Calculate a mathematical expression.</span></span>
+<span id="cb3-11"></span>
+<span id="cb3-12"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    Args:</span></span>
+<span id="cb3-13"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">        expression: Mathematical expression to evaluate</span></span>
+<span id="cb3-14"><span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">    """</span></span>
+<span id="cb3-15">    result <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">eval</span>(expression)</span>
+<span id="cb3-16">    <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">return</span> result</span>
+<span id="cb3-17"></span>
+<span id="cb3-18"></span>
+<span id="cb3-19"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">if</span> <span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">__name__</span> <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">==</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"__main__"</span>:</span>
+<span id="cb3-20">    <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># サーバーを初期化し、実行</span></span>
+<span id="cb3-21">    mcp.run(transport<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"stdio"</span>)</span></code></pre></div>
+<p>いかがでしょうか。PythonのLangchainでツールを作理、FastAPIでサービングすることとよく似ていませんか。</p>
+</section>
+</section>
+<section id="mcpサーバーにアクセスする" class="level2">
+<h2 class="anchored" data-anchor-id="mcpサーバーにアクセスする">MCPサーバーにアクセスする</h2>
+<section id="接続" class="level3">
+<h3 class="anchored" data-anchor-id="接続">接続</h3>
+<p>次に以下のコードを実行すれば、サーバーに接続できます。環境は任意なので、Jupyterで接続してみました。</p>
+<div class="sourceCode" id="cb4" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb4-1"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> contextlib <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> AsyncExitStack</span>
+<span id="cb4-2"></span>
+<span id="cb4-3"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> mcp <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> ClientSession, StdioServerParameters</span>
+<span id="cb4-4"><span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">from</span> mcp.client.stdio <span class="im" style="color: #00769E;
+background-color: null;
+font-style: inherit;">import</span> stdio_client</span>
+<span id="cb4-5"></span>
+<span id="cb4-6">exit_stack <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> AsyncExitStack()</span>
+<span id="cb4-7"></span>
+<span id="cb4-8">command <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"python"</span> <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># 今回はPythonでサーバーコードを記述したため</span></span>
+<span id="cb4-9">server_script_path <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"calculator.py"</span> <span class="co" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;"># サーバーコードのパス</span></span>
+<span id="cb4-10">server_params <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> StdioServerParameters(</span>
+<span id="cb4-11">    command<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>command, args<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span>[server_script_path], env<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="va" style="color: #111111;
+background-color: null;
+font-style: inherit;">None</span></span>
+<span id="cb4-12">)</span>
+<span id="cb4-13">stdio, write <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">await</span> exit_stack.enter_async_context(stdio_client(server_params))</span>
+<span id="cb4-14">session <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">await</span> exit_stack.enter_async_context(ClientSession(stdio, write))</span>
+<span id="cb4-15"><span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">await</span> session.initialize()</span></code></pre></div>
+<p>上記のコードには<code>StdioServerParameters</code>などの見慣れない要素がありますが、利用する上で特に理解する必要はないので、そのまま書けば良いです。</p>
+<p>ちなみに、接続情報としてスクリプトの言語と<code>server_script_path</code>が必要なのは、現時点ではネットワークを介したMCPサーバーへの接続がまだ開発中であり、MCPサーバーがまだローカルでしか動作しないためです。ローカルでサーバーを動作させるために、内部で言語によってサーバースクリプトを実行する方法を変えています。Pythonの場合は<code>uvx</code>、TypeScriptの場合は<code>npx</code>でサーバースクリプトを実行しています。</p>
+</section>
+<section id="リクエスト" class="level3">
+<h3 class="anchored" data-anchor-id="リクエスト">リクエスト</h3>
+<p>次にリクエストを実行してみましょう。まず、サーバー側でどのようなツールが利用可能かを確認します。</p>
+<div class="sourceCode" id="cb5" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb5-1">response <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">await</span> session.list_tools()</span>
+<span id="cb5-2">tools <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> response.tools</span>
+<span id="cb5-3"><span class="bu" style="color: null;
+background-color: null;
+font-style: inherit;">print</span>(tools[<span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">0</span>].model_dump_json(indent<span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span><span class="dv" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">4</span>))</span></code></pre></div>
+<div class="sourceCode" id="cb6" style="background: #f1f3f5;"><pre class="sourceCode numberSource json number-lines code-with-copy"><code class="sourceCode json"><span id="cb6-1"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">{</span></span>
+<span id="cb6-2">    <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">"name"</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">:</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"calculator"</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">,</span></span>
+<span id="cb6-3">    <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">"description"</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">:</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Calculate a mathematical expression.</span><span class="ch" style="color: #20794D;
+background-color: null;
+font-style: inherit;">\n\n</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">    Args:</span><span class="ch" style="color: #20794D;
+background-color: null;
+font-style: inherit;">\n</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">        expression: Mathematical expression to evaluate</span><span class="ch" style="color: #20794D;
+background-color: null;
+font-style: inherit;">\n</span><span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">    "</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">,</span></span>
+<span id="cb6-4">    <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">"inputSchema"</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">:</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">{</span></span>
+<span id="cb6-5">        <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">"properties"</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">:</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">{</span></span>
+<span id="cb6-6">            <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">"expression"</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">:</span> <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">{</span></span>
+<span id="cb6-7">                <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">"title"</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">:</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"Expression"</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">,</span></span>
+<span id="cb6-8">                <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">"type"</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">:</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"string"</span></span>
+<span id="cb6-9">            <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">}</span></span>
+<span id="cb6-10">        <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">},</span></span>
+<span id="cb6-11">        <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">"required"</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">:</span> <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">[</span></span>
+<span id="cb6-12">            <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"expression"</span></span>
+<span id="cb6-13">        <span class="ot" style="color: #003B4F;
+background-color: null;
+font-style: inherit;">]</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">,</span></span>
+<span id="cb6-14">        <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">"title"</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">:</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"calculatorArguments"</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">,</span></span>
+<span id="cb6-15">        <span class="dt" style="color: #AD0000;
+background-color: null;
+font-style: inherit;">"type"</span><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">:</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"object"</span></span>
+<span id="cb6-16">    <span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">}</span></span>
+<span id="cb6-17"><span class="fu" style="color: #4758AB;
+background-color: null;
+font-style: inherit;">}</span></span></code></pre></div>
+<p>先ほど定義した<code>calculator</code>ツールの詳細が表示されました。</p>
+<p>ツールの情報をLLMに送信すれば、LLMはユーザーのリクエストに応じてツールを呼び出し、利用することができます。例えば、LLMがユーザーから<code>4**2の結果は？</code>という質問を受け、それをツールで計算するとしましょう（今回は説明を簡潔にするためLLMの部分は省略します）。その場合、以下のようにMCPサーバーへリクエストし、結果を得ることができます。</p>
+<div class="sourceCode" id="cb7" style="background: #f1f3f5;"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb7-1">tool_name <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"calculator"</span></span>
+<span id="cb7-2">tool_args <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> {<span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"expression"</span>: <span class="st" style="color: #20794D;
+background-color: null;
+font-style: inherit;">"4**2"</span>}</span>
+<span id="cb7-3">result <span class="op" style="color: #5E5E5E;
+background-color: null;
+font-style: inherit;">=</span> <span class="cf" style="color: #003B4F;
+background-color: null;
+font-weight: bold;
+font-style: inherit;">await</span> session.call_tool(tool_name, tool_args)</span>
+<span id="cb7-4">result</span></code></pre></div>
+<div class="sourceCode" id="cb8" style="background: #f1f3f5;"><pre class="sourceCode numberSource text number-lines code-with-copy"><code class="sourceCode"><span id="cb8-1">CallToolResult(meta=None, content=[TextContent(type='text', text='16', annotations=None)], isError=False)</span></code></pre></div>
+<p>このように、利用したいツールとパラメータをサーバーに渡せば、結果が返ってきます。LLMはその結果を用いてユーザーに応答することができます。</p>
+</section>
+</section>
+<section id="ツール以外の機能" class="level2">
+<h2 class="anchored" data-anchor-id="ツール以外の機能">ツール以外の機能</h2>
+<p>ツールを利用する以外に、MCPサーバーでできることを以下にまとめました。</p>
+<ul>
+<li><p><strong>リソース (Resources):</strong> リソースは、Model Context Protocol (MCP) の中核となるプリミティブ（基本要素）であり、サーバーがデータやコンテンツを公開することを可能にします。クライアントはそれらを読み取り、LLM との対話のコンテキストとして使用できます。</p></li>
+<li><p><strong>プロンプト (Prompts):</strong> プロンプトにより、サーバーは再利用可能なプロンプトテンプレートとワークフローを定義できます。クライアントはこれらをユーザーや LLM に容易に提示できます。プロンプトは、一般的な LLM との対話を標準化し、共有するための強力な手段を提供します。</p></li>
+<li><p><strong>ツール (Tools):</strong> ツールは MCP の強力なプリミティブであり、サーバーが実行可能な機能をクライアントに公開できるようにします。ツールを通じて、LLM は外部システムと対話し、計算を実行し、現実世界でアクションを起こすことができます。</p></li>
+<li><p><strong>サンプリング (Sampling):</strong> サンプリングは強力な MCP 機能であり、サーバーがクライアントを通じて LLM の補完を要求できるようにします。これにより、セキュリティとプライバシーを維持しながら、高度なエージェント的動作が可能になります。</p></li>
+<li><p><strong>ルート (Roots):</strong> ルートは MCP の概念であり、サーバーが動作できる境界を定義します。クライアントがサーバーに関連リソースとその場所を通知するための手段を提供します。</p></li>
+</ul>
+<p>5つの機能がありますが、残念ながら、現時点ではツール使用とリソースアクセスとしての利用がほとんどです。以下は各クライアントがサポートする機能をまとめたものです。</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 10%">
+<col style="width: 10%">
+<col style="width: 10%">
+<col style="width: 10%">
+<col style="width: 10%">
+<col style="width: 10%">
+<col style="width: 35%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Client</th>
+<th style="text-align: center;">Resources</th>
+<th style="text-align: center;">Prompts</th>
+<th style="text-align: center;">Tools</th>
+<th style="text-align: center;">Sampling</th>
+<th style="text-align: center;">Roots</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Claude Desktop App</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td>Full support for all MCP features</td>
+</tr>
+<tr class="even">
+<td>5ire</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td>Supports tools.</td>
+</tr>
+<tr class="odd">
+<td>BeeAI Framework</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td>Supports tools in agentic workflows.</td>
+</tr>
+<tr class="even">
+<td>Cline</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td>Supports tools and resources.</td>
+</tr>
+<tr class="odd">
+<td>Continue</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td>Full support for all MCP features</td>
+</tr>
+<tr class="even">
+<td>Cursor</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td>Supports tools.</td>
+</tr>
+<tr class="odd">
+<td>Emacs Mcp</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td>Supports tools in Emacs.</td>
+</tr>
+<tr class="even">
+<td>Firebase Genkit</td>
+<td style="text-align: center;">⚠️</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td>Supports resource list and lookup through tools.</td>
+</tr>
+<tr class="odd">
+<td>GenAIScript</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td>Supports tools.</td>
+</tr>
+<tr class="even">
+<td>Goose</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td>Supports tools.</td>
+</tr>
+<tr class="odd">
+<td>LibreChat</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td>Supports tools for Agents</td>
+</tr>
+<tr class="even">
+<td>mcp-agent</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">⚠️</td>
+<td style="text-align: center;">❌</td>
+<td>Supports tools, server connection management, and agent workflows.</td>
+</tr>
+<tr class="odd">
+<td>Roo Code</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td>Supports tools and resources.</td>
+</tr>
+<tr class="even">
+<td>Sourcegraph Cody</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td>Supports resources through OpenCTX</td>
+</tr>
+<tr class="odd">
+<td>Superinterface</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td>Supports tools</td>
+</tr>
+<tr class="even">
+<td>TheiaAI/TheiaIDE</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td>Supports tools for Agents in Theia AI and the AI-powered Theia IDE</td>
+</tr>
+<tr class="odd">
+<td>Windsurf Editor</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td>Supports tools with AI Flow for collaborative development.</td>
+</tr>
+<tr class="even">
+<td>Zed</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td>Prompts appear as slash commands</td>
+</tr>
+<tr class="odd">
+<td>[OpenSumi][OpenSumi]</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">✅</td>
+<td style="text-align: center;">❌</td>
+<td style="text-align: center;">❌</td>
+<td>Supports tools in OpenSumi</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="まとめ" class="level2">
+<h2 class="anchored" data-anchor-id="まとめ">まとめ</h2>
+<p>改めて、MCP(Model Context Protocol)はLLMとリソースのコミュニケーションを円滑にするための<strong>プロトコル</strong>です。SNS等で言及されているMCPは、実際にはMCPサーバーを指していることが多いです。2024年の11月に提唱され、まだ4ヶ月しか経っていない、生まれたばかりの技術です。ツール、リソースなどの機能がありますが、まだ発展途上のため、十分に活用されていません。しかし、エージェントが注目され始めている現在の状況から見ると、今できているツールの部分が全部MCPサーバーに代替されるでしょう。</p>
+</section>
+<section id="もっと知りたい方へ" class="level2">
+<h2 class="anchored" data-anchor-id="もっと知りたい方へ">もっと知りたい方へ</h2>
+<ul>
+<li><a href="https://www.anthropic.com/news/model-context-protocol">Introducing the Model Context Protocol</a></li>
+<li><a href="https://modelcontextprotocol.io/introduction">MCPの公式ドキュメント</a></li>
+<li><a href="https://github.com/modelcontextprotocol/python-sdk">MCPのpython SDK</a></li>
+</ul>
+
+
+</section>
+
+ ]]></description>
+  <category>LLMs</category>
+  <category>Agent</category>
+  <guid>https://jiang.jp/posts/20250307_what_is_mcp/</guid>
+  <pubDate>Thu, 06 Mar 2025 15:00:00 GMT</pubDate>
+</item>
 <item>
   <title>Cline - AIのコーディングアシスタントの仕組みを徹底解説</title>
   <link>https://jiang.jp/posts/20250303_how_cline_works/</link>
@@ -12977,109 +13621,6 @@ font-style: inherit;">"word_token_ratio_gpt3"</span>].mean()</span></code></pre>
   <category>LangChain</category>
   <guid>https://jiang.jp/posts/20230505_tiktoken/</guid>
   <pubDate>Thu, 04 May 2023 15:00:00 GMT</pubDate>
-</item>
-<item>
-  <title>InPars light 論文解読</title>
-  <link>https://jiang.jp/posts/20230502_inpars_light/</link>
-  <description><![CDATA[ 
-
-
-
-
-<p>InPars-lightは、無料で利用可能な言語モデルBLOOMをランキングモデルを使用し、1000個ではなく100個の候補レコードを再ランクしした。 先行研究の主要な知見を再現するだけでなく、Consistency checkingとAll-domain pre-trainingを組み合わせることで、非常に効率的で小型なモデルMiniLM-L6-30Mを訓練し、すべてのデータセットでBM25を上回る性能を達成した。最後に、大きなDeBERTA-v3-435Mモデルを使用して、7倍大きなMonoT5-3Bの性能をほぼマッチさせることができた。</p>
-<p>論文URL：&lt;https://arxiv.org/abs/2301.02998&gt;</p>
-<section id="introduction" class="level1">
-<h1>1 Introduction</h1>
-<p>IR領域でのニューラルモデルを学習させるためには、大量なラベリングしたデータが必要である。データラベリングのコストが非常に高い：Document-Queryのペアが関連するかを判断するには1分以上かかる。一個のQueryについては通常50件以上のドキュメントを見る必要がある。そのため、最近の研究は主にラベリングデータを生成することに集中している。</p>
-<p>一方、今までの研究はお主にLLMsを使っていて、費用対効果が良くない。また、GPT3のようなLLMsはAPIのみアクセスしかできない。その2つの問題を解決するためには、この論文はInParsを再現し、改善を行った。</p>
-<p>InParsがmonoT5-3Bとmonot5-220Mを使ったが、この論文は30MのLMと435MのDebertaを使って同等レベルの結果を得られた。Inparsは上位1000件のドキュメントをRerankしたが、この論文は100件のみRerankしている。</p>
-<p>この論文は以下のResearch Questionを提起した：</p>
-<ol type="1">
-<li>情報検索（IR）能力は、単に大規模なnext-token-prediction学習から生まれるか。</li>
-<li>データ生成においてOpen sourceのモデルは同じサイズのGPT3より劣るか。</li>
-<li>一致性検査(Consistency checking)はほんとに有用か。</li>
-<li>より小さいBertモデルでMonoT5-3Bを置換する場合は同じ性能を出せるか</li>
-<li>30Mの小さいLMを使う場合はBM25に勝てるか。</li>
-</ol>
-<p>結果：</p>
-<p>1&amp;2: BLOOMやGPT-JのようなOpen source LLMは同等サイズなGPT3より高性能の同時に、コストが1/10のみ。</p>
-<p>3: 一致性検査はいつも有効である。</p>
-<p>4&amp;5：InParsのやり方だと小さいモデルは使えない。一方、全部のデータゼットで前学習し、さらに生成したデータでFine-Tuningした30MのモデルがいつもBM25よりよい結果を出した。</p>
-<section id="related-work" class="level2">
-<h2 class="anchored" data-anchor-id="related-work">2 Related Work</h2>
-<p>UPR: 3BのLLMをRerankとして使った。第一段階で取り出したドキュメントに対して”please write a question for this document”でQueyrを生成するLog probabiltyを計算し、それでRerankをしている。(LLMを学習させる際にLossの計算と同じやり方)</p>
-<p>その他、InPars-v1、InPars-v2、Promptagator、HyDEが紹介された。以前の論文紹介で詳細を書いたため、今回は割愛する。</p>
-</section>
-<section id="methods" class="level2">
-<h2 class="anchored" data-anchor-id="methods">3 Methods</h2>
-<p>この論文も2段階の検索を使った。まずBM25で大量なDocumentから関連するDocumentをフィルタリングする。そのつぎにニューラルモデルでRerankする。</p>
-<p>RerankはCross-encoderを利用した。具体的に以下の3種類なものがある。</p>
-<ol type="1">
-<li>MiniLM-L6(30M)</li>
-<li>ERNIE-v2(335M)</li>
-<li>DeBERTA-v3(435M)</li>
-</ol>
-<p>ERNIEとDeBERTAを利用した理由としては、今2つのモデルはMS MARCOで強い結果を出したことがある。</p>
-<p>Inparsと同じように各データセットに対して100kのQueryを生成した。生成したQueryとDocumentのペアでRerankerを学習させ、それを使ってConsistency checkingをした。Consistency checkingをする時に、生成したQueryで検索をかけて、生成元のDocumentがTop-Kにないとそれを捨てる。Kについては、1でも良いが、3のほうが精度が高かった。</p>
-<p>また、面白いのは、Consistency checkingでフィルタリングしたデータとLog Probabilityでフィルタリングしたデータは20〜30%のみ共通している。</p>
-<p>Rerankerを学習させる際に、まず生成した全データで学習させ、その上で、フィルタリングしたデータでFine-Tuningを行った。</p>
-<p>この研究でMiniMLに対して、まずすべてのデータセットで生成したすべてのデータで学習し、さらにすべてのデータセットのフィルタリングしたデータでFine-Tuningしたが、過学習した。</p>
-<p>実装する際に、FlexNeuARTのフレームワークを使った。モデルを学習させる際にInfoNCE Lossを使った。各Queryに対してNegative sampleを、BM25で検索できた上位1000件の中から3つサンプリングした。</p>
-<p>各モデルについて、3つのSeedで3回学習し、結果の平均値をとった。結果の有意性のチェックはpaired two-sided t-testを使った。大きいデータセットだと0.01の閾値を使った。小さいデータセットだと、0.05の閾値を使った。</p>
-<p>Promptの作り方はInParsが使った一般的なやり方と同じ。Queryを生成する際に、最大Token数を32に設定した。</p>
-</section>
-<section id="データセット" class="level2">
-<h2 class="anchored" data-anchor-id="データセット">4 データセット</h2>
-<p>InPars[4]の主要結果を再現するために、同じクエリとデータセットを使用した。MS MARCO以外のデータセットは「ir_datasets」というツールを利用して処理した。</p>
-<p>InParsの論文で提供したGithubにGPT-3 Curieモデルで生成されたクエリと、それを生成するための文書が提供されている。これにより、GPT-3 CurieとオープンソースモデルGPT-J、BLOOMで生成されたQueryの品質を比較できる。クエリの生成コストがまだ高いため、他のオープンソースモデルの検討は将来の課題である。</p>
-</section>
-<section id="results" class="level2">
-<h2 class="anchored" data-anchor-id="results">5 Results</h2>
-<section id="main-results" class="level3">
-<h3 class="anchored" data-anchor-id="main-results">5.1 Main Results</h3>
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="https://jiang.jp/posts/20230502_inpars_light/images/paste-1.png" class="img-fluid figure-img" alt="main results"></p>
-<figcaption>main results</figcaption>
-</figure>
-</div>
-<p><strong>BM25</strong> この論文は使うフィールドについて少し調整したが、InParsの結果と大きく変わらない。</p>
-<p><strong>教師なし学習</strong> 今回使ったDeBERTA-v3-435Mは以前のMonoT5-3Bの性能と同じ。また今回提案したMiniLM-L6-30MはInParsのものT5-220M相当な性能を出している。</p>
-<p><strong>Consistency checkingとall-domain pre-training</strong> 両方とも良い影響を与えることがわかる。Deberta-v3-435Mに対してAll-domain pre-trainingが逆効果があるが、理由が不明。</p>
-<p><strong>教師あり学習</strong> 今回提案した2つのモデルの性能がいまいち。</p>
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="https://jiang.jp/posts/20230502_inpars_light/images/paste-3.png" class="img-fluid figure-img" alt="model performance"></p>
-<figcaption>model performance</figcaption>
-</figure>
-</div>
-<p>Queryを生成するLLMモデルの比較について、オープンソースのGPT-JとBLOOMはOpen AI Curieよりよい性能を出している。</p>
-<p>また、Rerankerについては、Deberta-v3-435MはERNIE-v2-335Mよりよいことがわかる。</p>
-</section>
-<section id="cost-and-efficiency" class="level3">
-<h3 class="anchored" data-anchor-id="cost-and-efficiency">5.2 Cost and Efficiency</h3>
-<p>RTX3039を使う場合は：</p>
-<ol type="1">
-<li>MiniLM-L6-30Mの推論のThroughputは1秒500ドキュメント(LLM各ドキュメントの長さは477キャラクター以下)、そのため、100ドキュメントをRerankする場合は1秒かからない。</li>
-<li>MiniLM-L6-30Mを全データセットで前学習しても2時間しかかからない。一方、Deberta-v3-435Mは28時間かかる。</li>
-<li>all-domain pre-trainingをする際に、一番時間がかかる操作はMS MARCOのような大きいなデータセットのバリデーションとConsistency checking。Deberta-v3-435MでMS MARCOでのバリデーション時間は6時間、Consistency checkingだと48時間かかった。</li>
-<li>Query生成の時間：100kのQueryを生成するためには15時間がかかる。</li>
-</ol>
-</section>
-</section>
-<section id="section" class="level2">
-<h2 class="anchored" data-anchor-id="section"></h2>
-
-
-</section>
-</section>
-
- ]]></description>
-  <category>NLP</category>
-  <category>Information_retrieval</category>
-  <category>paper</category>
-  <guid>https://jiang.jp/posts/20230502_inpars_light/</guid>
-  <pubDate>Mon, 01 May 2023 15:00:00 GMT</pubDate>
 </item>
 </channel>
 </rss>

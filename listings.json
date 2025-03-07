@@ -2,6 +2,7 @@
   {
     "listing": "/index.html",
     "items": [
+      "/posts/20250307_what_is_mcp/index.html",
       "/posts/20250303_how_cline_works/index.html",
       "/posts/20250124_LLM_efficiency/index.html",
       "/posts/20240815_ai_sdk/index.html",
