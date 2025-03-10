@@ -63,6 +63,12 @@
 <li><p><strong>MCPクライアント:</strong> LLMエージェントやアプリケーションで、データにアクセスするためにMCPを使用します（例: Claude Desktop、IDE、AIツール）。</p></li>
 <li><p><strong>MCPサーバー:</strong> 特定のデータソースやツールに接続し、その機能をMCPを通じて公開する軽量プログラムです（例: ファイルシステム、データベース、Webサービス）。</p></li>
 </ul>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="https://jiang.jp/posts/20250307_what_is_mcp/images/General-architecture.png" class="img-fluid figure-img" alt="General architecture" width="642"></p>
+<figcaption>General architecture</figcaption>
+</figure>
+</div>
 <p>ホストは複数のサーバーに接続でき、各サーバーが異なるデータソースへのアクセスを提供します。この設計により、AIはカスタム統合なしで多様なデータにアクセスできます。プロトコルはJSON-RPCに基づいており、多くのプログラミング言語と互換性があります。</p>
 </section>
 <section id="mcpサーバーを実際に作ってみる" class="level2">
@@ -440,13 +446,13 @@ font-style: inherit;">await</span> session.call_tool(tool_name, tool_args)</span
 <p>5つの機能がありますが、残念ながら、現時点ではツール使用とリソースアクセスとしての利用がほとんどです。以下は各クライアントがサポートする機能をまとめたものです。</p>
 <table class="caption-top table">
 <colgroup>
-<col style="width: 10%">
-<col style="width: 10%">
-<col style="width: 10%">
-<col style="width: 10%">
-<col style="width: 10%">
-<col style="width: 10%">
-<col style="width: 35%">
+<col style="width: 13%">
+<col style="width: 13%">
+<col style="width: 13%">
+<col style="width: 13%">
+<col style="width: 13%">
+<col style="width: 13%">
+<col style="width: 21%">
 </colgroup>
 <thead>
 <tr class="header">
