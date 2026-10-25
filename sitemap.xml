@@ -1,111 +1,111 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://jiang.jp/about.html</loc>
+    <loc>https://www.jiang.jp/about.html</loc>
     <lastmod>2025-02-01T03:12:13.913Z</lastmod>
   </url>
   <url>
-    <loc>https://jiang.jp/posts/20231013_cs224n_lecture_2/index.html</loc>
+    <loc>https://www.jiang.jp/posts/20231013_cs224n_lecture_2/index.html</loc>
     <lastmod>2025-02-01T03:12:14.010Z</lastmod>
   </url>
   <url>
-    <loc>https://jiang.jp/posts/20230501_inpars_v2/index.html</loc>
+    <loc>https://www.jiang.jp/posts/20230501_inpars_v2/index.html</loc>
     <lastmod>2025-02-01T03:12:13.931Z</lastmod>
   </url>
   <url>
-    <loc>https://jiang.jp/posts/20240223_dspy_introduce/index.html</loc>
+    <loc>https://www.jiang.jp/posts/20240223_dspy_introduce/index.html</loc>
     <lastmod>2025-02-01T03:12:14.029Z</lastmod>
   </url>
   <url>
-    <loc>https://jiang.jp/posts/20230502_inpars_light/index.html</loc>
+    <loc>https://www.jiang.jp/posts/20230502_inpars_light/index.html</loc>
     <lastmod>2025-02-01T03:12:13.933Z</lastmod>
   </url>
   <url>
-    <loc>https://jiang.jp/posts/20230518_grammar_checker/index.html</loc>
+    <loc>https://www.jiang.jp/posts/20230518_grammar_checker/index.html</loc>
     <lastmod>2025-02-01T03:12:13.936Z</lastmod>
   </url>
   <url>
-    <loc>https://jiang.jp/posts/20250307_what_is_mcp/index.html</loc>
+    <loc>https://www.jiang.jp/posts/20250307_what_is_mcp/index.html</loc>
     <lastmod>2025-03-10T01:01:28.289Z</lastmod>
   </url>
   <url>
-    <loc>https://jiang.jp/posts/20230429_promptagator/index.html</loc>
+    <loc>https://www.jiang.jp/posts/20230429_promptagator/index.html</loc>
     <lastmod>2025-02-01T03:12:13.927Z</lastmod>
   </url>
   <url>
-    <loc>https://jiang.jp/posts/20230510_hyde_detailed/index.html</loc>
+    <loc>https://www.jiang.jp/posts/20230510_hyde_detailed/index.html</loc>
     <lastmod>2025-02-01T03:12:13.933Z</lastmod>
   </url>
   <url>
-    <loc>https://jiang.jp/posts/20250129_speculative_decoding/index.html</loc>
+    <loc>https://www.jiang.jp/posts/20250129_speculative_decoding/index.html</loc>
     <lastmod>2025-02-01T03:12:14.035Z</lastmod>
   </url>
   <url>
-    <loc>https://jiang.jp/posts/20230505_LangChain_basic/index.html</loc>
+    <loc>https://www.jiang.jp/posts/20230505_LangChain_basic/index.html</loc>
     <lastmod>2025-02-01T03:12:13.933Z</lastmod>
   </url>
   <url>
-    <loc>https://jiang.jp/posts/20230523_speech_foundation_models_part1/index.html</loc>
+    <loc>https://www.jiang.jp/posts/20230523_speech_foundation_models_part1/index.html</loc>
     <lastmod>2025-02-01T03:12:13.957Z</lastmod>
   </url>
   <url>
-    <loc>https://jiang.jp/posts/20230509_react/index.html</loc>
+    <loc>https://www.jiang.jp/posts/20230509_react/index.html</loc>
     <lastmod>2025-02-01T03:12:13.933Z</lastmod>
   </url>
   <url>
-    <loc>https://jiang.jp/posts/20240815_ai_sdk/index.html</loc>
+    <loc>https://www.jiang.jp/posts/20240815_ai_sdk/index.html</loc>
     <lastmod>2025-02-01T03:12:14.031Z</lastmod>
   </url>
   <url>
-    <loc>https://jiang.jp/posts/20231014_cs224n_lecture_3/index.html</loc>
+    <loc>https://www.jiang.jp/posts/20231014_cs224n_lecture_3/index.html</loc>
     <lastmod>2025-02-01T03:12:14.029Z</lastmod>
   </url>
   <url>
-    <loc>https://jiang.jp/posts/20230513_azure_openai/index.html</loc>
+    <loc>https://www.jiang.jp/posts/20230513_azure_openai/index.html</loc>
     <lastmod>2025-02-01T03:12:13.934Z</lastmod>
   </url>
   <url>
-    <loc>https://jiang.jp/posts/20231109_multi_vector_retrieval/index.html</loc>
+    <loc>https://www.jiang.jp/posts/20231109_multi_vector_retrieval/index.html</loc>
     <lastmod>2025-02-01T03:12:14.029Z</lastmod>
   </url>
   <url>
-    <loc>https://jiang.jp/posts/20230601_embedding_benchmark/index.html</loc>
+    <loc>https://www.jiang.jp/posts/20230601_embedding_benchmark/index.html</loc>
     <lastmod>2025-02-01T03:12:13.979Z</lastmod>
   </url>
   <url>
-    <loc>https://jiang.jp/posts/20250303_how_cline_works/index.html</loc>
+    <loc>https://www.jiang.jp/posts/20250303_how_cline_works/index.html</loc>
     <lastmod>2025-03-05T06:39:40.334Z</lastmod>
   </url>
   <url>
-    <loc>https://jiang.jp/posts/20230430_HyDE/index.html</loc>
+    <loc>https://www.jiang.jp/posts/20230430_HyDE/index.html</loc>
     <lastmod>2025-02-01T03:12:13.930Z</lastmod>
   </url>
   <url>
-    <loc>https://jiang.jp/posts/20230611_retreiver/index.html</loc>
+    <loc>https://www.jiang.jp/posts/20230611_retreiver/index.html</loc>
     <lastmod>2025-02-01T03:12:13.981Z</lastmod>
   </url>
   <url>
-    <loc>https://jiang.jp/posts/20230523_speech_foundation_models_part2/index.html</loc>
+    <loc>https://www.jiang.jp/posts/20230523_speech_foundation_models_part2/index.html</loc>
     <lastmod>2025-02-01T03:12:13.979Z</lastmod>
   </url>
   <url>
-    <loc>https://jiang.jp/posts/20230428_inpars/index.html</loc>
+    <loc>https://www.jiang.jp/posts/20230428_inpars/index.html</loc>
     <lastmod>2025-02-01T03:12:13.920Z</lastmod>
   </url>
   <url>
-    <loc>https://jiang.jp/posts/20230505_tiktoken/index.html</loc>
+    <loc>https://www.jiang.jp/posts/20230505_tiktoken/index.html</loc>
     <lastmod>2025-02-01T03:12:13.933Z</lastmod>
   </url>
   <url>
-    <loc>https://jiang.jp/posts/20231011_cs224n_lecture_1/index.html</loc>
+    <loc>https://www.jiang.jp/posts/20231011_cs224n_lecture_1/index.html</loc>
     <lastmod>2025-02-01T03:12:13.994Z</lastmod>
   </url>
   <url>
-    <loc>https://jiang.jp/posts/20250124_LLM_efficiency/index.html</loc>
+    <loc>https://www.jiang.jp/posts/20250124_LLM_efficiency/index.html</loc>
     <lastmod>2025-02-01T03:12:14.034Z</lastmod>
   </url>
   <url>
-    <loc>https://jiang.jp/index.html</loc>
+    <loc>https://www.jiang.jp/index.html</loc>
     <lastmod>2025-02-01T03:12:13.914Z</lastmod>
   </url>
 </urlset>
