@@ -1,5 +1,6 @@
 project:
   type: website
+  post-render: fix-sitemap.py
 
 website:
   title: "blog"
